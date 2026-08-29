@@ -1,0 +1,16 @@
+{
+  "showTitle": "FOCO AUDIOVISUAL",
+  "showSubtitle": "Concurso de conocimientos audiovisuales",
+  "playerAName": "Vale",
+  "playerBName": "Nico",
+  "mode": "duel",
+  "activePlayer": "A",
+  "duelRule": "fastest",
+  "timerSeconds": 30,
+  "prizeMap": {
+    "easy": 250000,
+    "medium": 500000,
+    "hard": 1000000,
+    "impossible": 10000000
+  }
+}

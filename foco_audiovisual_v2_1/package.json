@@ -1,0 +1,1 @@
+{"name":"foco-audiovisual-v21","version":"2.1.0","private":true,"scripts":{"start":"node server.js","test":"node test/api.test.js"},"engines":{"node":">=18"}}
