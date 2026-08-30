@@ -1,0 +1,2018 @@
+[
+  {
+    "id": "cam_easy_1",
+    "category": "Cámara",
+    "difficulty": "easy",
+    "text": "¿Qué ajuste modifica la sensibilidad electrónica de la cámara a la luz?",
+    "options": [
+      "Apertura",
+      "ISO",
+      "Shutter angle",
+      "Balance de blancos"
+    ],
+    "correctIndex": 1,
+    "hint": "No cambia físicamente la cantidad de luz que entra por el lente."
+  },
+  {
+    "id": "cam_easy_1_pool2",
+    "category": "Cámara",
+    "difficulty": "easy",
+    "text": "¿Qué control determina cuánto tiempo queda expuesto cada fotograma en una cámara con obturador expresado en velocidad?",
+    "options": [
+      "ISO",
+      "Velocidad de obturación",
+      "Ganancia",
+      "Temperatura de color"
+    ],
+    "correctIndex": 1,
+    "hint": "Se expresa normalmente como 1/50, 1/100, etc."
+  },
+  {
+    "id": "cam_med_1",
+    "category": "Cámara",
+    "difficulty": "medium",
+    "text": "En 25 fps, ¿qué velocidad de obturación aproxima un obturador de 180°?",
+    "options": [
+      "1/25 s",
+      "1/50 s",
+      "1/100 s",
+      "1/200 s"
+    ],
+    "correctIndex": 1,
+    "hint": "Con 180°, el tiempo de exposición es aproximadamente la mitad del intervalo de un fotograma."
+  },
+  {
+    "id": "cam_med_1_pool2",
+    "category": "Cámara",
+    "difficulty": "medium",
+    "text": "En 30 fps, ¿qué velocidad de obturación aproxima un obturador de 180°?",
+    "options": [
+      "1/30 s",
+      "1/60 s",
+      "1/90 s",
+      "1/120 s"
+    ],
+    "correctIndex": 1,
+    "hint": "Duplica aproximadamente la frecuencia de cuadro."
+  },
+  {
+    "id": "cam_hard_1",
+    "category": "Cámara",
+    "difficulty": "hard",
+    "text": "¿Qué efecto visual suele producir un rolling shutter durante un paneo muy rápido?",
+    "options": [
+      "Banding de audio",
+      "Líneas verticales inclinadas",
+      "Mayor profundidad de campo",
+      "Posterización cromática"
+    ],
+    "correctIndex": 1,
+    "hint": "El sensor no lee todas las filas exactamente al mismo tiempo."
+  },
+  {
+    "id": "cam_hard_1_pool2",
+    "category": "Cámara",
+    "difficulty": "hard",
+    "text": "¿Qué fenómeno de rolling shutter puede deformar objetos que giran rápidamente, como hélices?",
+    "options": [
+      "Skew o deformación temporal",
+      "Focus breathing",
+      "Moiré de luminancia",
+      "Vignetting"
+    ],
+    "correctIndex": 0,
+    "hint": "Las distintas filas del sensor se capturan en instantes ligeramente distintos."
+  },
+  {
+    "id": "cam_imp_1",
+    "category": "Cámara",
+    "difficulty": "impossible",
+    "text": "En una señal 4:2:2, ¿qué componente conserva la resolución horizontal completa de muestreo?",
+    "options": [
+      "Solo la crominancia",
+      "La luminancia",
+      "Ninguna",
+      "El canal alfa"
+    ],
+    "correctIndex": 1,
+    "hint": "La notación compara muestras de luminancia con muestras de crominancia."
+  },
+  {
+    "id": "cam_imp_1_pool2",
+    "category": "Cámara",
+    "difficulty": "impossible",
+    "text": "En una señal 4:2:0, respecto de 4:4:4, ¿qué información se reduce principalmente?",
+    "options": [
+      "Frecuencia de cuadro",
+      "Resolución de crominancia",
+      "Profundidad de bits",
+      "Rango dinámico"
+    ],
+    "correctIndex": 1,
+    "hint": "El submuestreo afecta principalmente la información de color."
+  },
+  {
+    "id": "snd_easy_1",
+    "category": "Sonido",
+    "difficulty": "easy",
+    "text": "¿Qué tipo de micrófono se usa habitualmente en una pértiga para aislar diálogo en rodaje?",
+    "options": [
+      "Shotgun",
+      "Micrófono de contacto",
+      "Boundary",
+      "Piezoeléctrico"
+    ],
+    "correctIndex": 0,
+    "hint": "Su patrón es altamente direccional."
+  },
+  {
+    "id": "snd_easy_1_pool2",
+    "category": "Sonido",
+    "difficulty": "easy",
+    "text": "¿Qué accesorio ayuda principalmente a reducir ruido de viento fuerte en un micrófono de pértiga?",
+    "options": [
+      "Pop filter de estudio",
+      "Blimp o zeppelin",
+      "DI box",
+      "Patchbay"
+    ],
+    "correctIndex": 1,
+    "hint": "Rodea físicamente al micrófono y suele combinarse con pelo sintético."
+  },
+  {
+    "id": "snd_med_1",
+    "category": "Sonido",
+    "difficulty": "medium",
+    "text": "¿Qué ocurre al aumentar 6 dB aproximadamente en una señal de voltaje/amplitud?",
+    "options": [
+      "Se duplica la amplitud",
+      "Se reduce a la mitad",
+      "Se cuadruplica siempre",
+      "No cambia"
+    ],
+    "correctIndex": 0,
+    "hint": "20·log10(2) es aproximadamente 6 dB."
+  },
+  {
+    "id": "snd_med_1_pool2",
+    "category": "Sonido",
+    "difficulty": "medium",
+    "text": "¿Para qué se usa principalmente una claqueta en un rodaje con audio separado?",
+    "options": [
+      "Medir SPL",
+      "Sincronizar imagen y sonido",
+      "Ajustar white balance",
+      "Eliminar reverberación"
+    ],
+    "correctIndex": 1,
+    "hint": "El golpe proporciona una referencia visual y sonora."
+  },
+  {
+    "id": "snd_hard_1",
+    "category": "Sonido",
+    "difficulty": "hard",
+    "text": "¿Qué ley explica que, en campo libre, al duplicar la distancia a una fuente puntual el nivel caiga aproximadamente 6 dB?",
+    "options": [
+      "Ley del inverso del cuadrado",
+      "Efecto Doppler",
+      "Ley de Snell",
+      "Teorema de Nyquist"
+    ],
+    "correctIndex": 0,
+    "hint": "La energía se distribuye sobre un área cada vez mayor."
+  },
+  {
+    "id": "snd_hard_1_pool2",
+    "category": "Sonido",
+    "difficulty": "hard",
+    "text": "¿Qué problema aparece cuando dos micrófonos captan la misma fuente con pequeños desfases temporales y luego se suman?",
+    "options": [
+      "Aliasing visual",
+      "Filtrado de peine",
+      "Clipping de lente",
+      "Focus breathing"
+    ],
+    "correctIndex": 1,
+    "hint": "Las frecuencias se refuerzan y cancelan de manera periódica."
+  },
+  {
+    "id": "snd_imp_1",
+    "category": "Sonido",
+    "difficulty": "impossible",
+    "text": "Según Nyquist, para representar teóricamente una frecuencia de 20 kHz sin aliasing, la frecuencia de muestreo debe ser:",
+    "options": [
+      "Menor que 20 kHz",
+      "Exactamente 20 kHz",
+      "Mayor que 40 kHz",
+      "Independiente de la frecuencia"
+    ],
+    "correctIndex": 2,
+    "hint": "Debe superar el doble de la frecuencia máxima."
+  },
+  {
+    "id": "snd_imp_1_pool2",
+    "category": "Sonido",
+    "difficulty": "impossible",
+    "text": "¿Qué profundidad de bits ofrece teóricamente mayor rango dinámico de cuantización en PCM lineal?",
+    "options": [
+      "8 bits",
+      "16 bits",
+      "24 bits",
+      "Todas igual"
+    ],
+    "correctIndex": 2,
+    "hint": "Cada bit adicional aumenta el número de niveles disponibles."
+  },
+  {
+    "id": "edit_easy_1",
+    "category": "Montaje",
+    "difficulty": "easy",
+    "text": "¿Qué corte salta directamente entre dos planos sin transición óptica añadida?",
+    "options": [
+      "Corte directo",
+      "Dissolve",
+      "Wipe",
+      "Fade"
+    ],
+    "correctIndex": 0,
+    "hint": "Es la transición más básica del montaje."
+  },
+  {
+    "id": "edit_easy_1_pool2",
+    "category": "Montaje",
+    "difficulty": "easy",
+    "text": "¿Qué transición superpone gradualmente el final de un plano con el inicio del siguiente?",
+    "options": [
+      "Jump cut",
+      "Dissolve",
+      "Smash cut",
+      "Insert"
+    ],
+    "correctIndex": 1,
+    "hint": "Ambas imágenes conviven brevemente durante la transición."
+  },
+  {
+    "id": "edit_med_1",
+    "category": "Montaje",
+    "difficulty": "medium",
+    "text": "¿Qué regla ayuda a mantener la orientación espacial en una conversación entre dos personajes?",
+    "options": [
+      "Regla de 180°",
+      "Regla de los tercios",
+      "Ley de reciprocidad",
+      "Regla de 30 fps"
+    ],
+    "correctIndex": 0,
+    "hint": "Se basa en no cruzar arbitrariamente el eje de acción."
+  },
+  {
+    "id": "edit_med_1_pool2",
+    "category": "Montaje",
+    "difficulty": "medium",
+    "text": "¿Qué tipo de corte conecta dos planos por una similitud visual o de movimiento?",
+    "options": [
+      "Match cut",
+      "L-cut",
+      "J-cut",
+      "Fade to black"
+    ],
+    "correctIndex": 0,
+    "hint": "La continuidad proviene de una correspondencia entre ambos planos."
+  },
+  {
+    "id": "edit_hard_1",
+    "category": "Montaje",
+    "difficulty": "hard",
+    "text": "En un J-cut, ¿qué elemento del plano siguiente entra antes del cambio de imagen?",
+    "options": [
+      "El audio",
+      "La imagen",
+      "Los subtítulos",
+      "La corrección de color"
+    ],
+    "correctIndex": 0,
+    "hint": "La forma de la edición en la timeline recuerda a la letra J."
+  },
+  {
+    "id": "edit_hard_1_pool2",
+    "category": "Montaje",
+    "difficulty": "hard",
+    "text": "En un L-cut, ¿qué elemento del plano anterior continúa después de cambiar la imagen?",
+    "options": [
+      "El audio",
+      "La imagen",
+      "El timecode",
+      "La máscara"
+    ],
+    "correctIndex": 0,
+    "hint": "El sonido se prolonga sobre el plano siguiente."
+  },
+  {
+    "id": "edit_imp_1",
+    "category": "Montaje",
+    "difficulty": "impossible",
+    "text": "¿Qué describe principalmente el efecto Kuleshov?",
+    "options": [
+      "La percepción de significado creada por la yuxtaposición de planos",
+      "Una técnica de compresión",
+      "Una regla de iluminación",
+      "Un formato de timecode"
+    ],
+    "correctIndex": 0,
+    "hint": "El contexto de los planos vecinos altera cómo interpretamos una misma expresión."
+  },
+  {
+    "id": "edit_imp_1_pool2",
+    "category": "Montaje",
+    "difficulty": "impossible",
+    "text": "¿Qué término describe insertar brevemente un plano de detalle dentro de una acción principal para aportar información?",
+    "options": [
+      "Insert",
+      "Master shot",
+      "Whip pan",
+      "Rack focus"
+    ],
+    "correctIndex": 0,
+    "hint": "Suele mostrar un objeto, gesto o detalle relevante."
+  },
+  {
+    "id": "photo_easy_1",
+    "category": "Fotografía",
+    "difficulty": "easy",
+    "text": "¿Qué apertura deja entrar más luz, manteniendo todo lo demás igual?",
+    "options": [
+      "f/2",
+      "f/4",
+      "f/8",
+      "f/16"
+    ],
+    "correctIndex": 0,
+    "hint": "Un número f menor corresponde a una abertura mayor."
+  },
+  {
+    "id": "photo_easy_1_pool2",
+    "category": "Fotografía",
+    "difficulty": "easy",
+    "text": "¿Qué variable suele aumentar la profundidad de campo al cerrar el diafragma?",
+    "options": [
+      "Usar un número f mayor",
+      "Subir ISO",
+      "Bajar frame rate",
+      "Cambiar white balance"
+    ],
+    "correctIndex": 0,
+    "hint": "Cerrar el diafragma hace mayor el número f."
+  },
+  {
+    "id": "photo_med_1",
+    "category": "Fotografía",
+    "difficulty": "medium",
+    "text": "Si pasas de f/2.8 a f/4, ¿qué ocurre con la exposición?",
+    "options": [
+      "Entra aproximadamente el doble de luz",
+      "Entra aproximadamente la mitad de luz",
+      "No cambia",
+      "Aumenta dos pasos"
+    ],
+    "correctIndex": 1,
+    "hint": "Es aproximadamente un paso de diferencia."
+  },
+  {
+    "id": "photo_med_1_pool2",
+    "category": "Fotografía",
+    "difficulty": "medium",
+    "text": "Si pasas de ISO 400 a ISO 800 manteniendo lo demás, ¿cuántos pasos aumentas la sensibilidad nominal?",
+    "options": [
+      "Medio paso",
+      "Un paso",
+      "Dos pasos",
+      "Cuatro pasos"
+    ],
+    "correctIndex": 1,
+    "hint": "Duplicar ISO equivale aproximadamente a un paso."
+  },
+  {
+    "id": "photo_hard_1",
+    "category": "Fotografía",
+    "difficulty": "hard",
+    "text": "¿Qué fenómeno describe el cambio aparente de encuadre o ángulo de visión al variar el foco en ciertos lentes?",
+    "options": [
+      "Focus breathing",
+      "Chromatic aberration",
+      "Rolling shutter",
+      "Banding"
+    ],
+    "correctIndex": 0,
+    "hint": "El lente parece 'respirar' durante un rack focus."
+  },
+  {
+    "id": "photo_hard_1_pool2",
+    "category": "Fotografía",
+    "difficulty": "hard",
+    "text": "¿Qué aberración produce bordes de distintos colores alrededor de zonas de alto contraste?",
+    "options": [
+      "Aberración cromática",
+      "Astigmatismo temporal",
+      "Clipping",
+      "Posterización"
+    ],
+    "correctIndex": 0,
+    "hint": "Distintas longitudes de onda no convergen exactamente igual."
+  },
+  {
+    "id": "photo_imp_1",
+    "category": "Fotografía",
+    "difficulty": "impossible",
+    "text": "¿Qué característica física determina principalmente la perspectiva geométrica de una toma?",
+    "options": [
+      "La distancia cámara-sujeto",
+      "La distancia focal por sí sola",
+      "El ISO",
+      "El codec"
+    ],
+    "correctIndex": 0,
+    "hint": "La focal cambia el encuadre; la perspectiva cambia al mover la cámara."
+  },
+  {
+    "id": "photo_imp_1_pool2",
+    "category": "Fotografía",
+    "difficulty": "impossible",
+    "text": "Si dos cámaras están exactamente en la misma posición y encuadran igual mediante recorte, ¿qué ocurre con la perspectiva geométrica?",
+    "options": [
+      "Cambia por la focal",
+      "Permanece esencialmente igual",
+      "Depende del ISO",
+      "Se invierte"
+    ],
+    "correctIndex": 1,
+    "hint": "La perspectiva depende de la posición relativa cámara-escena."
+  },
+  {
+    "id": "script_easy_1",
+    "category": "Guion",
+    "difficulty": "easy",
+    "text": "En un guion audiovisual, ¿qué encabezado identifica normalmente lugar y momento de una escena?",
+    "options": [
+      "Slugline o encabezado de escena",
+      "Acotación musical",
+      "Logline",
+      "Crédito"
+    ],
+    "correctIndex": 0,
+    "hint": "Suele incluir INT./EXT., lugar y DÍA/NOCHE."
+  },
+  {
+    "id": "script_easy_1_pool2",
+    "category": "Guion",
+    "difficulty": "easy",
+    "text": "¿Qué es una logline?",
+    "options": [
+      "Una frase breve que resume el conflicto central de una historia",
+      "Una lista de planos",
+      "Un contrato de actor",
+      "Una pista de audio"
+    ],
+    "correctIndex": 0,
+    "hint": "Presenta de forma concisa protagonista, objetivo/conflicto y gancho."
+  },
+  {
+    "id": "script_med_1",
+    "category": "Guion",
+    "difficulty": "medium",
+    "text": "¿Qué diferencia básica hay entre objetivo y necesidad de un personaje?",
+    "options": [
+      "El objetivo es lo que busca; la necesidad es lo que debe aprender o transformar",
+      "Son exactamente lo mismo",
+      "La necesidad siempre es material",
+      "El objetivo solo existe en comedia"
+    ],
+    "correctIndex": 0,
+    "hint": "Uno suele ser consciente y externo; el otro puede ser interno."
+  },
+  {
+    "id": "script_med_1_pool2",
+    "category": "Guion",
+    "difficulty": "medium",
+    "text": "¿Qué función cumple normalmente un punto de giro?",
+    "options": [
+      "Cambiar de forma significativa la dirección del conflicto",
+      "Ajustar exposición de cámara",
+      "Marcar un corte de audio",
+      "Indicar vestuario"
+    ],
+    "correctIndex": 0,
+    "hint": "Reorienta la acción y empuja la historia hacia una nueva fase."
+  },
+  {
+    "id": "script_hard_1",
+    "category": "Guion",
+    "difficulty": "hard",
+    "text": "¿Qué término describe información dramática que el público conoce pero un personaje ignora?",
+    "options": [
+      "Ironía dramática",
+      "Elipsis",
+      "MacGuffin",
+      "Deus ex machina"
+    ],
+    "correctIndex": 0,
+    "hint": "La tensión proviene de la diferencia de conocimiento."
+  },
+  {
+    "id": "script_hard_1_pool2",
+    "category": "Guion",
+    "difficulty": "hard",
+    "text": "¿Qué es un MacGuffin en narrativa?",
+    "options": [
+      "Un elemento que impulsa la trama aunque su naturaleza concreta pueda ser secundaria",
+      "Un error de continuidad",
+      "Un tipo de plano",
+      "Un monólogo final"
+    ],
+    "correctIndex": 0,
+    "hint": "Importa sobre todo porque motiva a los personajes y mueve la acción."
+  },
+  {
+    "id": "script_imp_1",
+    "category": "Guion",
+    "difficulty": "impossible",
+    "text": "¿Qué concepto de narratología distingue el orden cronológico de los acontecimientos del orden en que son presentados?",
+    "options": [
+      "Historia y discurso",
+      "ISO y shutter",
+      "Plano y contraplano",
+      "Tema y LUT"
+    ],
+    "correctIndex": 0,
+    "hint": "Una cosa es lo que ocurrió; otra, cómo el relato organiza esa información."
+  },
+  {
+    "id": "script_imp_1_pool2",
+    "category": "Guion",
+    "difficulty": "impossible",
+    "text": "¿Qué recurso altera el orden temporal regresando a un acontecimiento previo de la historia?",
+    "options": [
+      "Analepsis",
+      "Prolepsis",
+      "Elipsis sonora",
+      "Raccord"
+    ],
+    "correctIndex": 0,
+    "hint": "Es el término narratológico para un flashback."
+  },
+  {
+    "id": "prod_easy_1",
+    "category": "Producción",
+    "difficulty": "easy",
+    "text": "¿Qué documento organiza las escenas que se rodarán durante una jornada?",
+    "options": [
+      "Plan de rodaje",
+      "LUT",
+      "Waveform",
+      "Storyboard sonoro"
+    ],
+    "correctIndex": 0,
+    "hint": "Ordena el trabajo diario de producción."
+  },
+  {
+    "id": "prod_easy_1_pool2",
+    "category": "Producción",
+    "difficulty": "easy",
+    "text": "¿Qué documento suele indicar hora de citación, locación y necesidades principales de una jornada de rodaje?",
+    "options": [
+      "Call sheet / hoja de llamado",
+      "EDL",
+      "Cue sheet de color",
+      "DCP"
+    ],
+    "correctIndex": 0,
+    "hint": "Se distribuye al equipo antes de la jornada."
+  },
+  {
+    "id": "prod_med_1",
+    "category": "Producción",
+    "difficulty": "medium",
+    "text": "¿Por qué un plan de rodaje no suele seguir estrictamente el orden del guion?",
+    "options": [
+      "Para agrupar locaciones, actores y recursos de forma eficiente",
+      "Porque el guion no tiene escenas",
+      "Para cambiar el frame rate",
+      "Para evitar continuidad"
+    ],
+    "correctIndex": 0,
+    "hint": "La logística manda sobre el orden narrativo."
+  },
+  {
+    "id": "prod_med_1_pool2",
+    "category": "Producción",
+    "difficulty": "medium",
+    "text": "¿Qué función cumple principalmente un desglose de guion en producción?",
+    "options": [
+      "Identificar recursos necesarios por escena",
+      "Corregir color",
+      "Sincronizar audio",
+      "Calcular shutter angle"
+    ],
+    "correctIndex": 0,
+    "hint": "Permite detectar elenco, utilería, vestuario, efectos, locaciones, etc."
+  },
+  {
+    "id": "prod_hard_1",
+    "category": "Producción",
+    "difficulty": "hard",
+    "text": "¿Qué significa normalmente 'turnaround' en planificación de rodaje?",
+    "options": [
+      "El descanso mínimo entre el fin de una jornada y la siguiente citación",
+      "Una transición de cámara",
+      "Un giro de guion",
+      "Un cambio de lente"
+    ],
+    "correctIndex": 0,
+    "hint": "Busca asegurar un intervalo de descanso entre jornadas."
+  },
+  {
+    "id": "prod_hard_1_pool2",
+    "category": "Producción",
+    "difficulty": "hard",
+    "text": "¿Qué es una 'company move' en un plan de rodaje?",
+    "options": [
+      "Traslado de la unidad completa a otra locación",
+      "Cambio de codec",
+      "Cambio de actor en plano",
+      "Movimiento de dolly"
+    ],
+    "correctIndex": 0,
+    "hint": "Implica mover equipo, personal y operación a otro lugar."
+  },
+  {
+    "id": "prod_imp_1",
+    "category": "Producción",
+    "difficulty": "impossible",
+    "text": "En continuidad de producción, ¿qué documento registra tomas, observaciones y decisiones para facilitar montaje y raccord?",
+    "options": [
+      "Informe de script/continuidad",
+      "Balance sheet",
+      "LUT log",
+      "Patch list"
+    ],
+    "correctIndex": 0,
+    "hint": "Lo completa normalmente continuidad/script supervisor."
+  },
+  {
+    "id": "prod_imp_1_pool2",
+    "category": "Producción",
+    "difficulty": "impossible",
+    "text": "¿Qué información es especialmente crítica al registrar una toma para postproducción?",
+    "options": [
+      "Número de escena/plano/toma y valoración de la toma",
+      "Solo el color del vestuario",
+      "Solo la hora del almuerzo",
+      "Solo el ISO"
+    ],
+    "correctIndex": 0,
+    "hint": "Permite identificar y localizar el material correcto en montaje."
+  },
+  {
+    "id": "cine_easy_1",
+    "category": "Cine",
+    "difficulty": "easy",
+    "text": "¿Qué es un plano secuencia?",
+    "options": [
+      "Una toma prolongada que desarrolla una secuencia sin cortes visibles",
+      "Una serie de fotografías fijas",
+      "Un tráiler",
+      "Un plano exclusivamente cenital"
+    ],
+    "correctIndex": 0,
+    "hint": "La continuidad temporal se mantiene dentro de la misma toma."
+  },
+  {
+    "id": "cine_easy_1_pool2",
+    "category": "Cine",
+    "difficulty": "easy",
+    "text": "¿Qué plano muestra habitualmente a un personaje desde aproximadamente la cintura hacia arriba?",
+    "options": [
+      "Plano medio",
+      "Gran plano general",
+      "Plano detalle",
+      "Plano cenital"
+    ],
+    "correctIndex": 0,
+    "hint": "Es uno de los encuadres más comunes para diálogo."
+  },
+  {
+    "id": "cine_med_1",
+    "category": "Cine",
+    "difficulty": "medium",
+    "text": "¿Qué movimiento gira la cámara horizontalmente desde una posición fija?",
+    "options": [
+      "Paneo",
+      "Tilt",
+      "Dolly",
+      "Zoom"
+    ],
+    "correctIndex": 0,
+    "hint": "La cámara rota sobre su eje vertical."
+  },
+  {
+    "id": "cine_med_1_pool2",
+    "category": "Cine",
+    "difficulty": "medium",
+    "text": "¿Qué movimiento inclina la cámara hacia arriba o abajo desde una posición fija?",
+    "options": [
+      "Tilt",
+      "Paneo",
+      "Truck",
+      "Roll focus"
+    ],
+    "correctIndex": 0,
+    "hint": "Es una rotación vertical."
+  },
+  {
+    "id": "cine_hard_1",
+    "category": "Cine",
+    "difficulty": "hard",
+    "text": "¿Qué diferencia esencial existe entre dolly-in y zoom-in?",
+    "options": [
+      "El dolly mueve físicamente la cámara; el zoom cambia la focal",
+      "Son idénticos",
+      "El zoom mueve al actor",
+      "El dolly solo cambia ISO"
+    ],
+    "correctIndex": 0,
+    "hint": "Mover la cámara modifica relaciones espaciales y perspectiva."
+  },
+  {
+    "id": "cine_hard_1_pool2",
+    "category": "Cine",
+    "difficulty": "hard",
+    "text": "¿Qué efecto visual puede producir combinar un dolly y un zoom en sentidos opuestos?",
+    "options": [
+      "Dolly zoom",
+      "Jump cut",
+      "Rack focus",
+      "Whip dissolve"
+    ],
+    "correctIndex": 0,
+    "hint": "Puede mantener el tamaño del sujeto mientras cambia la perspectiva del fondo."
+  },
+  {
+    "id": "cine_imp_1",
+    "category": "Cine",
+    "difficulty": "impossible",
+    "text": "¿Qué relación de aspecto es aproximadamente 2.39:1?",
+    "options": [
+      "Scope panorámico cinematográfico",
+      "4:3",
+      "16:9",
+      "1:1"
+    ],
+    "correctIndex": 0,
+    "hint": "Es una relación panorámica muy habitual en cine."
+  },
+  {
+    "id": "cine_imp_1_pool2",
+    "category": "Cine",
+    "difficulty": "impossible",
+    "text": "¿Qué relación de aspecto corresponde aproximadamente a 1.33:1?",
+    "options": [
+      "4:3",
+      "16:9",
+      "2.39:1",
+      "9:16"
+    ],
+    "correctIndex": 0,
+    "hint": "Fue una relación histórica muy común en cine y televisión."
+  },
+  {
+    "id": "post_easy_1",
+    "category": "Postproducción",
+    "difficulty": "easy",
+    "text": "¿Qué proceso ajusta el aspecto cromático y tonal final de una pieza audiovisual?",
+    "options": [
+      "Corrección/etalonaje de color",
+      "Foley",
+      "Casting",
+      "Blocking"
+    ],
+    "correctIndex": 0,
+    "hint": "Trabaja exposición, contraste, balance y look."
+  },
+  {
+    "id": "post_easy_1_pool2",
+    "category": "Postproducción",
+    "difficulty": "easy",
+    "text": "¿Qué herramienta permite aplicar una transformación de color predefinida mediante una tabla de consulta?",
+    "options": [
+      "LUT",
+      "Boom",
+      "Slate",
+      "Storyboard"
+    ],
+    "correctIndex": 0,
+    "hint": "Sus siglas significan Look-Up Table."
+  },
+  {
+    "id": "post_med_1",
+    "category": "Postproducción",
+    "difficulty": "medium",
+    "text": "¿Qué estándar de color se usa comúnmente para televisión HDTV SDR?",
+    "options": [
+      "Rec. 709",
+      "ACEScg",
+      "Adobe RGB",
+      "ProPhoto RGB"
+    ],
+    "correctIndex": 0,
+    "hint": "Es la referencia habitual para HDTV SDR."
+  },
+  {
+    "id": "post_med_1_pool2",
+    "category": "Postproducción",
+    "difficulty": "medium",
+    "text": "¿Qué monitor de forma de onda ayuda a evaluar niveles de luminancia de una imagen?",
+    "options": [
+      "Waveform",
+      "Vectorscope exclusivamente de audio",
+      "Histogram de sonido",
+      "Patchbay"
+    ],
+    "correctIndex": 0,
+    "hint": "Representa niveles de señal a lo largo de la imagen."
+  },
+  {
+    "id": "post_hard_1",
+    "category": "Postproducción",
+    "difficulty": "hard",
+    "text": "¿Qué diferencia principal hay entre edición online y offline en un flujo tradicional?",
+    "options": [
+      "Offline prioriza montaje con medios ligeros; online conforma y finaliza con medios de calidad",
+      "No existe diferencia",
+      "Online solo usa audio",
+      "Offline solo usa VFX"
+    ],
+    "correctIndex": 0,
+    "hint": "La separación permite editar con proxies y finalizar con originales."
+  },
+  {
+    "id": "post_hard_1_pool2",
+    "category": "Postproducción",
+    "difficulty": "hard",
+    "text": "¿Qué es un proxy en postproducción?",
+    "options": [
+      "Una copia de menor peso/resolución para facilitar edición",
+      "Una copia de seguridad idéntica obligatoria",
+      "Un micrófono",
+      "Una LUT de monitor"
+    ],
+    "correctIndex": 0,
+    "hint": "Se enlaza luego con los medios de mayor calidad para conformado."
+  },
+  {
+    "id": "post_imp_1",
+    "category": "Postproducción",
+    "difficulty": "impossible",
+    "text": "En gestión de color, ¿qué describe una transformación de espacio de color?",
+    "options": [
+      "Conversión controlada entre representaciones cromáticas y de transferencia",
+      "Un cambio de frame rate",
+      "Una compresión de audio",
+      "Un recorte de encuadre"
+    ],
+    "correctIndex": 0,
+    "hint": "Convierte datos entre espacios/gammas definidos."
+  },
+  {
+    "id": "post_imp_1_pool2",
+    "category": "Postproducción",
+    "difficulty": "impossible",
+    "text": "¿Qué espacio de trabajo de ACES está diseñado para composición y CGI lineal de amplio gamut?",
+    "options": [
+      "ACEScg",
+      "Rec. 601",
+      "sRGB IEC61966-2-1",
+      "CMYK"
+    ],
+    "correctIndex": 0,
+    "hint": "ACEScg es común en VFX/CGI por su gamut y transferencia lineal."
+  },
+  {
+    "id": "cam_easy_2",
+    "category": "Cámara",
+    "difficulty": "easy",
+    "text": "¿Para qué sirve principalmente el balance de blancos?",
+    "options": [
+      "Ajustar la reproducción de colores según la iluminación",
+      "Cambiar la velocidad de cuadro",
+      "Controlar el enfoque",
+      "Modificar la focal"
+    ],
+    "correctIndex": 0,
+    "hint": "Compensa el color dominante de la fuente de luz."
+  },
+  {
+    "id": "cam_easy_2_pool2",
+    "category": "Cámara",
+    "difficulty": "easy",
+    "text": "¿Qué significa grabar a 25 fps?",
+    "options": [
+      "25 píxeles por segundo",
+      "25 fotogramas por segundo",
+      "25 bits por fotograma",
+      "25 canales de audio"
+    ],
+    "correctIndex": 1,
+    "hint": "fps significa frames per second."
+  },
+  {
+    "id": "cam_easy_3",
+    "category": "Cámara",
+    "difficulty": "easy",
+    "text": "¿Cuál de estos lentes ofrece normalmente un ángulo de visión más amplio en el mismo sensor?",
+    "options": [
+      "24 mm",
+      "50 mm",
+      "85 mm",
+      "135 mm"
+    ],
+    "correctIndex": 0,
+    "hint": "Una distancia focal menor suele abarcar más escena."
+  },
+  {
+    "id": "cam_easy_3_pool2",
+    "category": "Cámara",
+    "difficulty": "easy",
+    "text": "¿Para qué se usa un filtro ND en cámara?",
+    "options": [
+      "Reducir la cantidad de luz sin cambiar el color de forma importante",
+      "Aumentar el enfoque automático",
+      "Subir el ISO",
+      "Cambiar la relación de aspecto"
+    ],
+    "correctIndex": 0,
+    "hint": "Funciona como 'lentes de sol' para la cámara."
+  },
+  {
+    "id": "cam_med_2",
+    "category": "Cámara",
+    "difficulty": "medium",
+    "text": "¿Para qué se utilizan las zebras en muchas cámaras de video?",
+    "options": [
+      "Como ayuda para evaluar niveles de exposición",
+      "Para sincronizar audio",
+      "Para estabilizar ópticamente",
+      "Para medir distancia focal"
+    ],
+    "correctIndex": 0,
+    "hint": "Superponen líneas sobre zonas que alcanzan un nivel de señal configurado."
+  },
+  {
+    "id": "cam_med_2_pool2",
+    "category": "Cámara",
+    "difficulty": "medium",
+    "text": "¿Qué herramienta muestra la distribución de luminancia de izquierda a derecha de la imagen?",
+    "options": [
+      "Waveform",
+      "Vectorscope",
+      "Claqueta",
+      "Peaking"
+    ],
+    "correctIndex": 0,
+    "hint": "Es una referencia objetiva de niveles de imagen."
+  },
+  {
+    "id": "cam_med_3",
+    "category": "Cámara",
+    "difficulty": "medium",
+    "text": "Manteniendo encuadre y exposición, ¿qué suele reducir la profundidad de campo?",
+    "options": [
+      "Abrir el diafragma",
+      "Cerrar el diafragma",
+      "Usar un número f mayor",
+      "Alejar mucho el sujeto y enfocar a infinito"
+    ],
+    "correctIndex": 0,
+    "hint": "Un número f menor suele producir menos zona nítida."
+  },
+  {
+    "id": "cam_med_3_pool2",
+    "category": "Cámara",
+    "difficulty": "medium",
+    "text": "¿Qué ayuda visual resalta bordes enfocados en muchas cámaras digitales?",
+    "options": [
+      "Focus peaking",
+      "Zebra",
+      "Histograma de audio",
+      "Timecode"
+    ],
+    "correctIndex": 0,
+    "hint": "Marca zonas de alto contraste local asociadas al foco."
+  },
+  {
+    "id": "cam_hard_2",
+    "category": "Cámara",
+    "difficulty": "hard",
+    "text": "¿Qué ventaja ofrece un global shutter frente a un rolling shutter en movimiento rápido?",
+    "options": [
+      "Reduce deformaciones temporales entre filas del sensor",
+      "Aumenta siempre la resolución",
+      "Elimina todo ruido electrónico",
+      "Duplica el rango dinámico"
+    ],
+    "correctIndex": 0,
+    "hint": "Expone o captura el fotograma de forma mucho más simultánea."
+  },
+  {
+    "id": "cam_hard_2_pool2",
+    "category": "Cámara",
+    "difficulty": "hard",
+    "text": "¿Qué describe un codec Intra-frame?",
+    "options": [
+      "Comprime cada fotograma de forma relativamente independiente",
+      "Solo guarda cambios entre GOP largos",
+      "No usa compresión",
+      "Solo funciona con audio"
+    ],
+    "correctIndex": 0,
+    "hint": "Cada frame puede decodificarse sin depender de muchos frames vecinos."
+  },
+  {
+    "id": "snd_easy_2",
+    "category": "Sonido",
+    "difficulty": "easy",
+    "text": "¿Qué conector profesional de audio balanceado es común en micrófonos y grabadoras?",
+    "options": [
+      "XLR",
+      "HDMI",
+      "BNC de video",
+      "USB-A exclusivamente"
+    ],
+    "correctIndex": 0,
+    "hint": "Suele tener tres pines para audio analógico balanceado."
+  },
+  {
+    "id": "snd_easy_2_pool2",
+    "category": "Sonido",
+    "difficulty": "easy",
+    "text": "¿Para qué sirve monitorear con audífonos durante una grabación?",
+    "options": [
+      "Detectar problemas reales de la señal capturada",
+      "Cambiar el color de cámara",
+      "Aumentar la potencia del micrófono",
+      "Sincronizar automáticamente video"
+    ],
+    "correctIndex": 0,
+    "hint": "Permite oír ruido, roce, clipping o fallas antes de terminar la toma."
+  },
+  {
+    "id": "snd_easy_3",
+    "category": "Sonido",
+    "difficulty": "easy",
+    "text": "¿Qué hace principalmente un operador de boom?",
+    "options": [
+      "Posiciona el micrófono de pértiga cerca de la fuente sin entrar en cuadro",
+      "Maneja exclusivamente luces",
+      "Edita el guion",
+      "Opera el switcher"
+    ],
+    "correctIndex": 0,
+    "hint": "Su objetivo es obtener diálogo limpio con buena posición de microfonía."
+  },
+  {
+    "id": "snd_easy_3_pool2",
+    "category": "Sonido",
+    "difficulty": "easy",
+    "text": "¿Qué es el room tone en un rodaje?",
+    "options": [
+      "Una grabación del ambiente sonoro del lugar sin diálogo principal",
+      "Una canción de referencia",
+      "El tono de calibración de cámara",
+      "Una pista MIDI"
+    ],
+    "correctIndex": 0,
+    "hint": "Ayuda a construir continuidad sonora en montaje."
+  },
+  {
+    "id": "snd_med_2",
+    "category": "Sonido",
+    "difficulty": "medium",
+    "text": "¿Qué frecuencia de muestreo es estándar habitual en producción audiovisual?",
+    "options": [
+      "44,1 kHz exclusivamente",
+      "48 kHz",
+      "12 kHz",
+      "192 Hz"
+    ],
+    "correctIndex": 1,
+    "hint": "Video y cine suelen trabajar comúnmente a 48 kHz."
+  },
+  {
+    "id": "snd_med_2_pool2",
+    "category": "Sonido",
+    "difficulty": "medium",
+    "text": "¿Qué ocurre cuando una señal digital supera el nivel máximo representable?",
+    "options": [
+      "Clipping",
+      "Doppler",
+      "Focus breathing",
+      "Crossfade"
+    ],
+    "correctIndex": 0,
+    "hint": "Los picos quedan recortados y la distorsión puede ser irreversible."
+  },
+  {
+    "id": "snd_med_3",
+    "category": "Sonido",
+    "difficulty": "medium",
+    "text": "¿Qué proporciona normalmente la alimentación phantom de 48 V?",
+    "options": [
+      "Energía a ciertos micrófonos de condensador a través del cable balanceado",
+      "Mayor volumen a parlantes pasivos",
+      "Sincronía de timecode",
+      "Compresión automática"
+    ],
+    "correctIndex": 0,
+    "hint": "Viaja por las mismas líneas balanceadas de audio."
+  },
+  {
+    "id": "snd_med_3_pool2",
+    "category": "Sonido",
+    "difficulty": "medium",
+    "text": "¿Qué problema es típico al ocultar un lavalier bajo ropa mal montada?",
+    "options": [
+      "Ruido de roce",
+      "Rolling shutter",
+      "Moiré",
+      "Banding de luz"
+    ],
+    "correctIndex": 0,
+    "hint": "El contacto del tejido con la cápsula o cable puede contaminar el diálogo."
+  },
+  {
+    "id": "snd_hard_2",
+    "category": "Sonido",
+    "difficulty": "hard",
+    "text": "En una técnica Mid-Side (M/S), ¿qué combinación de micrófonos se usa conceptualmente?",
+    "options": [
+      "Un canal Mid y un canal Side bidireccional",
+      "Dos lavaliers omnidireccionales sin matriz",
+      "Un solo shotgun mono",
+      "Cuatro micrófonos de contacto"
+    ],
+    "correctIndex": 0,
+    "hint": "Luego se matrizizan para obtener izquierda y derecha."
+  },
+  {
+    "id": "snd_hard_2_pool2",
+    "category": "Sonido",
+    "difficulty": "hard",
+    "text": "¿Qué ventaja práctica puede ofrecer una grabación dual-system con timecode compartido?",
+    "options": [
+      "Facilitar la sincronización precisa de cámaras y grabadoras",
+      "Eliminar toda reverberación",
+      "Aumentar la resolución de video",
+      "Evitar usar micrófonos"
+    ],
+    "correctIndex": 0,
+    "hint": "El código temporal común ayuda al conformado y la sincronía."
+  },
+  {
+    "id": "edit_easy_2",
+    "category": "Montaje",
+    "difficulty": "easy",
+    "text": "¿Qué es una timeline en un software de edición?",
+    "options": [
+      "El espacio donde se organizan clips en el tiempo",
+      "Un lente",
+      "Una tarjeta de memoria",
+      "Un micrófono"
+    ],
+    "correctIndex": 0,
+    "hint": "Representa la secuencia audiovisual de izquierda a derecha."
+  },
+  {
+    "id": "edit_easy_2_pool2",
+    "category": "Montaje",
+    "difficulty": "easy",
+    "text": "¿Para qué sirven los bins o carpetas dentro de un proyecto de edición?",
+    "options": [
+      "Organizar medios y secuencias",
+      "Aumentar la exposición",
+      "Cambiar el frame rate del sensor",
+      "Grabar audio"
+    ],
+    "correctIndex": 0,
+    "hint": "Ayudan a mantener ordenado el material."
+  },
+  {
+    "id": "edit_easy_3",
+    "category": "Montaje",
+    "difficulty": "easy",
+    "text": "¿Qué se entiende normalmente por B-roll?",
+    "options": [
+      "Material complementario que apoya o cubre la acción principal",
+      "El audio final mezclado",
+      "Una copia del guion",
+      "La primera toma de cada escena"
+    ],
+    "correctIndex": 0,
+    "hint": "Puede ilustrar lo que se dice o cubrir cortes."
+  },
+  {
+    "id": "edit_easy_3_pool2",
+    "category": "Montaje",
+    "difficulty": "easy",
+    "text": "¿Qué busca la continuidad de acción entre dos planos?",
+    "options": [
+      "Que el movimiento parezca continuar coherentemente",
+      "Que cambie el color de vestuario",
+      "Que cada plano tenga distinta velocidad",
+      "Que se rompa el eje siempre"
+    ],
+    "correctIndex": 0,
+    "hint": "El espectador debe percibir una acción fluida entre cortes."
+  },
+  {
+    "id": "edit_med_2",
+    "category": "Montaje",
+    "difficulty": "medium",
+    "text": "¿Qué efecto produce normalmente un jump cut dentro de una toma similar?",
+    "options": [
+      "Un salto perceptible en tiempo o posición",
+      "Una disolución suave",
+      "Un fundido a negro",
+      "Un cambio de color únicamente"
+    ],
+    "correctIndex": 0,
+    "hint": "El corte conserva suficiente similitud para que el salto se note."
+  },
+  {
+    "id": "edit_med_2_pool2",
+    "category": "Montaje",
+    "difficulty": "medium",
+    "text": "¿Para qué puede utilizarse un cutaway?",
+    "options": [
+      "Cortar a un elemento relacionado para aportar información o cubrir una edición",
+      "Cambiar el codec",
+      "Grabar voz",
+      "Ajustar white balance"
+    ],
+    "correctIndex": 0,
+    "hint": "Es un plano externo a la acción principal inmediata."
+  },
+  {
+    "id": "edit_med_3",
+    "category": "Montaje",
+    "difficulty": "medium",
+    "text": "¿Qué significa una edición de tres puntos?",
+    "options": [
+      "Definir tres de cuatro puntos In/Out entre fuente y timeline",
+      "Usar exactamente tres cámaras",
+      "Hacer tres cortes por segundo",
+      "Editar solo audio"
+    ],
+    "correctIndex": 0,
+    "hint": "Tres puntos bastan para determinar la duración o posición restante."
+  },
+  {
+    "id": "edit_med_3_pool2",
+    "category": "Montaje",
+    "difficulty": "medium",
+    "text": "¿Qué hace normalmente un ripple edit?",
+    "options": [
+      "Ajusta un corte desplazando material posterior para cerrar o abrir espacio",
+      "Solo cambia el volumen",
+      "Duplica un clip",
+      "Congela el frame"
+    ],
+    "correctIndex": 0,
+    "hint": "Modifica duración y mueve lo que viene después."
+  },
+  {
+    "id": "edit_hard_2",
+    "category": "Montaje",
+    "difficulty": "hard",
+    "text": "¿Para qué se utiliza un AAF o XML en flujos de postproducción?",
+    "options": [
+      "Intercambiar información de secuencias entre aplicaciones",
+      "Transmitir video por HDMI",
+      "Calibrar monitores",
+      "Grabar timecode LTC"
+    ],
+    "correctIndex": 0,
+    "hint": "Permite trasladar estructura de edición y referencias de medios."
+  },
+  {
+    "id": "edit_hard_2_pool2",
+    "category": "Montaje",
+    "difficulty": "hard",
+    "text": "¿Qué es el conformado en postproducción?",
+    "options": [
+      "Reconstruir la edición final enlazando medios de alta calidad según la edición aprobada",
+      "Escribir el guion",
+      "Grabar Foley",
+      "Convertir una cámara en webcam"
+    ],
+    "correctIndex": 0,
+    "hint": "Suele venir después de un offline con proxies."
+  },
+  {
+    "id": "photo_easy_2",
+    "category": "Fotografía",
+    "difficulty": "easy",
+    "text": "En temperatura de color, ¿qué fuente suele ser más cálida visualmente?",
+    "options": [
+      "Una lámpara tungsteno alrededor de 3200 K",
+      "Luz día alrededor de 5600 K",
+      "Un cielo azul profundo",
+      "Una pantalla calibrada D65"
+    ],
+    "correctIndex": 0,
+    "hint": "Un Kelvin menor suele corresponder a una fuente visualmente más cálida."
+  },
+  {
+    "id": "photo_easy_2_pool2",
+    "category": "Fotografía",
+    "difficulty": "easy",
+    "text": "¿Qué luz se denomina normalmente key light?",
+    "options": [
+      "La luz principal que modela al sujeto",
+      "La luz que siempre viene desde atrás",
+      "Una luz exclusiva de fondo",
+      "La luz del monitor"
+    ],
+    "correctIndex": 0,
+    "hint": "Es la fuente principal dentro del esquema de iluminación."
+  },
+  {
+    "id": "photo_easy_3",
+    "category": "Fotografía",
+    "difficulty": "easy",
+    "text": "¿Qué suele producir una fuente de luz grande y cercana respecto del sujeto?",
+    "options": [
+      "Sombras más suaves",
+      "Sombras siempre más duras",
+      "Menos luz necesariamente",
+      "Mayor velocidad de cuadro"
+    ],
+    "correctIndex": 0,
+    "hint": "El tamaño aparente de la fuente aumenta."
+  },
+  {
+    "id": "photo_easy_3_pool2",
+    "category": "Fotografía",
+    "difficulty": "easy",
+    "text": "¿Para qué se usa un reflector en iluminación?",
+    "options": [
+      "Redirigir luz hacia una zona o sujeto",
+      "Cambiar la focal",
+      "Grabar sonido",
+      "Sincronizar cámaras"
+    ],
+    "correctIndex": 0,
+    "hint": "Rebota luz existente sin necesitar ser una fuente electrónica."
+  },
+  {
+    "id": "photo_med_2",
+    "category": "Fotografía",
+    "difficulty": "medium",
+    "text": "Según la ley del inverso del cuadrado, ¿qué ocurre aproximadamente con la iluminancia al duplicar distancia a una fuente puntual?",
+    "options": [
+      "Cae a una cuarta parte",
+      "Se duplica",
+      "Permanece igual",
+      "Cae a la mitad exactamente"
+    ],
+    "correctIndex": 0,
+    "hint": "La intensidad es inversamente proporcional al cuadrado de la distancia."
+  },
+  {
+    "id": "photo_med_2_pool2",
+    "category": "Fotografía",
+    "difficulty": "medium",
+    "text": "¿Qué fuente suele asociarse aproximadamente a 5600 K?",
+    "options": [
+      "Luz día",
+      "Tungsteno doméstico 3200 K",
+      "Vela 1800 K",
+      "Sodio de baja presión"
+    ],
+    "correctIndex": 0,
+    "hint": "Es una referencia habitual para daylight."
+  },
+  {
+    "id": "photo_med_3",
+    "category": "Fotografía",
+    "difficulty": "medium",
+    "text": "Para comprimir visualmente distancias entre sujeto y fondo manteniendo un encuadre similar, ¿qué suele hacerse?",
+    "options": [
+      "Alejar la cámara y usar una focal más larga",
+      "Acercar la cámara con ultra gran angular",
+      "Subir ISO",
+      "Cerrar shutter"
+    ],
+    "correctIndex": 0,
+    "hint": "El cambio de perspectiva proviene de la nueva posición de cámara."
+  },
+  {
+    "id": "photo_med_3_pool2",
+    "category": "Fotografía",
+    "difficulty": "medium",
+    "text": "¿Qué ajuste influye directamente en la cantidad de desenfoque de movimiento por fotograma?",
+    "options": [
+      "Tiempo o velocidad de obturación",
+      "Balance de blancos",
+      "Resolución del monitor",
+      "Codec de audio"
+    ],
+    "correctIndex": 0,
+    "hint": "Una exposición más larga registra más desplazamiento durante cada frame."
+  },
+  {
+    "id": "photo_hard_2",
+    "category": "Fotografía",
+    "difficulty": "hard",
+    "text": "¿Qué expresa el rango dinámico de una cámara en 'stops'?",
+    "options": [
+      "La diferencia de exposición que puede registrar entre sombras y altas luces útiles",
+      "La cantidad de lentes compatibles",
+      "El tamaño físico del sensor",
+      "El número de canales de audio"
+    ],
+    "correctIndex": 0,
+    "hint": "Cada stop representa aproximadamente una duplicación de luz."
+  },
+  {
+    "id": "photo_hard_2_pool2",
+    "category": "Fotografía",
+    "difficulty": "hard",
+    "text": "¿Para qué se usa false color en monitoreo de exposición?",
+    "options": [
+      "Asignar colores a rangos de luminancia para evaluar niveles",
+      "Simular película automáticamente",
+      "Enfocar por contraste",
+      "Cambiar la profundidad de campo"
+    ],
+    "correctIndex": 0,
+    "hint": "Permite identificar rápidamente niveles de piel, negros y altas luces."
+  },
+  {
+    "id": "script_easy_2",
+    "category": "Guion",
+    "difficulty": "easy",
+    "text": "¿Quién es el protagonista de una historia?",
+    "options": [
+      "El personaje cuyo objetivo y recorrido estructuran principalmente el relato",
+      "Siempre el villano",
+      "El director de fotografía",
+      "El narrador únicamente"
+    ],
+    "correctIndex": 0,
+    "hint": "Es el eje principal de la acción dramática."
+  },
+  {
+    "id": "script_easy_2_pool2",
+    "category": "Guion",
+    "difficulty": "easy",
+    "text": "¿Qué es una secuencia en términos narrativos?",
+    "options": [
+      "Un conjunto de escenas relacionadas que desarrollan una unidad de acción",
+      "Una sola palabra del diálogo",
+      "Un plano fijo",
+      "Una lista de equipo"
+    ],
+    "correctIndex": 0,
+    "hint": "Puede contener varias escenas y cambios de locación."
+  },
+  {
+    "id": "script_easy_3",
+    "category": "Guion",
+    "difficulty": "easy",
+    "text": "¿Dónde se describen normalmente las acciones visibles de los personajes en un guion?",
+    "options": [
+      "En las líneas de acción",
+      "Dentro del número de página",
+      "En la ficha técnica de cámara",
+      "Solo en notas de producción"
+    ],
+    "correctIndex": 0,
+    "hint": "El guion describe lo que puede verse y oírse."
+  },
+  {
+    "id": "script_easy_3_pool2",
+    "category": "Guion",
+    "difficulty": "easy",
+    "text": "¿Qué indican normalmente INT. y EXT. en un encabezado de escena?",
+    "options": [
+      "Interior o exterior",
+      "Intensidad y exposición",
+      "Inicio y extremo",
+      "Interlaced y extra frame"
+    ],
+    "correctIndex": 0,
+    "hint": "Definen si la escena ocurre dentro o fuera."
+  },
+  {
+    "id": "script_med_2",
+    "category": "Guion",
+    "difficulty": "medium",
+    "text": "¿Qué es un setup/payoff?",
+    "options": [
+      "Plantar un elemento antes y hacerlo cobrar sentido o utilidad después",
+      "Pagar al actor antes del rodaje",
+      "Cambiar de locación",
+      "Una transición de montaje"
+    ],
+    "correctIndex": 0,
+    "hint": "Una preparación temprana encuentra resolución posterior."
+  },
+  {
+    "id": "script_med_2_pool2",
+    "category": "Guion",
+    "difficulty": "medium",
+    "text": "¿Qué función cumple habitualmente una subtrama?",
+    "options": [
+      "Desarrollar un conflicto secundario relacionado con la historia principal",
+      "Reemplazar toda la trama principal",
+      "Marcar el frame rate",
+      "Indicar exposición"
+    ],
+    "correctIndex": 0,
+    "hint": "Puede enriquecer tema, personaje o conflicto."
+  },
+  {
+    "id": "script_med_3",
+    "category": "Guion",
+    "difficulty": "medium",
+    "text": "¿Qué es el incidente incitador?",
+    "options": [
+      "El acontecimiento que altera el equilibrio inicial y pone en marcha el conflicto principal",
+      "El último crédito",
+      "Una corrección de color",
+      "El clímax necesariamente"
+    ],
+    "correctIndex": 0,
+    "hint": "Rompe la normalidad del protagonista."
+  },
+  {
+    "id": "script_med_3_pool2",
+    "category": "Guion",
+    "difficulty": "medium",
+    "text": "¿Qué son las apuestas o stakes de una historia?",
+    "options": [
+      "Lo que el personaje arriesga perder o ganar",
+      "La cantidad de escenas",
+      "El presupuesto únicamente",
+      "El número de cámaras"
+    ],
+    "correctIndex": 0,
+    "hint": "Aumentan la importancia emocional o práctica del objetivo."
+  },
+  {
+    "id": "script_hard_2",
+    "category": "Guion",
+    "difficulty": "hard",
+    "text": "¿Qué es el subtexto en diálogo?",
+    "options": [
+      "El significado o intención implícita bajo lo que se dice literalmente",
+      "Un subtítulo traducido",
+      "Una descripción de cámara",
+      "Una nota de copyright"
+    ],
+    "correctIndex": 0,
+    "hint": "Los personajes pueden decir una cosa mientras quieren otra."
+  },
+  {
+    "id": "script_hard_2_pool2",
+    "category": "Guion",
+    "difficulty": "hard",
+    "text": "¿Qué caracteriza a un narrador no fiable?",
+    "options": [
+      "Su versión de los hechos no puede asumirse como completamente objetiva o verdadera",
+      "Nunca habla",
+      "Solo aparece en documentales",
+      "Siempre conoce el futuro"
+    ],
+    "correctIndex": 0,
+    "hint": "La audiencia debe cuestionar la exactitud de su relato."
+  },
+  {
+    "id": "prod_easy_2",
+    "category": "Producción",
+    "difficulty": "easy",
+    "text": "¿Qué función cumple principalmente producción durante un rodaje?",
+    "options": [
+      "Coordinar recursos, tiempos y logística para hacer posible el plan",
+      "Operar siempre la cámara principal",
+      "Escribir cada diálogo",
+      "Etalonar en set"
+    ],
+    "correctIndex": 0,
+    "hint": "Convierte las necesidades creativas en una operación realizable."
+  },
+  {
+    "id": "prod_easy_2_pool2",
+    "category": "Producción",
+    "difficulty": "easy",
+    "text": "¿Qué hace un location scout o búsqueda de locaciones?",
+    "options": [
+      "Evalúa espacios posibles para rodaje",
+      "Mezcla el audio final",
+      "Opera el switcher",
+      "Diseña títulos de crédito"
+    ],
+    "correctIndex": 0,
+    "hint": "Busca lugares que funcionen creativa y logísticamente."
+  },
+  {
+    "id": "prod_easy_3",
+    "category": "Producción",
+    "difficulty": "easy",
+    "text": "¿Para qué sirve una autorización de imagen o release de un participante?",
+    "options": [
+      "Documentar permiso para usar su imagen o interpretación según lo acordado",
+      "Cambiar la exposición",
+      "Sincronizar timecode",
+      "Reservar una cámara"
+    ],
+    "correctIndex": 0,
+    "hint": "Es parte de la documentación legal de producción."
+  },
+  {
+    "id": "prod_easy_3_pool2",
+    "category": "Producción",
+    "difficulty": "easy",
+    "text": "¿Qué herramienta básica ayuda a saber qué tarea debe ocurrir y cuándo?",
+    "options": [
+      "Cronograma",
+      "Vectorscope",
+      "LUT",
+      "Claqueta electrónica únicamente"
+    ],
+    "correctIndex": 0,
+    "hint": "Ordena hitos y plazos del proyecto."
+  },
+  {
+    "id": "prod_med_2",
+    "category": "Producción",
+    "difficulty": "medium",
+    "text": "¿Por qué conviene tener un plan de contingencia para exteriores?",
+    "options": [
+      "Porque clima, ruido, permisos o disponibilidad pueden cambiar",
+      "Porque elimina la necesidad de guion",
+      "Porque duplica resolución",
+      "Porque impide todo retraso"
+    ],
+    "correctIndex": 0,
+    "hint": "Producción debe prever alternativas cuando un riesgo es plausible."
+  },
+  {
+    "id": "prod_med_2_pool2",
+    "category": "Producción",
+    "difficulty": "medium",
+    "text": "¿Qué debería priorizarse si una condición de rodaje se vuelve insegura?",
+    "options": [
+      "Detener o modificar la operación antes que mantener el plan original",
+      "Terminar la toma a cualquier costo",
+      "Aumentar ISO",
+      "Quitar seguros del equipo"
+    ],
+    "correctIndex": 0,
+    "hint": "La seguridad está por encima del cronograma."
+  },
+  {
+    "id": "prod_med_3",
+    "category": "Producción",
+    "difficulty": "medium",
+    "text": "¿Para qué se usa una caja chica o petty cash en producción?",
+    "options": [
+      "Cubrir gastos operativos menores y controlados",
+      "Comprar derechos sin contrato",
+      "Modificar el guion automáticamente",
+      "Grabar sonido"
+    ],
+    "correctIndex": 0,
+    "hint": "Permite resolver gastos pequeños con registro."
+  },
+  {
+    "id": "prod_med_3_pool2",
+    "category": "Producción",
+    "difficulty": "medium",
+    "text": "¿Por qué se gestionan permisos de locación antes del rodaje?",
+    "options": [
+      "Para asegurar autorización y condiciones de uso del espacio",
+      "Para cambiar el frame rate",
+      "Para evitar hacer plan de rodaje",
+      "Para calibrar lentes"
+    ],
+    "correctIndex": 0,
+    "hint": "Reduce riesgos legales y operativos."
+  },
+  {
+    "id": "prod_hard_2",
+    "category": "Producción",
+    "difficulty": "hard",
+    "text": "¿Qué representa una tira o strip en un stripboard tradicional?",
+    "options": [
+      "Una escena o unidad de rodaje con información clave para planificar",
+      "Un canal de audio",
+      "Una LUT",
+      "Un lente alquilado"
+    ],
+    "correctIndex": 0,
+    "hint": "Las tiras se ordenan para construir el plan."
+  },
+  {
+    "id": "prod_hard_2_pool2",
+    "category": "Producción",
+    "difficulty": "hard",
+    "text": "¿Qué es una ruta crítica en planificación de proyectos?",
+    "options": [
+      "La cadena de tareas cuya demora puede retrasar directamente la fecha final",
+      "Una lista de planos con cámara en mano",
+      "Un canal de comunicación de emergencia solamente",
+      "Un codec de mastering"
+    ],
+    "correctIndex": 0,
+    "hint": "Son actividades con poca o ninguna holgura respecto del plazo."
+  },
+  {
+    "id": "cine_easy_3",
+    "category": "Cine",
+    "difficulty": "easy",
+    "text": "¿Qué frecuencia de cuadros se asocia tradicionalmente con la proyección cinematográfica?",
+    "options": [
+      "12 fps",
+      "24 fps",
+      "50 fps",
+      "120 fps"
+    ],
+    "correctIndex": 1,
+    "hint": "Es el valor que durante décadas se convirtió en el estándar narrativo del cine."
+  },
+  {
+    "id": "cine_easy_4",
+    "category": "Cine",
+    "difficulty": "easy",
+    "text": "¿Qué recurso se usa habitualmente para cubrir una conversación entre dos personajes alternando sus rostros?",
+    "options": [
+      "Plano/contraplano",
+      "Time-lapse",
+      "Whip pan continuo",
+      "Split screen obligatorio"
+    ],
+    "correctIndex": 0,
+    "hint": "Alterna el punto de vista de uno y otro interlocutor."
+  },
+  {
+    "id": "cine_easy_5",
+    "category": "Cine",
+    "difficulty": "easy",
+    "text": "¿Cómo se llama el conjunto de elementos visibles organizados dentro del encuadre, como decorado, vestuario y posición de actores?",
+    "options": [
+      "Mise-en-scène",
+      "Bitrate",
+      "Foley",
+      "Keyframe"
+    ],
+    "correctIndex": 0,
+    "hint": "Es un término francés muy usado en análisis cinematográfico."
+  },
+  {
+    "id": "cine_easy_6",
+    "category": "Cine",
+    "difficulty": "easy",
+    "text": "¿Qué tipo de plano muestra normalmente a una persona de cuerpo entero?",
+    "options": [
+      "Primerísimo primer plano",
+      "Plano general o entero",
+      "Plano detalle",
+      "Plano americano exclusivamente"
+    ],
+    "correctIndex": 1,
+    "hint": "Debe permitir ver al sujeto completo dentro del encuadre."
+  },
+  {
+    "id": "cine_med_3",
+    "category": "Cine",
+    "difficulty": "medium",
+    "text": "¿Qué regla de continuidad ayuda a mantener coherentes las direcciones de mirada y movimiento entre dos personajes?",
+    "options": [
+      "Regla de 180°",
+      "Regla de los tercios",
+      "Ley del inverso del cuadrado",
+      "Regla de 30 fps"
+    ],
+    "correctIndex": 0,
+    "hint": "Imagina un eje entre los personajes que la cámara no debería cruzar sin intención."
+  },
+  {
+    "id": "cine_med_4",
+    "category": "Cine",
+    "difficulty": "medium",
+    "text": "¿Qué describe el efecto Kuleshov?",
+    "options": [
+      "El significado de un rostro cambia según el plano que lo acompaña",
+      "Una distorsión creada por lentes anamórficos",
+      "Una caída de exposición por distancia",
+      "Un error de sincronía de sonido"
+    ],
+    "correctIndex": 0,
+    "hint": "El montaje hace que el espectador atribuya emociones o significado a un mismo rostro."
+  },
+  {
+    "id": "cine_med_5",
+    "category": "Cine",
+    "difficulty": "medium",
+    "text": "¿Qué significa que un sonido sea diegético?",
+    "options": [
+      "Existe dentro del mundo narrativo y puede ser percibido por los personajes",
+      "Solo lo escucha el público",
+      "Fue grabado exclusivamente en estudio",
+      "No tiene fuente identificable"
+    ],
+    "correctIndex": 0,
+    "hint": "Piensa en una radio encendida dentro de una escena."
+  },
+  {
+    "id": "cine_med_6",
+    "category": "Cine",
+    "difficulty": "medium",
+    "text": "¿Qué función narrativa cumple principalmente un establishing shot?",
+    "options": [
+      "Situar espacialmente la escena",
+      "Ocultar un corte de audio",
+      "Corregir balance de blancos",
+      "Aumentar la velocidad de obturación"
+    ],
+    "correctIndex": 0,
+    "hint": "Suele aparecer al comienzo de una secuencia para orientar al espectador."
+  },
+  {
+    "id": "cine_hard_3",
+    "category": "Cine",
+    "difficulty": "hard",
+    "text": "¿A qué relación de aspecto se aproxima el llamado Academy Ratio clásico?",
+    "options": [
+      "1.37:1",
+      "1.66:1",
+      "1.85:1",
+      "2.39:1"
+    ],
+    "correctIndex": 0,
+    "hint": "Es muy cercana al antiguo 4:3, pero ligeramente más ancha."
+  },
+  {
+    "id": "cine_hard_4",
+    "category": "Cine",
+    "difficulty": "hard",
+    "text": "¿Qué técnica de puesta en escena y fotografía mantiene simultáneamente nítidos elementos cercanos y lejanos para permitir acción en varios planos de profundidad?",
+    "options": [
+      "Deep focus",
+      "Rack focus",
+      "Dutch angle",
+      "Undercranking"
+    ],
+    "correctIndex": 0,
+    "hint": "Se asocia a una gran profundidad de campo y composición en profundidad."
+  },
+  {
+    "id": "post_easy_3",
+    "category": "Postproducción",
+    "difficulty": "easy",
+    "text": "¿Cómo se llama el proceso de generar el archivo final a partir de una línea de tiempo editada?",
+    "options": [
+      "Exportar o renderizar",
+      "Ingestar",
+      "Sincronizar claqueta",
+      "Hacer spotting"
+    ],
+    "correctIndex": 0,
+    "hint": "Es el paso que produce el archivo que luego se entrega o publica."
+  },
+  {
+    "id": "post_easy_4",
+    "category": "Postproducción",
+    "difficulty": "easy",
+    "text": "¿Qué es una línea de tiempo en un software de edición?",
+    "options": [
+      "El espacio donde se ordenan clips de video y audio en el tiempo",
+      "Un medidor de exposición",
+      "Un tipo de micrófono",
+      "Una tabla de color física"
+    ],
+    "correctIndex": 0,
+    "hint": "Es el área principal donde construyes el montaje."
+  },
+  {
+    "id": "post_easy_5",
+    "category": "Postproducción",
+    "difficulty": "easy",
+    "text": "¿Qué proceso busca igualar y corregir exposición, balance y color entre planos antes del look creativo final?",
+    "options": [
+      "Corrección de color",
+      "Foley",
+      "Conformado de audio",
+      "Doblaje"
+    ],
+    "correctIndex": 0,
+    "hint": "Busca primero una base técnica consistente entre tomas."
+  },
+  {
+    "id": "post_easy_6",
+    "category": "Postproducción",
+    "difficulty": "easy",
+    "text": "¿Qué describe mejor un códec?",
+    "options": [
+      "Un método para codificar y decodificar audio o video",
+      "La extensión del archivo únicamente",
+      "Un tipo de monitor",
+      "Una pista de subtítulos"
+    ],
+    "correctIndex": 0,
+    "hint": "H.264, H.265 y ProRes son ejemplos."
+  },
+  {
+    "id": "post_med_3",
+    "category": "Postproducción",
+    "difficulty": "medium",
+    "text": "¿Para qué sirve principalmente un canal alfa en una imagen o video?",
+    "options": [
+      "Representar transparencia",
+      "Aumentar automáticamente el rango dinámico",
+      "Sincronizar audio",
+      "Cambiar el frame rate"
+    ],
+    "correctIndex": 0,
+    "hint": "Además de RGB puede existir información que indique qué partes son opacas."
+  },
+  {
+    "id": "post_med_4",
+    "category": "Postproducción",
+    "difficulty": "medium",
+    "text": "¿Qué es un conform en postproducción?",
+    "options": [
+      "Reconstruir la edición usando los medios originales o de alta calidad",
+      "Convertir todo a blanco y negro",
+      "Grabar foley",
+      "Hacer una mezcla mono"
+    ],
+    "correctIndex": 0,
+    "hint": "Suele ocurrir después de editar con proxies o medios offline."
+  },
+  {
+    "id": "post_med_5",
+    "category": "Postproducción",
+    "difficulty": "medium",
+    "text": "¿Qué ventaja principal tiene editar con proxies?",
+    "options": [
+      "Mejorar el rendimiento usando copias más livianas",
+      "Aumentar físicamente la resolución del sensor",
+      "Eliminar la necesidad de exportar",
+      "Convertir cualquier audio a estéreo"
+    ],
+    "correctIndex": 0,
+    "hint": "Permiten trabajar de forma fluida sin usar todo el peso del material original."
+  },
+  {
+    "id": "post_med_6",
+    "category": "Postproducción",
+    "difficulty": "medium",
+    "text": "¿Qué diferencia básica existe entre un contenedor y un códec?",
+    "options": [
+      "El contenedor organiza pistas y metadatos; el códec comprime o representa los medios",
+      "Son exactamente lo mismo",
+      "El códec solo guarda subtítulos",
+      "El contenedor modifica el sensor de cámara"
+    ],
+    "correctIndex": 0,
+    "hint": "MP4/MOV son contenedores; H.264/ProRes son códecs."
+  },
+  {
+    "id": "post_hard_3",
+    "category": "Postproducción",
+    "difficulty": "hard",
+    "text": "En composición, ¿qué problema puede producir interpretar incorrectamente una imagen con alfa premultiplicado como si fuera alfa recto?",
+    "options": [
+      "Halos o bordes contaminados alrededor del recorte",
+      "Cambio automático de frame rate",
+      "Desfase de claqueta",
+      "Pérdida de canales de audio"
+    ],
+    "correctIndex": 0,
+    "hint": "El RGB de los bordes puede haber sido multiplicado previamente por el alfa."
+  },
+  {
+    "id": "post_hard_4",
+    "category": "Postproducción",
+    "difficulty": "hard",
+    "text": "En un flujo ACES, ¿qué función cumple principalmente una IDT?",
+    "options": [
+      "Transformar la señal de cámara hacia el espacio de trabajo ACES",
+      "Convertir ACES directamente a sonido",
+      "Definir la compresión del archivo final",
+      "Crear subtítulos automáticos"
+    ],
+    "correctIndex": 0,
+    "hint": "Su nombre proviene de Input Device Transform."
+  }
+]

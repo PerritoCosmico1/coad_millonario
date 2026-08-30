@@ -1,0 +1,1 @@
+{"name":"foco-audiovisual-v23","version":"2.3.0","private":true,"scripts":{"start":"node server.js","test":"node test/api.test.js"},"engines":{"node":">=18"}}
