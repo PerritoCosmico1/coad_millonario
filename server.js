@@ -23,6 +23,7 @@ const QFILE = path.join(DATA, 'questions.json');
 const CFILE = path.join(DATA, 'config.json');
 const HFILE = path.join(DATA, 'history.json');
 const SFILE = path.join(DATA, 'state.json');
+const WFILE = path.join(DATA, 'wheel.json');
 const SEED_QFILE = path.join(ROOT, 'seed', 'questions.json');
 
 fs.mkdirSync(DATA, { recursive: true });
@@ -51,7 +52,17 @@ const defaultConfig = {
   duelPointsEnabled: true,
   pointMap: { easy: 1, medium: 2, hard: 3, impossible: 5 },
   duelPrizePot: 10000000,
-  hostPin: '0000'
+  hostPin: '0000',
+  wheel: {
+    timerSeconds: 20,
+    spinSeconds: 4,
+    avoidRepeatCategories: true,
+    difficultyMode: 'random',
+    fixedDifficulty: 'medium',
+    prizeMode: 'none',
+    prizeAmount: 100000,
+    categories: []
+  }
 };
 
 function readJSON(file, fallback) {
@@ -100,6 +111,24 @@ function cleanPin(v) {
   const pin = String(v || '').trim();
   return /^\d{4,8}$/.test(pin) ? pin : '0000';
 }
+function cleanWheelCategoryList(v) {
+  if (!Array.isArray(v)) return [];
+  const cats = new Set(allCategories());
+  return [...new Set(v.map(c => String(c || '').slice(0,60)))].filter(c => cats.has(c));
+}
+function cleanWheelConfig(v = {}) {
+  const d = defaultConfig.wheel;
+  return {
+    timerSeconds: cleanTimer(v.timerSeconds ?? d.timerSeconds),
+    spinSeconds: Math.max(2, Math.min(15, Math.round(Number(v.spinSeconds) || d.spinSeconds))),
+    avoidRepeatCategories: v.avoidRepeatCategories !== false,
+    difficultyMode: v.difficultyMode === 'fixed' ? 'fixed' : 'random',
+    fixedDifficulty: normDiff(v.fixedDifficulty ?? d.fixedDifficulty),
+    prizeMode: v.prizeMode === 'fixed' ? 'fixed' : 'none',
+    prizeAmount: Number.isFinite(Number(v.prizeAmount)) ? Math.max(0, Math.min(100000000, Math.round(Number(v.prizeAmount)))) : d.prizeAmount,
+    categories: cleanWheelCategoryList(v.categories)
+  };
+}
 function cleanAlternate(a) {
   if (!a || !String(a.text || '').trim()) return null;
   const options = Array.from({length:4}, (_,i) => String((a.options || [])[i] || '').slice(0,220));
@@ -146,7 +175,8 @@ function cleanConfig(raw = {}) {
     duelPointsEnabled: raw.duelPointsEnabled !== false,
     pointMap: cleanPointMap(raw.pointMap),
     duelPrizePot: cleanPrizePot(raw.duelPrizePot ?? defaultConfig.duelPrizePot),
-    hostPin: cleanPin(raw.hostPin || BOOTSTRAP_HOST_PIN || defaultConfig.hostPin)
+    hostPin: cleanPin(raw.hostPin || BOOTSTRAP_HOST_PIN || defaultConfig.hostPin),
+    wheel: cleanWheelConfig(raw.wheel)
   };
 }
 
@@ -168,6 +198,9 @@ for (const q of seedQuestions) if (!ids.has(q.id)) storedQuestions.push(clone(q)
 let questions = storedQuestions;
 save(QFILE, questions);
 
+function allCategories() {
+  return [...new Set(questions.map(q => q.category))].sort((a,b) => a.localeCompare(b,'es'));
+}
 function inventoryByCategory() {
   const out = {};
   for (const q of questions) {
@@ -285,6 +318,223 @@ let state = restoreState() || freshState();
 let timerHandle = null;
 const clients = new Set();
 
+// ---- Ruleta de categorías (segmento especial) --------------------------
+// Sistema completamente aparte del juego principal: vidas, rondas y estado
+// de Clásico/Duelo quedan intactos y congelados mientras la Ruleta está al
+// aire. Reutiliza el mismo banco de preguntas/categorías y el mismo
+// historial anti-repetición (sessionQuestionIds/recentHistory) para no
+// repetir una pregunta que ya salió por el otro sistema en el mismo programa.
+function freshWheelState() {
+  return {
+    revision: 1,
+    onAir: false,
+    phase: 'idle', // idle | ready | spinning | category | question | open | locked | result
+    activePlayer: 'A',
+    usedCategories: [],
+    selectedCategory: null,
+    currentQuestionId: null,
+    answer: null,
+    answerTime: null,
+    answerWindowOpenedAt: null,
+    timerEndsAt: null,
+    timerRemainingMs: null,
+    timerExpired: false,
+    spinEndsAt: null,
+    correctRevealed: false,
+    scoreApplied: false,
+    result: null, // null | 'correct' | 'incorrect'
+    spinsPlayed: 0,
+    score: { correct: 0, incorrect: 0, prizeWon: 0 },
+    message: 'Ruleta sin preparar'
+  };
+}
+function restoreWheelState() {
+  const raw = readJSON(WFILE, null);
+  if (!raw || typeof raw !== 'object' || typeof raw.phase !== 'string') return null;
+  const s = raw;
+  if (s.phase === 'open') { s.phase = 'locked'; s.timerExpired = true; }
+  if (s.phase === 'spinning') { s.phase = 'category'; s.spinEndsAt = null; }
+  s.timerEndsAt = null;
+  if (s.timerRemainingMs == null && config.wheel.timerSeconds > 0) s.timerRemainingMs = config.wheel.timerSeconds * 1000;
+  if (s.currentQuestionId && !questions.some(q => q.id === s.currentQuestionId)) {
+    s.currentQuestionId = null;
+    if (['question','open','locked','result'].includes(s.phase)) s.phase = 'ready';
+  }
+  return s;
+}
+let wheelState = restoreWheelState() || freshWheelState();
+let wheelTimerHandle = null;
+let wheelSpinHandle = null;
+
+function wheelCategoryPool() {
+  const allCats = allCategories();
+  const cats = config.wheel.categories.length ? config.wheel.categories.filter(c => allCats.includes(c)) : allCats;
+  const withQuestions = cats.filter(c => questions.some(q => q.category === c));
+  if (!config.wheel.avoidRepeatCategories) return withQuestions;
+  const remaining = withQuestions.filter(c => !wheelState.usedCategories.includes(c));
+  return remaining.length ? remaining : withQuestions;
+}
+function wheelBaseQuestion() { return questions.find(q => q.id === wheelState.currentQuestionId) || null; }
+function wheelResponseMs() {
+  if (wheelState.answerTime == null || wheelState.answerWindowOpenedAt == null) return null;
+  return Math.max(0, wheelState.answerTime - wheelState.answerWindowOpenedAt);
+}
+function stopWheelTimer(freeze = true) {
+  if (wheelTimerHandle) { clearTimeout(wheelTimerHandle); wheelTimerHandle = null; }
+  if (freeze && wheelState.timerEndsAt) wheelState.timerRemainingMs = Math.max(0, wheelState.timerEndsAt - Date.now());
+  wheelState.timerEndsAt = null;
+}
+function startWheelTimer() {
+  stopWheelTimer(false);
+  wheelState.answerWindowOpenedAt = Date.now();
+  wheelState.timerExpired = false;
+  if (config.wheel.timerSeconds <= 0) { wheelState.timerEndsAt = null; wheelState.timerRemainingMs = null; return; }
+  wheelState.timerRemainingMs = config.wheel.timerSeconds * 1000;
+  wheelState.timerEndsAt = wheelState.answerWindowOpenedAt + wheelState.timerRemainingMs;
+  wheelTimerHandle = setTimeout(() => {
+    if (wheelState.phase !== 'open') return;
+    wheelState.phase = 'locked';
+    wheelState.timerExpired = true;
+    wheelState.timerRemainingMs = 0;
+    wheelState.timerEndsAt = null;
+    wheelTimerHandle = null;
+    bumpWheel('Tiempo agotado');
+  }, wheelState.timerRemainingMs + 20);
+}
+function wheelDifficultyPick() {
+  return config.wheel.difficultyMode === 'fixed' ? config.wheel.fixedDifficulty : DIFFS[Math.floor(Math.random() * DIFFS.length)];
+}
+function chooseWheelQuestion(category) {
+  const first = wheelDifficultyPick();
+  let q = chooseQuestion(first, category);
+  if (q) return q;
+  for (const d of DIFFS) { q = chooseQuestion(d, category); if (q) return q; }
+  return null;
+}
+function wheelFullReset() {
+  stopWheelTimer(false);
+  if (wheelSpinHandle) { clearTimeout(wheelSpinHandle); wheelSpinHandle = null; }
+  const onAir = wheelState.onAir;
+  wheelState = freshWheelState();
+  wheelState.onAir = onAir;
+}
+function wheelSpin() {
+  const pool = wheelCategoryPool();
+  if (!pool.length) return { ok:false, error:'No hay categorías disponibles con preguntas' };
+  if (wheelSpinHandle) { clearTimeout(wheelSpinHandle); wheelSpinHandle = null; }
+  stopWheelTimer(false);
+  const category = pool[Math.floor(Math.random() * pool.length)];
+  wheelState.selectedCategory = category;
+  wheelState.currentQuestionId = null;
+  wheelState.answer = null;
+  wheelState.answerTime = null;
+  wheelState.answerWindowOpenedAt = null;
+  wheelState.correctRevealed = false;
+  wheelState.scoreApplied = false;
+  wheelState.result = null;
+  wheelState.phase = 'spinning';
+  const spinMs = config.wheel.spinSeconds * 1000;
+  wheelState.spinEndsAt = Date.now() + spinMs;
+  wheelState.message = 'Girando la ruleta…';
+  wheelSpinHandle = setTimeout(() => {
+    if (wheelState.phase !== 'spinning') return;
+    wheelState.phase = 'category';
+    wheelState.spinEndsAt = null;
+    wheelSpinHandle = null;
+    bumpWheel(`Categoría: ${wheelState.selectedCategory}`);
+  }, spinMs + 20);
+  return { ok:true };
+}
+function wheelPrepareQuestion() {
+  if (wheelState.phase !== 'category') return { ok:false, error:'Aún no cae la categoría' };
+  const q = chooseWheelQuestion(wheelState.selectedCategory);
+  if (!q) return { ok:false, error:'No quedan preguntas disponibles de esa categoría' };
+  wheelState.currentQuestionId = q.id;
+  wheelState.answer = null;
+  wheelState.answerTime = null;
+  wheelState.answerWindowOpenedAt = null;
+  wheelState.correctRevealed = false;
+  wheelState.scoreApplied = false;
+  wheelState.result = null;
+  wheelState.phase = 'question';
+  wheelState.message = 'Pregunta lista';
+  return { ok:true };
+}
+function wheelSwapQuestion() {
+  if (wheelState.phase !== 'question') return { ok:false, error:'Solo puedes cambiarla antes de abrir respuestas' };
+  const q = wheelBaseQuestion();
+  if (!q) return { ok:false, error:'No hay pregunta activa' };
+  const pool = questions.filter(x => x.category === wheelState.selectedCategory && x.id !== q.id && !state.sessionQuestionIds.includes(x.id));
+  if (!pool.length) return { ok:false, error:'No hay otra pregunta disponible en esa categoría' };
+  const replacement = pool[Math.floor(Math.random() * pool.length)];
+  if (!state.sessionQuestionIds.includes(q.id)) { state.sessionQuestionIds.push(q.id); rememberQuestion(q.id); }
+  wheelState.currentQuestionId = replacement.id;
+  wheelState.message = 'Pregunta cambiada';
+  return { ok:true };
+}
+function wheelOpenAnswers() {
+  if (wheelState.phase !== 'question') return { ok:false, error:'La pregunta no está lista' };
+  wheelState.phase = 'open';
+  startWheelTimer();
+  return { ok:true };
+}
+function wheelLockAnswers() {
+  if (wheelState.phase !== 'open') return { ok:false, error:'Las respuestas no están abiertas' };
+  stopWheelTimer(true);
+  wheelState.phase = 'locked';
+  return { ok:true };
+}
+function wheelRevealCorrect() {
+  const q = wheelBaseQuestion();
+  if (!q) return { ok:false, error:'No hay pregunta' };
+  if (!['locked','result'].includes(wheelState.phase)) return { ok:false, error:'Bloquea la respuesta antes de revelar' };
+  wheelState.correctRevealed = true;
+  wheelState.phase = 'result';
+  if (!wheelState.scoreApplied) {
+    const correct = wheelState.answer === q.correctIndex;
+    wheelState.result = correct ? 'correct' : 'incorrect';
+    wheelState.score.correct += correct ? 1 : 0;
+    wheelState.score.incorrect += correct ? 0 : 1;
+    if (correct && config.wheel.prizeMode === 'fixed') wheelState.score.prizeWon += config.wheel.prizeAmount;
+    if (wheelState.selectedCategory && !wheelState.usedCategories.includes(wheelState.selectedCategory)) wheelState.usedCategories.push(wheelState.selectedCategory);
+    if (!state.sessionQuestionIds.includes(q.id)) { state.sessionQuestionIds.push(q.id); rememberQuestion(q.id); }
+    wheelState.spinsPlayed++;
+    wheelState.scoreApplied = true;
+  }
+  return { ok:true };
+}
+function wheelResetSpin() {
+  if (!['question','open','locked'].includes(wheelState.phase)) return { ok:false, error:'No hay una ronda activa para reiniciar' };
+  stopWheelTimer(false);
+  wheelState.currentQuestionId = null;
+  wheelState.answer = null;
+  wheelState.answerTime = null;
+  wheelState.answerWindowOpenedAt = null;
+  wheelState.correctRevealed = false;
+  wheelState.scoreApplied = false;
+  wheelState.result = null;
+  wheelState.phase = 'category';
+  wheelState.message = 'Ronda reiniciada';
+  return { ok:true };
+}
+function wheelQuestionPublic(role) {
+  const q = wheelBaseQuestion();
+  if (!q) return null;
+  const out = { id:q.id, category:q.category, difficulty:q.difficulty, text:q.text, options:q.options };
+  if (role === 'host' || wheelState.correctRevealed) out.correctIndex = q.correctIndex;
+  if (role === 'host') out.hint = q.hint;
+  return out;
+}
+function publicWheelState(role) {
+  return {
+    ...wheelState,
+    question: wheelQuestionPublic(role),
+    responseMs: wheelResponseMs(),
+    availableCategories: wheelCategoryPool(),
+    prizeAmount: config.wheel.prizeMode === 'fixed' ? config.wheel.prizeAmount : 0
+  };
+}
+
 function baseQuestion() { return questions.find(q => q.id === state.currentQuestionId) || null; }
 function currentQuestion() {
   const q = baseQuestion();
@@ -384,8 +634,10 @@ function readBody(req) {
   });
 }
 function saveState() { try { save(SFILE, state); } catch {} }
+function saveWheelState() { try { save(WFILE, wheelState); } catch {} }
 function broadcast() {
   saveState();
+  saveWheelState();
   for (const c of [...clients]) {
     try { c.res.write(`event: state\ndata: ${JSON.stringify(publicState(c.role, c.player))}\n\n`); }
     catch { clients.delete(c); }
@@ -394,6 +646,11 @@ function broadcast() {
 function bump(msg) {
   state.revision++;
   if (msg) state.message = msg;
+  broadcast();
+}
+function bumpWheel(msg) {
+  wheelState.revision++;
+  if (msg) wheelState.message = msg;
   broadcast();
 }
 
@@ -428,7 +685,7 @@ function chooseQuestion(difficulty, category = null) {
 }
 function availableCategories(difficulty) {
   if (!difficulty) return [];
-  const allCats = [...new Set(questions.map(q => q.category))].sort((a,b) => a.localeCompare(b,'es'));
+  const allCats = allCategories();
   const availableCount = (cat, diff) => questions.filter(q => q.category === cat && q.difficulty === diff && !state.sessionQuestionIds.includes(q.id)).length;
   if (config.mode === 'classic' && config.categoryChoice === 'start' && state.roundIndex === 0) {
     return allCats.filter(cat => DIFFS.every(d => availableCount(cat, d) >= (config.roundPlan[d] || 0)));
@@ -725,6 +982,7 @@ function publicState(role='display', p='A') {
     currentPrize:currentPrize(),
     availableCategories:availableCategories(state.pendingDifficulty),
     summary:gameSummary(),
+    wheel:publicWheelState(role),
     serverTime:Date.now()
   };
   if (role === 'host') {
@@ -800,6 +1058,18 @@ async function api(req,res,url) {
     if (state.phase !== 'category') return json(res,409,{error:'No es momento de elegir categoría'});
     if (!chooseLiveCategory(category)) return json(res,409,{error:'Categoría no disponible'});
     bump('category');
+    return json(res,200,{ok:true});
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/wheelAnswer') {
+    if (!authorized(req,url,false)) return json(res,401,{error:'Código de acceso incorrecto'});
+    const b=await readBody(req), p=player(b.player), a=Number(b.answer);
+    if (wheelState.phase !== 'open') return json(res,409,{error:'Las respuestas no están habilitadas'});
+    if (p !== wheelState.activePlayer) return json(res,409,{error:'Este concursante no está jugando la ruleta ahora'});
+    if (!Number.isInteger(a)||a<0||a>3) return json(res,400,{error:'Respuesta inválida'});
+    if (wheelState.answer !== a) wheelState.answerTime = Date.now();
+    wheelState.answer = a;
+    bumpWheel(`${nameOf(p)} respondió`);
     return json(res,200,{ok:true});
   }
 
@@ -956,6 +1226,73 @@ async function api(req,res,url) {
       default: return json(res,400,{error:'Acción desconocida'});
     }
     bump(action);
+    return json(res,200,publicState('host'));
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/wheelAction') {
+    const b=await readBody(req), action=String(b.action||'');
+    let r;
+    switch(action) {
+      case 'toggleOnAir':
+        wheelState.onAir = !wheelState.onAir;
+        if (wheelState.onAir && state.phase === 'open') { stopTimer(true); state.phase = 'locked'; }
+        break;
+      case 'prepareWheel':
+        if (wheelState.phase !== 'idle') return json(res,409,{error:'La ruleta ya está preparada'});
+        wheelState.phase = 'ready';
+        wheelState.message = 'Ruleta lista para girar';
+        break;
+      case 'resetWheel':
+        wheelFullReset();
+        break;
+      case 'setPlayer':
+        if (!['ready','result'].includes(wheelState.phase)) return json(res,409,{error:'Cambia el concursante antes o después de un giro'});
+        wheelState.activePlayer = player(b.player);
+        break;
+      case 'spin':
+        if (!['ready','result'].includes(wheelState.phase)) return json(res,409,{error:'La ruleta no está lista para girar'});
+        r = wheelSpin();
+        if (!r.ok) return json(res,409,{error:r.error});
+        break;
+      case 'prepareQuestion':
+        r = wheelPrepareQuestion();
+        if (!r.ok) return json(res,409,{error:r.error});
+        break;
+      case 'swapQuestion':
+        r = wheelSwapQuestion();
+        if (!r.ok) return json(res,409,{error:r.error});
+        break;
+      case 'openAnswers':
+        r = wheelOpenAnswers();
+        if (!r.ok) return json(res,409,{error:r.error});
+        break;
+      case 'lockAnswers':
+        r = wheelLockAnswers();
+        if (!r.ok) return json(res,409,{error:r.error});
+        break;
+      case 'revealCorrect':
+        r = wheelRevealCorrect();
+        if (!r.ok) return json(res,409,{error:r.error});
+        break;
+      case 'resetSpin':
+        r = wheelResetSpin();
+        if (!r.ok) return json(res,409,{error:r.error});
+        break;
+      case 'adjustScore': {
+        const field = b.field === 'incorrect' ? 'incorrect' : b.field === 'prize' ? 'prizeWon' : 'correct';
+        const d = Number(b.delta||0);
+        if (!Number.isFinite(d)) return json(res,400,{error:'Ajuste inválido'});
+        wheelState.score[field] = Math.max(0, wheelState.score[field] + Math.trunc(d));
+        break;
+      }
+      case 'setTimer':
+        if (wheelState.phase==='open') return json(res,409,{error:'No cambies el tiempo con respuestas abiertas'});
+        config.wheel.timerSeconds = cleanTimer(b.seconds); save(CFILE,config);
+        wheelState.timerRemainingMs = config.wheel.timerSeconds>0 ? config.wheel.timerSeconds*1000 : null;
+        break;
+      default: return json(res,400,{error:'Acción desconocida'});
+    }
+    bumpWheel(action);
     return json(res,200,publicState('host'));
   }
 

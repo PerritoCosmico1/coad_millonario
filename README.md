@@ -39,11 +39,21 @@ El logo (`public/assets/logo.png`, `icon-192.png`, `icon-512.png`) se reemplaza 
 
 Cada deploy que cambie HTML/CSS/JS de forma relevante, sube la versión en `package.json` (`npm version patch` o edita el campo `version` a mano). Esa versión se usa como parámetro de caché (`?v=...`) y como nombre del cache del Service Worker (`app-shell-<version>`), así que un cambio de versión basta para que todos los dispositivos descarten su caché viejo automáticamente en la próxima carga. No hace falta editar `sw.js` a mano.
 
+## Ruleta de categorías (segmento especial)
+
+Además del juego principal (Clásico/Duelo) hay un segundo sistema, totalmente aparte: una ruleta de categorías pensada para un bloque especial del programa. Reutiliza el mismo banco de preguntas, pero sin vidas ni rondas encadenadas — solo giro → categoría → pregunta → tiempo → correcto/incorrecto.
+
+- Se activa/desactiva con el botón **Ruleta** de la barra superior del host, igual que **Comercial**. Mientras está al aire, el juego principal queda congelado exactamente donde estaba (puntajes, ronda, pregunta activa) y se retoma sin pérdidas al volver.
+- Panel propio en la pestaña **Ruleta** del host: mucho más simple que el del juego principal.
+- Configurable desde esa misma pestaña: categorías incluidas, si se repiten o no, tiempo de respuesta, duración del giro, dificultad de la pregunta (aleatoria o fija) y premio por acierto (ninguno o monto fijo).
+- No repite preguntas que ya hayan salido por el juego principal (comparten el historial anti-repetición).
+- Broadcast y Concursante tienen pantallas propias para la ruleta (giro, categoría, pregunta, resultado), visualmente distintas del juego principal pero con la misma identidad de marca.
+
 ## Arquitectura
 
 - **Estado en memoria**: la partida en curso (fase, puntajes, temporizador, etc.) vive en una variable del proceso para que las acciones del host se reflejen al instante en todas las pantallas. Se sincroniza vía SSE (`/api/stream`).
 - **Persistencia de configuración y preguntas**: `data/config.json` y `data/questions.json` se guardan en disco en cada cambio. En Railway, monta un **Volume** en la ruta de datos para que sobrevivan a un redeploy (ver más abajo).
-- **Recuperación ante caídas/redeploys**: además de config y preguntas, el estado de la partida en curso también se guarda en `data/state.json` en cada acción. Si el proceso se reinicia a mitad de programa (crash, redeploy, reinicio de Railway), al volver a levantar el servidor la partida continúa exactamente donde iba — puntajes, ronda y pregunta activa incluidos — en vez de reiniciar en blanco. Por seguridad, si el reinicio ocurrió con las respuestas abiertas, esa ronda se recupera **bloqueada** (no se resucita un cronómetro corriendo a ciegas); el anfitrión revela la respuesta correcta o usa "Reiniciar ronda actual" con total normalidad.
+- **Recuperación ante caídas/redeploys**: además de config y preguntas, el estado de la partida en curso también se guarda en `data/state.json` (juego principal) y `data/wheel.json` (Ruleta) en cada acción. Si el proceso se reinicia a mitad de programa (crash, redeploy, reinicio de Railway), al volver a levantar el servidor ambos sistemas continúan exactamente donde iban — puntajes, ronda/giro y pregunta activa incluidos — en vez de reiniciar en blanco. Por seguridad, si el reinicio ocurrió con las respuestas abiertas, esa ronda se recupera **bloqueada** (no se resucita un cronómetro corriendo a ciegas); el anfitrión revela la respuesta correcta o usa "Reiniciar ronda actual" con total normalidad.
 - **Respaldo manual**: la pestaña Configuración permite exportar/importar el pack completo (preguntas + configuración) como JSON, independiente del Volume.
 
 ## Rutas

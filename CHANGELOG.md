@@ -1,5 +1,18 @@
 # Historial de versiones
 
+## 2.6.0 — Ruleta de categorías (segmento especial)
+
+Sistema nuevo, completamente aparte del juego principal (Clásico/Duelo), pensado para un bloque especial del programa (por ejemplo, en reemplazo de la ruleta física de estudio si no está disponible ese día):
+
+- Reutiliza el mismo banco de preguntas y categorías. No tiene vidas ni rondas encadenadas: solo ruleta → categoría → pregunta → tiempo → correcto/incorrecto.
+- Se activa con un botón "Ruleta" en la barra superior del host (igual que "Comercial"). Mientras está al aire, la partida principal queda congelada tal como estaba — no se pierde progreso, puntajes ni la pregunta activa — y se retoma exactamente donde iba al volver.
+- Panel de control propio y simple (pestaña "Ruleta" en el host), separado del panel del juego principal.
+- Totalmente configurable: categorías incluidas en la ruleta, si se repiten o no, tiempo para responder, duración del giro, dificultad de la pregunta (aleatoria o fija) y premio por acierto (ninguno o un monto fijo).
+- No repite una pregunta que ya haya salido por el juego principal en el mismo programa (comparten el mismo historial anti-repetición).
+- Salida de emisión (`/broadcast.html`) y de concursante (`/player.html`) con pantallas propias: giro, categoría elegida, pregunta y resultado.
+- Corrección de emergencia (ajustar marcador, cambiar pregunta, reiniciar ronda o reiniciar la ruleta completa) igual que en el resto de la app.
+- Sobrevive a un reinicio del proceso a mitad de una ronda de la ruleta, con la misma lógica de recuperación segura que el juego principal.
+
 Hasta la v2.4.1 el proyecto se versionaba subiendo una carpeta nueva completa por cada release (`foco_audiovisual_v2_1` → `foco_audiovisual_v2_4_1`) y cambiando el *Root Directory* en Railway para apuntar a la carpeta vigente. A partir de la v2.5.0 el código vive en la raíz del repositorio y las versiones se distinguen por commits de git y por el campo `version` de `package.json` — ya no hay carpetas duplicadas que mantener sincronizadas a mano.
 
 ## 2.5.0 — Consolidación de repositorio + identidad de marca

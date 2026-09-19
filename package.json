@@ -1,1 +1,1 @@
-{"name":"quien-es-el-audiovisual","version":"2.5.0","private":true,"scripts":{"start":"node server.js","test":"node test/api.test.js"},"engines":{"node":">=18"}}
+{"name":"quien-es-el-audiovisual","version":"2.6.0","private":true,"scripts":{"start":"node server.js","test":"node test/api.test.js"},"engines":{"node":">=18"}}

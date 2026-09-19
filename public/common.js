@@ -9,6 +9,8 @@ function syncClock(s){if(s&&Number.isFinite(Number(s.serverTime)))serverClockOff
 function serverNow(){return Date.now()+serverClockOffset}
 function timerRemaining(s){if(!s||!s.config||!s.config.timerSeconds)return null;if(s.timerEndsAt)return Math.max(0,Number(s.timerEndsAt)-serverNow());if(s.timerRemainingMs!=null)return Math.max(0,Number(s.timerRemainingMs));return Number(s.config.timerSeconds)*1000}
 function timerLabel(s){const ms=timerRemaining(s);if(ms==null)return'∞';return `${Math.ceil(ms/1000)}`}
+function wheelTimerRemaining(w,seconds){if(!w||!seconds)return null;if(w.timerEndsAt)return Math.max(0,Number(w.timerEndsAt)-serverNow());if(w.timerRemainingMs!=null)return Math.max(0,Number(w.timerRemainingMs));return Number(seconds)*1000}
+function wheelTimerLabel(w,seconds){const ms=wheelTimerRemaining(w,seconds);if(ms==null)return'∞';return `${Math.ceil(ms/1000)}`}
 
 function accessCode(){const q=new URLSearchParams(location.search).get('code');if(q){localStorage.setItem('focoAccessCode',q);return q}return localStorage.getItem('focoAccessCode')||''}
 function hostPin(){return sessionStorage.getItem('focoHostPin')||''}

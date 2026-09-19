@@ -13,6 +13,10 @@ async function prepare(){await action('prepareShow');await action('startShow');l
 async function answer(p,index){return req('/api/answer',{method:'POST',body:{player:p,answer:index}})}
 async function resolveClassic(correct=true){let s=await hostState();await action('revealAllOptions');await action('openAnswers');const idx=correct?s.question.correctIndex:(s.question.correctIndex+1)%4;await answer('A',idx);await action('lockAnswers');await action('revealPlayerAnswer',{player:'A'});await action('revealCorrect');return hostState()}
 async function resolveDuel(winner='A'){let s=await hostState();await action('revealAllOptions');await action('openAnswers');const c=s.question.correctIndex,w=(c+1)%4;if(winner==='A'){await answer('A',c);await answer('B',w)}else if(winner==='B'){await answer('A',w);await answer('B',c)}else if(winner==='both'){await answer('A',c);await new Promise(r=>setTimeout(r,30));await answer('B',c)}else{await answer('A',w);await answer('B',(w+1)%4)}await action('lockAnswers');await action('revealPlayerAnswer',{player:'A'});await action('revealPlayerAnswer',{player:'B'});await action('revealCorrect');return hostState()}
+const wheelAction=(a,x={})=>req('/api/wheelAction',{method:'POST',host:true,body:{action:a,...x}});
+const wheelAnswer=(p,i)=>req('/api/wheelAnswer',{method:'POST',body:{player:p,answer:i}});
+async function wheelState(){return (await hostState()).wheel}
+async function spinAndLand(){await wheelAction('spin');let w;for(let i=0;i<40;i++){w=await wheelState();if(w.phase==='category')return w;await new Promise(r=>setTimeout(r,50))}throw Error('spin never landed on a category')}
 
 (async()=>{try{
   child=spawn(process.execPath,['server.js'],{cwd:ROOT,env:{...process.env,PORT:String(port),HOST_PIN:'',ACCESS_CODE:'',DATA_DIR:tmp},stdio:'ignore'});
@@ -88,6 +92,65 @@ async function resolveDuel(winner='A'){let s=await hostState();await action('rev
   ok(s.question?.id===midId,'restart must resume the same in-flight question');
   ok(s.phase==='locked'&&s.timerExpired===true,'a phase interrupted mid-open must resume as safely locked, never a stuck open timer');
   ok(s.answers.A===correctIdx,'the answer already submitted before the restart must survive it');
+
+  // ---- Ruleta de categorías (segmento especial) --------------------------
+  // Debe reutilizar el banco de preguntas, no tocar la partida principal, y
+  // ser configurable (categorías, tiempo, dificultad, premio) igual que el
+  // resto del sistema.
+  await action('resetGame');await cfg({roundPlan:{easy:1,medium:0,hard:0,impossible:0}});
+  let mainBefore=await hostState();ok(mainBefore.phase==='idle','sanity: main game is idle before touching the wheel');
+  await req('/api/config',{method:'POST',host:true,body:{wheel:{categories:['Cine','Guion'],timerSeconds:0,spinSeconds:1,avoidRepeatCategories:true,difficultyMode:'random',prizeMode:'fixed',prizeAmount:75000}}});
+  let w=await wheelAction('toggleOnAir');w=w.wheel;ok(w.onAir===true,'toggling on-air must flip the flag');
+  w=(await wheelAction('prepareWheel')).wheel;ok(w.phase==='ready','prepareWheel from idle moves to ready');
+  await wheelAction('setPlayer',{player:'B'});
+  w=await spinAndLand();ok(['Cine','Guion'].includes(w.selectedCategory),'wheel must only land on configured categories');
+  const firstCategory=w.selectedCategory;
+  w=(await wheelAction('prepareQuestion')).wheel;ok(w.phase==='question'&&w.question.category===firstCategory,'prepared question must belong to the landed category');
+  w=(await wheelAction('openAnswers')).wheel;ok(w.phase==='open','answers open after openAnswers');
+  let wrongPlayerBlocked=false;try{await wheelAnswer('A',0)}catch(e){wrongPlayerBlocked=e.status===409}ok(wrongPlayerBlocked,'a contestant who is not the active wheel player cannot answer');
+  const wrongIdx=(w.question.correctIndex+1)%4;
+  await wheelAnswer('B',wrongIdx);
+  await wheelAction('lockAnswers');
+  w=(await wheelAction('revealCorrect')).wheel;ok(w.result==='incorrect'&&w.score.incorrect===1&&w.score.correct===0,'wrong answer must be scored as incorrect, no prize');
+  ok(w.usedCategories.includes(firstCategory),'landed category must be marked used');
+
+  w=await spinAndLand();ok(w.selectedCategory!==firstCategory,'avoidRepeatCategories must force the other category once the first is used');
+  w=(await wheelAction('prepareQuestion')).wheel;
+  await wheelAction('openAnswers');
+  w=await wheelState();
+  await wheelAnswer('B',w.question.correctIndex);
+  await wheelAction('lockAnswers');
+  w=(await wheelAction('revealCorrect')).wheel;ok(w.result==='correct'&&w.score.correct===1&&w.score.prizeWon===75000,'correct answer awards the configured fixed prize exactly once');
+  ok(w.spinsPlayed===2,'spinsPlayed must count both rounds');
+
+  let mainDuring=await hostState();ok(mainDuring.phase==='idle','main game state must stay untouched while the wheel is on air');
+
+  // Emergencia: ajustar marcador y reiniciar la ruleta completa.
+  await wheelAction('adjustScore',{field:'correct',delta:5});w=await wheelState();ok(w.score.correct===6,'emergency score adjustment must apply');
+  w=(await wheelAction('resetWheel')).wheel;ok(w.phase==='idle'&&w.score.correct===0&&w.usedCategories.length===0,'resetWheel must wipe score and used categories back to a blank slate');
+
+  // Reiniciar el proceso a mitad de una pregunta abierta de la ruleta debe
+  // recuperarla bloqueada, igual que en el juego principal.
+  await wheelAction('prepareWheel');await wheelAction('setPlayer',{player:'A'});
+  w=await spinAndLand();w=(await wheelAction('prepareQuestion')).wheel;const wheelQId=w.question.id;
+  await wheelAction('openAnswers');await wheelAnswer('A',0);
+  w=await wheelState();ok(w.phase==='open','sanity: wheel answers window is open right before the simulated crash');
+  child.kill('SIGTERM');await new Promise(r=>setTimeout(r,200));
+  child=spawn(process.execPath,['server.js'],{cwd:ROOT,env:{...process.env,PORT:String(port),HOST_PIN:'',ACCESS_CODE:'',DATA_DIR:tmp},stdio:'ignore'});
+  await ready();w=await wheelState();
+  ok(w.onAir===true,'wheel on-air flag must survive a restart');
+  ok(w.question?.id===wheelQId,'restart must resume the same in-flight wheel question');
+  ok(w.phase==='locked'&&w.timerExpired===true,'an interrupted wheel answer window must resume safely locked');
+  ok(w.answer===0,'the wheel answer already submitted before the restart must survive it');
+  await wheelAction('toggleOnAir');
+
+  // Cambiar pregunta (emergencia) debe tomar otra de la misma categoría sin repetir.
+  await wheelAction('resetWheel');await wheelAction('toggleOnAir');await wheelAction('prepareWheel');
+  w=await spinAndLand();const swapCat=w.selectedCategory;
+  w=(await wheelAction('prepareQuestion')).wheel;const beforeSwapId=w.question.id;
+  w=(await wheelAction('swapQuestion')).wheel;
+  ok(w.question.id!==beforeSwapId&&w.question.category===swapCat,'swapQuestion must replace with another question from the same category');
+  await wheelAction('toggleOnAir');await wheelAction('resetWheel');
 
   console.log(`${PKG.name} v${V} tests: PASS`);
 }catch(e){console.error(`${PKG.name} tests: FAIL`);console.error(e.stack||e);process.exitCode=1}
