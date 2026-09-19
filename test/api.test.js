@@ -1,6 +1,7 @@
 const {spawn}=require('child_process');
 const fs=require('fs'),path=require('path'),os=require('os');
-const ROOT=path.join(__dirname,'..'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'foco-v24-'));
+const ROOT=path.join(__dirname,'..'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'audiovisual-test-'));
+const PKG=require(path.join(ROOT,'package.json')),V=PKG.version;
 const port=18765,base=`http://127.0.0.1:${port}`;let child,currentPin='0000';
 const ok=(x,m)=>{if(!x)throw Error(m)};
 async function req(p,{method='GET',body,host=false,pin=currentPin}={}){const u=new URL(p,base);if(host)u.searchParams.set('pin',pin);const r=await fetch(u,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}),j=await r.json().catch(()=>({}));if(!r.ok){const e=Error(`${p}: ${j.error||r.status}`);e.status=r.status;throw e}return j}
@@ -16,7 +17,7 @@ async function resolveDuel(winner='A'){let s=await hostState();await action('rev
 (async()=>{try{
   child=spawn(process.execPath,['server.js'],{cwd:ROOT,env:{...process.env,PORT:String(port),HOST_PIN:'',ACCESS_CODE:'',DATA_DIR:tmp},stdio:'ignore'});
   await ready();
-  let h=await req('/api/health');ok(h.version==='2.4.1','health version');
+  let h=await req('/api/health');ok(h.version===V,'health version matches package.json');
 
   // PIN predeterminado 0000 y cambio persistente desde configuración.
   let s=await hostState();ok(s.security?.hostPinIsDefault===true,'fresh install should use default PIN 0000');
@@ -68,12 +69,26 @@ async function resolveDuel(winner='A'){let s=await hostState();await action('rev
   // Timer auto-lock.
   await action('resetGame');await cfg({timerSeconds:3,categoryChoice:'off'});await prepare();await action('revealAllOptions');await action('openAnswers');s=await hostState();ok(s.timerEndsAt!=null,'timer starts');await new Promise(r=>setTimeout(r,3150));s=await hostState();ok(s.phase==='locked'&&s.timerExpired===true,'timer auto locks');
 
-  // V2.4.1: assets críticos no pueden quedar mezclados entre deployments.
-  let asset=await fetch(base+'/styles.css?v=2.4.1');ok((asset.headers.get('cache-control')||'').includes('no-store'),'styles must not be persistently browser-cached');
+  // Assets críticos no pueden quedar mezclados entre deployments, y el
+  // nombre/versión de marca deben propagarse sin editar HTML a mano.
+  let asset=await fetch(base+`/styles.css?v=${V}`);ok((asset.headers.get('cache-control')||'').includes('no-store'),'styles must not be persistently browser-cached');
   const cssText=await asset.text();ok(cssText.includes('.broadcast-answer.player-picked::after')&&cssText.includes('background:var(--gold)'),'polygon selection border fix must be present');
-  asset=await fetch(base+'/broadcast.html?v=2.4.1');const broadcastHtml=await asset.text();ok(broadcastHtml.includes('/styles.css?v=2.4.1')&&broadcastHtml.includes('/common.js?v=2.4.1'),'broadcast must request versioned CSS/JS');
-  asset=await fetch(base+'/sw.js?v=2.4.1');const swText=await asset.text();ok(swText.includes("foco-v241-shell-1")&&swText.includes("caches.delete"),'service worker must use a new cache and delete old generations');
+  asset=await fetch(base+`/broadcast.html?v=${V}`);const broadcastHtml=await asset.text();ok(broadcastHtml.includes(`/styles.css?v=${V}`)&&broadcastHtml.includes(`/common.js?v=${V}`),'broadcast must request versioned CSS/JS');
+  ok(!broadcastHtml.includes('__APP_'),'broadcast.html must not leak unresolved template tokens');
+  asset=await fetch(base+`/sw.js?v=${V}`);const swText=await asset.text();ok(swText.includes(`app-shell-${V}`)&&swText.includes("caches.delete"),'service worker cache name must follow the package version and delete old generations');
+  asset=await fetch(base+'/manifest.webmanifest');const manifestJson=await asset.json();ok(manifestJson.name&&manifestJson.name===h.name,'manifest name must match the branded app name exposed by /api/health');
 
-  console.log('FOCO V2.4.1 tests: PASS');
-}catch(e){console.error('FOCO V2.4.1 tests: FAIL');console.error(e.stack||e);process.exitCode=1}
+  // Reiniciar el servidor debe restaurar la partida en curso, no perderla.
+  await action('resetGame');await cfg({roundPlan:{easy:1,medium:0,hard:0,impossible:0},categoryChoice:'off',timerSeconds:0});await prepare();
+  s=await hostState();const midId=s.question.id,correctIdx=s.question.correctIndex;await action('revealAllOptions');await action('openAnswers');await answer('A',correctIdx);
+  s=await hostState();ok(s.phase==='open','sanity check: answers window is open right before the simulated crash');
+  child.kill('SIGTERM');await new Promise(r=>setTimeout(r,200));
+  child=spawn(process.execPath,['server.js'],{cwd:ROOT,env:{...process.env,PORT:String(port),HOST_PIN:'',ACCESS_CODE:'',DATA_DIR:tmp},stdio:'ignore'});
+  await ready();s=await hostState();
+  ok(s.question?.id===midId,'restart must resume the same in-flight question');
+  ok(s.phase==='locked'&&s.timerExpired===true,'a phase interrupted mid-open must resume as safely locked, never a stuck open timer');
+  ok(s.answers.A===correctIdx,'the answer already submitted before the restart must survive it');
+
+  console.log(`${PKG.name} v${V} tests: PASS`);
+}catch(e){console.error(`${PKG.name} tests: FAIL`);console.error(e.stack||e);process.exitCode=1}
 finally{child?.kill('SIGTERM');fs.rmSync(tmp,{recursive:true,force:true})}})();

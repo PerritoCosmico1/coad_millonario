@@ -1,5 +1,5 @@
 @echo off
 cd /d "%~dp0"
-title FOCO Audiovisual V2.4.1
+title Concurso TV - servidor local
 node server.js
 pause

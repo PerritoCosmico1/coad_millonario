@@ -2,6 +2,16 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const PKG = require('./package.json');
+
+// ---- Identidad de marca ------------------------------------------------
+// Cambiar el nombre del programa NO requiere tocar HTML/CSS/JS: basta con
+// editar estos dos valores (o definir las variables de entorno APP_NAME /
+// APP_SHORT_NAME en Railway) y volver a desplegar. Se inyectan en las
+// plantillas de /public vía __APP_NAME__ / __APP_SHORT_NAME__ / __APP_VERSION__.
+const APP_NAME = String(process.env.APP_NAME || '¿Quién es el Audiovisual?').trim();
+const APP_SHORT_NAME = String(process.env.APP_SHORT_NAME || 'Audiovisual').trim();
+const APP_VERSION = String(PKG.version || '0.0.0');
 
 const PORT = Number(process.env.PORT || 8765);
 const BOOTSTRAP_HOST_PIN = String(process.env.HOST_PIN || '').trim();
@@ -12,6 +22,7 @@ const DATA = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : (proces
 const QFILE = path.join(DATA, 'questions.json');
 const CFILE = path.join(DATA, 'config.json');
 const HFILE = path.join(DATA, 'history.json');
+const SFILE = path.join(DATA, 'state.json');
 const SEED_QFILE = path.join(ROOT, 'seed', 'questions.json');
 
 fs.mkdirSync(DATA, { recursive: true });
@@ -21,7 +32,7 @@ const DIFFS = ['easy', 'medium', 'hard', 'impossible'];
 const clone = x => JSON.parse(JSON.stringify(x));
 
 const defaultConfig = {
-  showTitle: 'FOCO AUDIOVISUAL',
+  showTitle: APP_NAME,
   showSubtitle: 'Concurso de conocimientos audiovisuales',
   playerAName: 'Concursante A',
   playerBName: 'Concursante B',
@@ -250,7 +261,27 @@ function freshState() {
     message: 'Esperando para comenzar'
   };
 }
-let state = freshState();
+// Restaurar la partida en curso si el proceso se reinició (redeploy, caída,
+// reinicio de Railway) mientras el programa estaba al aire. Sin esto, un
+// simple reinicio del servidor borraría puntajes y ronda en pleno programa.
+function restoreState() {
+  const raw = readJSON(SFILE, null);
+  if (!raw || typeof raw !== 'object' || typeof raw.phase !== 'string' || !Array.isArray(raw.roundSequence)) return null;
+  const s = raw;
+  // Nunca resucitar una ventana de tiempo en curso: se perdió la referencia
+  // real de cuánto faltaba, así que se trata como bloqueada por seguridad.
+  if (s.phase === 'open') { s.phase = 'locked'; s.timerExpired = true; }
+  s.timerEndsAt = null;
+  if (s.timerRemainingMs == null && config.timerSeconds > 0) s.timerRemainingMs = config.timerSeconds * 1000;
+  // Si el banco de preguntas cambió y la pregunta activa ya no existe, no
+  // dejar al programa "colgado": se manda a resumen para que el anfitrión decida.
+  if (s.currentQuestionId && !questions.some(q => q.id === s.currentQuestionId)) {
+    s.currentQuestionId = null;
+    if (['question','open','locked','result'].includes(s.phase)) s.phase = 'summary';
+  }
+  return s;
+}
+let state = restoreState() || freshState();
 let timerHandle = null;
 const clients = new Set();
 
@@ -342,13 +373,19 @@ function json(res, status, body) {
 }
 function readBody(req) {
   return new Promise((resolve,reject) => {
-    let b='';
-    req.on('data', c => { b += c; if (b.length > 2e6) req.destroy(); });
-    req.on('end', () => { try { resolve(b ? JSON.parse(b) : {}); } catch(e){ reject(e); } });
-    req.on('error', reject);
+    let b='', tooBig=false;
+    req.on('data', c => {
+      if (tooBig) return;
+      b += c;
+      if (b.length > 2e6) { tooBig=true; reject(new Error('Cuerpo de la solicitud demasiado grande')); req.destroy(); }
+    });
+    req.on('end', () => { if (tooBig) return; try { resolve(b ? JSON.parse(b) : {}); } catch(e){ reject(e); } });
+    req.on('error', e => { if (!tooBig) reject(e); });
   });
 }
+function saveState() { try { save(SFILE, state); } catch {} }
 function broadcast() {
+  saveState();
   for (const c of [...clients]) {
     try { c.res.write(`event: state\ndata: ${JSON.stringify(publicState(c.role, c.player))}\n\n`); }
     catch { clients.delete(c); }
@@ -718,7 +755,7 @@ async function api(req,res,url) {
     });
     return res.end();
   }
-  if (req.method === 'GET' && url.pathname === '/api/health') return json(res,200,{ok:true,version:'2.4.1'});
+  if (req.method === 'GET' && url.pathname === '/api/health') return json(res,200,{ok:true,version:APP_VERSION,name:APP_NAME});
 
   if (req.method === 'GET' && url.pathname === '/api/state') {
     const role = url.searchParams.get('role') === 'host' ? 'host' : url.searchParams.get('role') === 'player' ? 'player' : 'display';
@@ -837,8 +874,7 @@ async function api(req,res,url) {
         if (!['locked','result'].includes(state.phase)) return json(res,409,{error:'Bloquea las respuestas antes de revelar la correcta'});
         state.correctRevealed=true; state.phase='result';
         applyScore();
-        if (!state.sessionQuestionIds.includes(q.id)) state.sessionQuestionIds.push(q.id);
-        rememberQuestion(q.id);
+        if (!state.sessionQuestionIds.includes(q.id)) { state.sessionQuestionIds.push(q.id); rememberQuestion(q.id); }
         recordRound();
         break;
       case 'useLifeline': {
@@ -959,8 +995,8 @@ async function api(req,res,url) {
 
   if (req.method === 'GET' && url.pathname === '/api/export') {
     if (!authorized(req,url,true)) return json(res,401,{error:'Acceso incorrecto'});
-    const d=JSON.stringify({version:'2.4.1',config:publicConfig(),questions},null,2);
-    res.writeHead(200,{'Content-Type':'application/json','Content-Disposition':'attachment; filename="foco-show-pack-v241.json"'});
+    const d=JSON.stringify({version:APP_VERSION,config:publicConfig(),questions},null,2);
+    res.writeHead(200,{'Content-Type':'application/json','Content-Disposition':'attachment; filename="pack-preguntas.json"'});
     return res.end(d);
   }
   if (req.method === 'POST' && url.pathname === '/api/import') {
@@ -987,8 +1023,18 @@ const MIME = {
   '.css':'text/css; charset=utf-8',
   '.js':'text/javascript; charset=utf-8',
   '.json':'application/json; charset=utf-8',
-  '.webmanifest':'application/manifest+json; charset=utf-8'
+  '.webmanifest':'application/manifest+json; charset=utf-8',
+  '.png':'image/png',
+  '.svg':'image/svg+xml; charset=utf-8',
+  '.ico':'image/x-icon'
 };
+// Único punto donde vive el nombre del programa dentro de las páginas
+// servidas: cualquier .html/.webmanifest/sw.js puede usar estos tokens y se
+// reemplazan al vuelo, sin build step.
+const TEMPLATE_VARS = { __APP_NAME__:APP_NAME, __APP_SHORT_NAME__:APP_SHORT_NAME, __APP_VERSION__:APP_VERSION };
+function applyTemplate(str) {
+  return str.replace(/__APP_NAME__|__APP_SHORT_NAME__|__APP_VERSION__/g, m => TEMPLATE_VARS[m]);
+}
 function staticFile(req,res,url) {
   let pn=decodeURIComponent(url.pathname);
   if (pn==='/') pn='/index.html';
@@ -1004,6 +1050,17 @@ function staticFile(req,res,url) {
       'Cache-Control':critical?'no-store, no-cache, must-revalidate':'public, max-age=300'
     };
     if(critical){headers.Pragma='no-cache';headers.Expires='0'}
+    const templated = ext==='.html' || ext==='.webmanifest' || ['sw.js','common.js'].includes(path.basename(file));
+    if (templated) {
+      fs.readFile(file,'utf8',(err,data)=>{
+        if (err) { res.writeHead(404); return res.end('Not found'); }
+        const out=applyTemplate(data);
+        headers['Content-Length']=Buffer.byteLength(out);
+        res.writeHead(200,headers);
+        res.end(out);
+      });
+      return;
+    }
     res.writeHead(200,headers);
     fs.createReadStream(file).pipe(res);
   });
@@ -1020,7 +1077,7 @@ const server=http.createServer(async(req,res)=>{
   }
 });
 server.listen(PORT,'0.0.0.0',()=>{
-  console.log(`FOCO V2.4.1: http://localhost:${PORT}`);
+  console.log(`${APP_NAME} v${APP_VERSION}: http://localhost:${PORT}`);
   for (const es of Object.values(os.networkInterfaces())) for (const n of es||[]) {
     if (n.family==='IPv4'&&!n.internal) console.log(`Red: http://${n.address}:${PORT}`);
   }

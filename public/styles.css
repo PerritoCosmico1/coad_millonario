@@ -174,3 +174,28 @@ html:fullscreen .fullscreen-btn{display:none}
 .broadcast-answer.player-picked>.duel-choice-badges{position:relative;z-index:1}
 @media(max-width:700px){.broadcast-answer.player-picked::after{inset:2px}}
 
+/* ===== V2.5 — identidad de marca (morado #7700F2 sobre negro) =====
+   Redeclarar variables y fondos aquí (en vez de editar las reglas de
+   arriba) para retintar sin tocar la composición/responsive ya afinada. */
+:root{--brand:#7700F2;--brand-2:#b866ff;--bg:#050108}
+html,body{background:radial-gradient(circle at 50% -20%,#2c0864 0,#0d0620 40%,var(--bg) 78%)}
+.kicker{color:var(--brand-2)}
+.btn.primary{background:linear-gradient(135deg,var(--brand),#3d0080)}
+.dot{background:var(--brand-2);box-shadow:0 0 14px var(--brand-2)}
+.tv-stage{background:radial-gradient(ellipse at 50% 22%,rgba(119,0,242,.5) 0,rgba(15,5,35,.92) 43%,#050108 83%)}
+.intro-screen{background:radial-gradient(circle at 50% 44%,#3a0d85 0,#170a35 42%,#050108 78%)}
+.category-screen{background:radial-gradient(circle at 50% 45%,#3a1590 0,#150a30 45%,#050108 82%)}
+.end-screen{background:radial-gradient(circle at 50% 45%,#3a1590 0,#150a30 42%,#050108 82%)}
+.final-screen.tie{background:radial-gradient(circle at 50% 45%,#3a1590 0,#170a35 42%,#050108 82%)}
+.commercial-screen{background:radial-gradient(circle at center,#4a1499 0,#160a30 45%,#050108 100%)}
+
+.brand{display:flex;align-items:center;gap:8px}
+.brand-logo{height:28px;width:auto;display:block}
+.hero-logo{display:block;margin:0 auto 18px;width:min(70vw,320px);height:auto;filter:drop-shadow(0 0 40px rgba(119,0,242,.35))}
+.modal-logo{display:block;margin:0 auto 12px;width:min(50%,180px);height:auto}
+.tv-bug-logo{height:clamp(20px,2.4vw,34px);width:auto;display:block;margin-bottom:2px;filter:drop-shadow(0 0 10px rgba(119,0,242,.45))}
+.standby-logo{width:min(60vw,460px);height:auto;margin:0 auto 3vh;filter:drop-shadow(0 0 60px rgba(119,0,242,.4));animation:fadeUp .8s ease}
+.commercial-logo{width:min(28vw,220px);height:auto;margin:0 auto 14px;filter:drop-shadow(0 0 40px rgba(119,0,242,.4))}
+@media(max-width:520px){.tv-bug-logo{display:none}}
+@media(max-width:620px){.hero-logo{width:min(78vw,260px)}}
+

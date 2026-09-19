@@ -1,12 +1,12 @@
-const CACHE='foco-v241-shell-1';
+const CACHE='app-shell-__APP_VERSION__';
 const SHELL=[
-  '/?v=2.4.1',
-  '/styles.css?v=2.4.1',
-  '/common.js?v=2.4.1',
-  '/broadcast.html?v=2.4.1',
-  '/player.html?v=2.4.1',
-  '/host.html?v=2.4.1',
-  '/manifest.webmanifest?v=2.4.1'
+  '/?v=__APP_VERSION__',
+  '/styles.css?v=__APP_VERSION__',
+  '/common.js?v=__APP_VERSION__',
+  '/broadcast.html?v=__APP_VERSION__',
+  '/player.html?v=__APP_VERSION__',
+  '/host.html?v=__APP_VERSION__',
+  '/manifest.webmanifest?v=__APP_VERSION__'
 ];
 self.addEventListener('install',event=>{
   self.skipWaiting();
@@ -28,6 +28,6 @@ self.addEventListener('fetch',event=>{
         caches.open(CACHE).then(cache=>cache.put(req,copy)).catch(()=>{});
       }
       return response;
-    }).catch(()=>caches.match(req).then(hit=>hit||caches.match('/?v=2.4.1')))
+    }).catch(()=>caches.match(req).then(hit=>hit||caches.match('/?v=__APP_VERSION__')))
   );
 });

@@ -29,7 +29,7 @@ if('serviceWorker'in navigator){
     reloadingForSW=true;
     location.reload();
   });
-  navigator.serviceWorker.register('/sw.js?v=2.4.1',{updateViaCache:'none'})
+  navigator.serviceWorker.register('/sw.js?v=__APP_VERSION__',{updateViaCache:'none'})
     .then(reg=>reg.update().catch(()=>{}))
     .catch(()=>{});
 }
