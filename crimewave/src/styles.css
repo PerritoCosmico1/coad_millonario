@@ -968,7 +968,7 @@ ul {
 .toast {
   position: absolute;
   left: 50%;
-  top: 70px;
+  bottom: 96px;
   transform: translateX(-50%);
   padding: 10px 22px;
   border-radius: var(--radius);
@@ -1059,4 +1059,306 @@ ul {
     opacity: 1;
     transform: rotate(-1deg) scale(1);
   }
+}
+
+/* --- heist (M1) ------------------------------------------------------------------- */
+
+.heist {
+  gap: 12px;
+}
+
+.heist-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.heist-head h1 {
+  font-size: 28px;
+}
+
+.heist-clock {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.heist-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.heist-status.info {
+  border-color: var(--quiet);
+  color: var(--quiet);
+}
+
+.heist-status.warn {
+  border-color: var(--loud);
+  color: var(--loud);
+  background: rgba(240, 138, 58, 0.1);
+  font-weight: 700;
+}
+
+.heist-status.danger {
+  border-color: var(--alarm);
+  color: var(--alarm);
+  background: rgba(255, 59, 59, 0.12);
+  font-weight: 800;
+  animation: pulse 0.7s ease-in-out infinite;
+}
+
+.obstacle .choice-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 6px;
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.timelock {
+  color: var(--loud);
+}
+
+.good {
+  color: var(--good);
+}
+
+/* --- minigames ------------------------------------------------------------------------ */
+
+.mg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.mg-head {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  width: 760px;
+  max-width: 100%;
+  justify-content: space-between;
+}
+
+.mg-status {
+  color: var(--muted);
+}
+
+.mg-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.mg-canvas {
+  display: block;
+  cursor: pointer;
+}
+
+.code-display {
+  display: flex;
+  gap: 8px;
+}
+
+.code-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 60px;
+  border-radius: var(--radius);
+  background: #0c0e11;
+  border: 1px solid var(--line);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.code-display.hidden-code .code-cell {
+  color: var(--muted);
+}
+
+.code-display.good .code-cell,
+.code-cell.set {
+  border-color: var(--good);
+  color: var(--good);
+}
+
+.code-cell.current {
+  border-color: var(--accent);
+}
+
+.code-cell.entry {
+  color: var(--accent);
+}
+
+.mg.keypad {
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 48px;
+  padding-top: 12px;
+}
+
+.keypad-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 260px;
+}
+
+.flash-track {
+  height: 6px;
+  background: #0c0e11;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 236px;
+}
+
+.flash-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  gap: 8px;
+}
+
+.btn.key {
+  height: 60px;
+  font-size: 24px;
+  font-weight: 700;
+  padding: 0;
+}
+
+.btn.key.fn {
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.mg.safe {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+}
+
+.mg-canvas.dial {
+  cursor: grab;
+  touch-action: none;
+}
+
+.mg-canvas.dial.dragging {
+  cursor: grabbing;
+}
+
+.safe-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 280px;
+}
+
+.combo {
+  display: flex;
+  gap: 8px;
+}
+
+.dial-readout {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 44px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.btn.confirm {
+  padding: 12px 18px;
+  font-size: 17px;
+}
+
+.mg.hold {
+  padding-top: 30px;
+  gap: 16px;
+}
+
+.mg.hold .meter {
+  width: 440px;
+}
+
+.hold-btn {
+  width: 440px;
+  height: 120px;
+  font-size: 22px;
+  font-weight: 800;
+  touch-action: none;
+}
+
+.hold-btn.holding {
+  background: rgba(240, 138, 58, 0.45);
+  transform: scale(0.98);
+}
+
+/* --- roles ----------------------------------------------------------------------------- */
+
+.role-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.role-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.role-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.btn.role-btn.preferred {
+  border-style: dashed;
+}
+
+.btn.role-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a1408;
+  font-weight: 700;
+}
+
+.role-effects {
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }

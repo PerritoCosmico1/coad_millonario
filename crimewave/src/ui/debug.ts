@@ -34,6 +34,9 @@ import {
   startHeist,
   startRun,
 } from '../game/actions';
+import { beginHeist } from '../game/flow';
+import { debugAdvanceClock, debugPatrolNow } from '../game/heistClock';
+import { defaultRoles, onHeistStart, patrolGap } from '../game/heistRules';
 import { heatTier } from '../game/heat';
 import { game, subscribe, type ScreenId } from '../game/state';
 import { MINIGAMES, MINIGAME_IDS } from '../minigames/registry';
@@ -100,7 +103,10 @@ function ensureRun(): void {
 
 function ensureHeist(time: TimeOfDay = 'night'): void {
   ensureRun();
-  if (!game.run!.heist) startHeist(time);
+  if (!game.run!.heist) {
+    startHeist(time, defaultRoles(), patrolGap(0));
+    onHeistStart();
+  }
 }
 
 function jump(id: ScreenId): void {
@@ -190,6 +196,17 @@ function draw(): void {
                 )
               : h('div', { class: 'muted' }, 'Start a heist to set alarm.'),
           ),
+          r.heist
+            ? section(
+                `Heist clock ${Math.floor(r.heist.elapsed)}s · ${r.heist.patrol.active ? 'PATROL' : r.heist.time === 'night' ? `patrol at ${Math.round(r.heist.patrol.nextAt)}s` : 'no patrols (day)'}`,
+                h(
+                  'div',
+                  { class: 'debug-row' },
+                  btn('Patrol now', debugPatrolNow),
+                  btn('Clock +10s', () => debugAdvanceClock(10)),
+                ),
+              )
+            : null,
           section(
             `Modifiers (ante ${r.ante.n})`,
             h('div', { class: 'muted small' }, 'Click: off → rolled (hidden) → revealed → off'),
@@ -290,6 +307,5 @@ function draw(): void {
 
 function quickHeist(time: TimeOfDay): void {
   ensureRun();
-  startHeist(time);
-  goTo('heist');
+  beginHeist(time, defaultRoles());
 }

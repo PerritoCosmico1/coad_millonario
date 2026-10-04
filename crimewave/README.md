@@ -24,7 +24,7 @@ Other scripts:
 
 ## Playtesting
 
-- **DEBUG** button (bottom-right corner) opens the debug panel: add cash, set heat and alarm, toggle and reveal modifiers, give intel, gear or crew, jump to any screen, run any minigame in a sandbox, or start a quick day or night heist.
+- **DEBUG** button (bottom-right corner) opens the debug panel: add cash, set heat and alarm, toggle and reveal modifiers, give intel, gear or crew, jump to any screen, run any minigame in a sandbox, or start a quick day or night heist. During a heist it can also trigger a patrol or skip the clock ahead.
 - **Seeds:** the title screen shows the run seed. Type one to replay a run. The run summary has a "Replay this seed" button.
 - **Tuning:** every number is in `src/config/balance.ts`.
 
@@ -33,7 +33,7 @@ Other scripts:
 | | Milestone | Status |
 |---|---|---|
 | M0 | Skeleton: state, every screen clickable end to end, HUD, debug panel, seeded RNG | ✅ |
-| M1 | Night heist: lockpick, keypad, safe dial, alarm, patrols, cops countdown | — |
+| M1 | Night heist: lockpick, keypad, safe dial, alarm, patrols, cops countdown | ✅ |
 | M2 | Day heist and escape: crowd control, stick-up, chase | — |
 | M3 | Scouting and prep: viewfinder, pickpocket, hotwire, modifiers, intel | — |
 | M4 | The run: safehouse, roles, payout cuts, loyalty, heat tiers, scaling | — |

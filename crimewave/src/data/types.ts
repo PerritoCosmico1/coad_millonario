@@ -62,11 +62,10 @@ export interface ModifierDef {
 
 export interface LoudOption {
   label: string;
-  text: string;
-  /** Loud methods that are themselves a (hold-to-do) minigame. */
-  minigame?: MinigameId;
   /** Instant loud methods: base alarm added. */
   alarm?: number;
+  /** Hold-to-force loud methods (the "hold" minigame); numbers come from params.ts. */
+  hold?: 'pry' | 'crowbar';
 }
 
 export interface ObstacleDef {
@@ -74,6 +73,8 @@ export interface ObstacleDef {
   text: string;
   /** Quiet minigame, or null if the obstacle has no quiet minigame (stick-up). */
   quiet: MinigameId | null;
+  /** Button label for the quiet method, e.g. "Pick the lock". */
+  quietLabel?: string;
   loud: LoudOption | null;
   /** Loot table rolled when the obstacle is cleared. */
   loot?: 'register' | 'safe';

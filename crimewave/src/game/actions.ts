@@ -11,7 +11,7 @@ import { playSfx } from '../core/sfx';
 import { CREW, type CrewId } from '../data/crew';
 import { GEAR, STARTING_GEAR, type GearId } from '../data/gear';
 import type { IntelId } from '../data/intel';
-import { MODIFIER_IDS, type ModifierId } from '../data/modifiers';
+import { MODIFIERS, MODIFIER_IDS, type ModifierId } from '../data/modifiers';
 import type { PartnerId } from '../data/partners';
 import type { HeadlineTag, RoleId, TimeOfDay } from '../data/types';
 import { heatTier } from './heat';
@@ -211,6 +211,20 @@ export function revealAllModifiers(): void {
   notify();
 }
 
+/**
+ * A rolled modifier kicks in during the heist. If the player didn't know about
+ * it, show a surprise banner and reveal it. Returns true if it was a surprise.
+ */
+export function announceModifier(id: ModifierId): boolean {
+  const a = run().ante;
+  if (!a.modifiers.includes(id) || a.revealed.includes(id)) return false;
+  a.revealed.push(id);
+  emit({ type: 'toast', text: `Surprise: ${MODIFIERS[id].name}!`, tone: 'bad' });
+  playSfx('alarmSpike');
+  notify();
+  return true;
+}
+
 /** Debug: force a modifier in or out of this ante's roll. */
 export function setModifierRolled(id: ModifierId, rolled: boolean): void {
   const a = run().ante;
@@ -245,51 +259,56 @@ export function removeIntel(id: IntelId): void {
 
 // --- heist ----------------------------------------------------------------
 
-export function startHeist(time: TimeOfDay): void {
+export function startHeist(time: TimeOfDay, roles: Record<number, RoleId>, firstPatrolAt: number): void {
   const r = run();
   r.heist = {
     time,
-    roles: r.heist?.roles ?? {},
+    roles: { ...roles },
     alarm: heatTier(r.heat).startingAlarm,
     loot: 0,
     flatHeat: 0,
     step: 0,
+    elapsed: 0,
+    patrol: { n: 0, nextAt: firstPatrolAt, active: false, endsAt: 0 },
     copsCalled: false,
+    copsTimer: null,
     usedLoud: false,
+    silentAlarmTripped: false,
     result: null,
   };
   notify();
 }
 
-export function assignRole(uid: number, role: RoleId | null): void {
-  const r = run();
-  if (!r.heist) return;
-  if (role) r.heist.roles[uid] = role;
-  else delete r.heist.roles[uid];
-  notify();
-}
-
-/** Raises alarm (already multiplied by the caller). Hitting 100 calls the cops. */
-export function addAlarm(amount: number): void {
+/**
+ * Raises (or lowers) alarm by an amount the caller already multiplied — see
+ * raiseAlarm in heistRules.ts for the multipliers. Hitting 100 calls the cops.
+ * `popup: false` skips the floating number (used for the passive tick).
+ */
+export function addAlarm(amount: number, popup = true): void {
   const h = heist();
   const next = clamp(h.alarm + amount, 0, 100);
   const delta = next - h.alarm;
   if (delta === 0) return;
   h.alarm = next;
-  emit({ type: 'stat', stat: 'alarm', delta });
+  if (popup) emit({ type: 'stat', stat: 'alarm', delta });
   if (delta >= 10) playSfx('alarmSpike');
   if (h.alarm >= 100 && !h.copsCalled) {
     h.copsCalled = true;
+    h.copsTimer = B.heist.copsCountdown;
     playSfx('copsCalled');
     emit({ type: 'toast', text: 'COPS CALLED', tone: 'bad' });
   }
   notify();
 }
 
+/** Debug: set alarm directly. Dropping below 100 cancels the cops. */
 export function setAlarm(value: number): void {
   const h = heist();
   addAlarm(value - h.alarm);
-  if (h.alarm < 100) h.copsCalled = false;
+  if (h.alarm < 100) {
+    h.copsCalled = false;
+    h.copsTimer = null;
+  }
   notify();
 }
 
@@ -298,10 +317,10 @@ export function markLoud(): void {
   notify();
 }
 
-/** Rolls loot from a loot table (scaled by ante) and puts it in the bag. Returns the amount. */
-export function grabLoot(table: 'register' | 'safe'): number {
+/** Rolls loot from a loot table (scaled by ante), applies `mult`, and bags it. Returns the amount. */
+export function grabLoot(table: 'register' | 'safe', mult = 1): number {
   const range = lootRange(table, run().ante.n);
-  const amount = runRng('loot', table).int(range.min, range.max);
+  const amount = Math.round(runRng('loot', table).int(range.min, range.max) * mult);
   const h = heist();
   h.loot += amount;
   emit({ type: 'stat', stat: 'loot', delta: amount });

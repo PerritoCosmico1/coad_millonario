@@ -1,34 +1,68 @@
 /**
  * The heist: obstacle sequence with a Quiet / Loud choice before each one.
- * M0: steps through the plan with stub minigames and flat loud alarm. Real
- * minigames, patrols, passive alarm and the cops countdown arrive in M1;
- * crowd control in M2.
+ * The heist clock runs the whole time: passive alarm, night patrols, and a
+ * countdown once the cops are called. When it hits zero you're forced into a
+ * chase. Crowd control (day heists) arrives in M2.
  */
 
 import { B } from '../config/balance';
+import { emit } from '../core/events';
+import { frameLoop } from '../core/loop';
 import { GEAR } from '../data/gear';
 import { HEIST_PLANS, OBSTACLES, type ObstacleId } from '../data/heists';
 import { INTEL } from '../data/intel';
-import { addAlarm, grabLoot, hasGear, hasIntel, markLoud, nextObstacle } from '../game/actions';
+import { hasGear, hasIntel, nextObstacle } from '../game/actions';
 import { leaveHeist } from '../game/flow';
-import { heist, subscribe } from '../game/state';
+import { tickHeist } from '../game/heistClock';
+import {
+  alarmGainMult,
+  bagLoot,
+  onObstacleReached,
+  paramContext,
+  passiveAlarmRate,
+  patrolIncoming,
+  raiseAlarm,
+  safeLockedFor,
+} from '../game/heistRules';
+import { heist } from '../game/state';
+import { holdParams, paramsFor } from '../minigames/params';
 import type { RunningMinigame } from '../minigames/runner';
 import type { MinigameId } from '../minigames/types';
-import { button, placeholderNote, screenTitle } from '../ui/components';
+import { playSfx } from '../core/sfx';
+import { button, placeholderNote } from '../ui/components';
 import { h, money, render } from '../ui/dom';
+import { shake } from '../ui/fx';
 import type { Screen } from '../ui/router';
 import { hostMinigame } from './common';
+
+/** Base alarm per mistake for each quiet minigame (shown as an estimate on the card). */
+const MISTAKE_ALARM: Partial<Record<MinigameId, number>> = {
+  lockpick: B.heist.lockpick.missAlarm,
+  keypad: B.heist.keypad.wrongAlarm,
+  safeDial: B.heist.safe.wrongAlarm,
+};
+
+const clockText = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 export const heistScreen: Screen = {
   mount(root) {
     const plan = HEIST_PLANS[heist().time];
     let running: RunningMinigame | null = null;
+    let attempt = 0;
     let note = '';
+    let leaving = false;
 
+    const clock = h('div', { class: 'heist-clock' });
+    const statusText = h('span');
+    const statusExtra = h('span', { class: 'muted' });
+    const statusBar = h('div', { class: 'heist-status' }, statusText, statusExtra);
     const sequence = h('div', { class: 'sequence' });
     const main = h('div', { class: 'stage-area' });
     const bag = h('div', { class: 'bag' });
     const footer = h('div', { class: 'heist-footer' });
+    let timeLockSpan: HTMLElement | null = null;
+
+    // --- drawing --------------------------------------------------------------
 
     const drawSequence = () => {
       const step = heist().step;
@@ -43,121 +77,237 @@ export const heistScreen: Screen = {
     let footerKey = '';
     const drawFooter = () => {
       const h_ = heist();
-      const canBail = h_.step > 0 && h_.step < plan.obstacles.length && !running;
+      const canBail = h_.step > 0 && h_.step < plan.obstacles.length;
       // Only rebuild when something visible changed, so buttons don't swap mid-click.
-      const key = `${h_.loot}|${h_.copsCalled}|${canBail}`;
+      const key = `${h_.loot}|${canBail}|${!!running}`;
       if (key === footerKey) return;
       footerKey = key;
       bag.textContent = `Bag: ${money(h_.loot)}`;
       render(
         footer,
         bag,
-        h_.copsCalled ? h('div', { class: 'cops-banner' }, 'Cops called! (The 10s countdown arrives in M1.)') : null,
-        canBail ? button('Grab what you have and go', leaveHeist, { variant: 'ghost' }) : null,
+        running ? button('Back off (choose again)', backOff, { variant: 'ghost', title: 'Abandon this attempt and pick Quiet or Loud again' }) : null,
+        canBail ? button('Grab what you have and go', bail, { variant: 'ghost' }) : null,
       );
     };
+
+    let statusKey = '';
+    const drawStatus = () => {
+      const h_ = heist();
+      let text = '';
+      let cls = '';
+      const incoming = patrolIncoming();
+      if (h_.copsTimer !== null) {
+        text = `COPS CALLED — they arrive in ${h_.copsTimer.toFixed(1)}s. Grab what you can.`;
+        cls = 'danger';
+      } else if (h_.patrol.active) {
+        text = 'PATROL PASSING — mistakes and loud moves cost double alarm.';
+        cls = 'warn';
+      } else if (incoming !== null) {
+        text = `Lookout: patrol coming in ${Math.ceil(incoming)}s.`;
+        cls = 'info';
+      } else {
+        text = h_.time === 'night' ? 'Quiet out there.' : 'Day job. (Crowd control arrives in M2.)';
+      }
+      const passive = passiveAlarmRate() * alarmGainMult('passive');
+      const extra = passive > 0 ? `Passive alarm +${passive.toFixed(2)}/s` : '';
+      const key = `${cls}|${text}|${extra}`;
+      clock.textContent = clockText(h_.elapsed);
+      if (key === statusKey) return;
+      statusKey = key;
+      statusText.textContent = text;
+      statusExtra.textContent = extra;
+      statusBar.className = `heist-status ${cls}`;
+    };
+
+    const alarmEstimate = (base: number, cause: 'mistake' | 'loud') => Math.round(base * alarmGainMult(cause));
+
+    const obstacleCard = (id: ObstacleId) => {
+      const def = OBSTACLES[id];
+      const ctx = paramContext();
+      const lockedFor = id === 'safe' ? safeLockedFor() : 0;
+      const hasKeys = !!def.skippedBy && hasIntel(def.skippedBy);
+      const missingGear = def.quietNeeds && !hasGear(def.quietNeeds) ? def.quietNeeds : null;
+
+      let loudText = '';
+      let loudLabel = def.loud?.label ?? '';
+      if (def.loud?.alarm !== undefined) loudText = `≈ +${alarmEstimate(def.loud.alarm, 'loud')} alarm`;
+      else if (def.loud?.hold) {
+        const hp = holdParams(def.loud.hold, ctx);
+        loudLabel = hp.label;
+        loudText = `hold ${hp.seconds}s, ≈ +${alarmEstimate(hp.alarmPerSec * hp.seconds, 'loud')} alarm`;
+      }
+      const mistake = def.quiet ? MISTAKE_ALARM[def.quiet] : undefined;
+
+      timeLockSpan = lockedFor > 0 ? h('strong', null, '') : null;
+      return h(
+        'div',
+        { class: 'card center-card obstacle' },
+        h('div', { class: 'card-title' }, def.name),
+        h('p', { class: 'card-text' }, def.text),
+        timeLockSpan ? h('p', { class: 'timelock' }, 'Time-locked. Opens in ', timeLockSpan, '.') : null,
+        h(
+          'div',
+          { class: 'choice-row' },
+          hasKeys && def.skippedBy
+            ? button(`Use the ${INTEL[def.skippedBy].name}`, () => clearObstacle(id, 'unlocked with the keys'), { variant: 'primary' })
+            : null,
+          def.quiet
+            ? h(
+                'div',
+                { class: 'choice' },
+                button(missingGear ? `Quiet: needs ${GEAR[missingGear].name}` : `Quiet: ${def.quietLabel ?? 'play it'}`, () => play(id, def.quiet!, paramsFor(def.quiet!, ctx)), {
+                  variant: 'quiet',
+                  disabled: !!missingGear || lockedFor > 0,
+                }),
+                h('span', { class: 'muted small' }, mistake !== undefined ? `Takes time. ≈ +${alarmEstimate(mistake, 'mistake')} alarm per mistake.` : 'Takes time.'),
+              )
+            : null,
+          def.loud
+            ? h(
+                'div',
+                { class: 'choice' },
+                button(`Loud: ${loudLabel}`, () => goLoud(id), { variant: 'loud', disabled: lockedFor > 0 }),
+                h('span', { class: 'muted small' }, `Fast. ${loudText}.`),
+              )
+            : null,
+          !def.quiet && !def.loud ? button('Stick it up', () => clearObstacle(id, 'the clerk opened up'), { variant: 'primary' }) : null,
+        ),
+      );
+    };
+
+    let cardKey = '';
+    const draw = () => {
+      const h_ = heist();
+      drawSequence();
+      drawFooter();
+      if (running) return;
+      cardKey = currentCardKey();
+      if (h_.step >= plan.obstacles.length) {
+        timeLockSpan = null;
+        render(
+          main,
+          note ? h('p', { class: 'note' }, note) : null,
+          h(
+            'div',
+            { class: 'card center-card' },
+            h('div', { class: 'card-title' }, 'Exit'),
+            h('p', { class: 'card-text' }, 'Everything worth taking is in the bag. Time to go.'),
+            button('Get out →', bail, { variant: 'primary' }),
+          ),
+        );
+        return;
+      }
+      render(main, note ? h('p', { class: 'note' }, note) : null, obstacleCard(plan.obstacles[h_.step]));
+    };
+
+    /** Redraw the obstacle card when patrols change the estimates or the time-lock opens. */
+    const currentCardKey = () => {
+      const h_ = heist();
+      return `${h_.step}|${h_.patrol.active}|${safeLockedFor() > 0}`;
+    };
+
+    // --- actions ----------------------------------------------------------------
 
     const clearObstacle = (id: ObstacleId, how: string) => {
       const def = OBSTACLES[id];
       note = `${def.name}: ${how}.`;
-      if (def.loot) note += ` Grabbed ${money(grabLoot(def.loot))}.`;
+      if (def.loot) {
+        const { amount, dyed } = bagLoot(def.loot);
+        note += ` Bagged ${money(amount)}${dyed ? ' — the dye pack ruined half of it' : ''}.`;
+      }
       nextObstacle();
+      const next = plan.obstacles[heist().step];
+      if (next) onObstacleReached(next);
       draw();
     };
 
-    const play = (id: ObstacleId, minigame: MinigameId, loud: boolean) => {
+    const play = (id: ObstacleId, minigame: MinigameId, params: unknown, loud = false) => {
       const area = h('div', { class: 'minigame-area' });
+      timeLockSpan = null;
       render(main, area);
       running = hostMinigame(area, minigame, {
-        rngKey: ['heist', id, minigame],
-        onAlarm: (amount) => addAlarm(amount),
+        params,
+        rngKey: ['heist', id, minigame, attempt++],
+        onAlarm: (amount, cause) => raiseAlarm(amount, cause),
       });
+      const mine = running;
       drawFooter();
-      running.done.then((res) => {
+      mine.done.then((res) => {
+        if (running !== mine) return;
         running = null;
-        if (res.flags.includes('aborted')) return;
-        if (res.success) clearObstacle(id, loud ? 'forced' : 'done quietly');
+        if (res.flags.includes('aborted')) {
+          draw();
+          return;
+        }
+        if (res.success) clearObstacle(id, loud ? 'forced open' : 'done quietly');
         else {
-          note = `${OBSTACLES[id].name}: failed. Try again or go loud.`;
+          note = `${OBSTACLES[id].name}: no luck. Try again or go loud.`;
           draw();
         }
       });
     };
 
     const goLoud = (id: ObstacleId) => {
-      const def = OBSTACLES[id];
-      if (!def.loud) return;
-      markLoud();
-      // M0 placeholder: hold-to-force methods are instant with their full alarm cost.
-      const alarm = def.loud.alarm ?? B.heist.safe.crowbarTime * B.heist.safe.crowbarAlarmPerSec;
-      addAlarm(alarm);
-      clearObstacle(id, def.loud.label.toLowerCase());
-    };
-
-    const obstacleCard = (id: ObstacleId) => {
-      const def = OBSTACLES[id];
-      const keys = def.skippedBy && hasIntel(def.skippedBy);
-      const missingGear = def.quietNeeds && !hasGear(def.quietNeeds) ? def.quietNeeds : null;
-      const loudAlarm = def.loud ? def.loud.alarm ?? B.heist.safe.crowbarTime * B.heist.safe.crowbarAlarmPerSec : 0;
-      return h(
-        'div',
-        { class: 'card center-card' },
-        h('div', { class: 'card-title' }, def.name),
-        h('p', { class: 'card-text' }, def.text),
-        h(
-          'div',
-          { class: 'row' },
-          keys && def.skippedBy ? button(`Use the ${INTEL[def.skippedBy].name}`, () => clearObstacle(id, 'unlocked with the keys'), { variant: 'primary' }) : null,
-          def.quiet
-            ? button(missingGear ? `Quiet: needs ${GEAR[missingGear].name}` : 'Quiet: play it', () => play(id, def.quiet!, false), {
-                variant: 'quiet',
-                disabled: !!missingGear,
-              })
-            : null,
-          def.loud ? button(`Loud: ${def.loud.label} (+${loudAlarm} alarm)`, () => goLoud(id), { variant: 'loud' }) : null,
-          !def.quiet && !def.loud ? button('Stick it up', () => clearObstacle(id, 'the clerk opened up'), { variant: 'primary' }) : null,
-        ),
-      );
-    };
-
-    const draw = () => {
-      const step = heist().step;
-      drawSequence();
-      drawFooter();
-      if (step >= plan.obstacles.length) {
-        render(
-          main,
-          h(
-            'div',
-            { class: 'card center-card' },
-            note ? h('p', { class: 'muted' }, note) : null,
-            h('div', { class: 'card-title' }, 'Exit'),
-            h('p', { class: 'card-text' }, 'Everything worth taking is in the bag. Time to go.'),
-            button('Get out →', leaveHeist, { variant: 'primary' }),
-          ),
-        );
+      const loud = OBSTACLES[id].loud;
+      if (!loud) return;
+      if (loud.hold) {
+        play(id, 'hold', holdParams(loud.hold, paramContext()), true);
         return;
       }
-      render(main, note ? h('p', { class: 'note' }, note) : null, obstacleCard(plan.obstacles[step]));
+      raiseAlarm(loud.alarm ?? 0, 'loud');
+      playSfx('alarmSpike');
+      shake();
+      clearObstacle(id, loud.label.toLowerCase());
     };
+
+    const backOff = () => {
+      running?.abort();
+      note = 'You back off. Choose again.';
+    };
+
+    const bail = () => {
+      if (leaving) return;
+      leaving = true;
+      running?.abort();
+      leaveHeist();
+    };
+
+    // --- mount ------------------------------------------------------------------
 
     render(
       root,
       h(
         'div',
         { class: 'screen-pad heist' },
-        screenTitle(`The heist — ${plan.name}`),
-        placeholderNote('M1', 'Stub minigames. Real lockpick, keypad and safe dial, passive alarm, patrols and the cops countdown come next.'),
+        h('div', { class: 'heist-head' }, h('h1', null, `The heist — ${plan.name}`), clock),
+        statusBar,
         sequence,
         main,
         footer,
+        heist().time === 'day' ? placeholderNote('M2', 'Day heists get the crowd control panel and the real stick-up next milestone.') : null,
       ),
     );
+    const first = plan.obstacles[heist().step];
+    if (first) onObstacleReached(first);
     draw();
+    drawStatus();
 
-    const unsubscribe = subscribe(drawFooter);
+    const stop = frameLoop((dt) => {
+      if (leaving) return;
+      const { forcedOut } = tickHeist(dt);
+      drawStatus();
+      drawFooter();
+      if (timeLockSpan) timeLockSpan.textContent = `${Math.ceil(safeLockedFor())}s`;
+      if (!running && currentCardKey() !== cardKey) draw();
+      if (forcedOut) {
+        emit({ type: 'toast', text: 'THE COPS ARE HERE', tone: 'bad' });
+        bail();
+      }
+    });
+
     return () => {
-      unsubscribe();
+      stop();
       running?.abort();
     };
   },

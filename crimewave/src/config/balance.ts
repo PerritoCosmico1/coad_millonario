@@ -152,10 +152,30 @@ export const BALANCE = {
     passiveAlarm: { night: 0.5, day: 0 },
     /** Seconds between alarm hitting 100 and the forced chase. */
     copsCountdown: 10,
+    /** Night only. Seconds between patrols = interval ± jitter. During one, mistakes and loud actions cost alarmMult×. */
     patrol: { interval: 25, jitter: 5, duration: 4, alarmMult: 2 },
-    lockpick: { pins: 3, missAlarm: 5, kickAlarm: 25 },
+    lockpick: {
+      pins: 3,
+      /** Width of the green sweet spot, as a fraction of the bar. Shrinks with ante. */
+      sweetSpot: 0.18,
+      /** Marker speed in bar-widths per second (it bounces back and forth). */
+      markerSpeed: 0.75,
+      /** Each pin after the first moves this much faster. */
+      speedUpPerPin: 1.2,
+      missAlarm: 5,
+      kickAlarm: 25,
+    },
     keypad: { digits: 4, flashTime: 1.5, wrongAlarm: 8, pryHold: 3, pryAlarm: 20 },
-    safe: { numbers: 3, tolerance: 3, wrongAlarm: 5, crowbarTime: 8, crowbarAlarmPerSec: 4 },
+    safe: {
+      numbers: 3,
+      /** The dial clicks within ± this many numbers of the target. Shrinks with ante. */
+      tolerance: 3,
+      wrongAlarm: 5,
+      /** Each new target is at least this many numbers away from where the dial sits. */
+      minTravel: 25,
+      crowbarTime: 8,
+      crowbarAlarmPerSec: 4,
+    },
     loot: {
       register: { min: 150, max: 300 },
       safe: { min: 400, max: 800 },

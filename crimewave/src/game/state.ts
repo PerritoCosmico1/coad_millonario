@@ -76,8 +76,16 @@ export interface HeistState {
   flatHeat: number;
   /** Index of the current obstacle in the plan. */
   step: number;
+  /** Seconds since the heist started. */
+  elapsed: number;
+  /** Night patrols: the nth patrol starts at `nextAt` and, once active, ends at `endsAt`. */
+  patrol: { n: number; nextAt: number; active: boolean; endsAt: number };
   copsCalled: boolean;
+  /** Seconds until the cops arrive, once called. */
+  copsTimer: number | null;
   usedLoud: boolean;
+  /** Silent alarm modifier already went off. */
+  silentAlarmTripped: boolean;
   result: HeistResult | null;
 }
 

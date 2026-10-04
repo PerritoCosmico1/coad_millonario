@@ -15,6 +15,8 @@ export type SfxName =
   | 'dialClick'
   | 'snap'
   | 'spark'
+  | 'pinSet'
+  | 'patrol'
   | 'headline';
 
 let logSfx = false;

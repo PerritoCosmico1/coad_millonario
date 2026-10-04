@@ -105,7 +105,8 @@ export function mountHud(root: HTMLElement, stage: HTMLElement): void {
     const inHeist = !!h_ && (game.screen === 'heist' || game.screen === 'escape');
     alarmBox.style.display = inHeist ? '' : 'none';
     if (h_ && inHeist) {
-      alarmMeter.set(h_.alarm, h_.copsCalled ? 'COPS' : `${Math.round(h_.alarm)}`);
+      const cops = h_.copsTimer ? `${Math.ceil(h_.copsTimer)}s` : h_.copsCalled ? 'COPS' : null;
+      alarmMeter.set(h_.alarm, cops ?? `${Math.round(h_.alarm)}`);
       alarmBox.classList.toggle('cops', h_.copsCalled);
     }
 

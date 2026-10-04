@@ -12,7 +12,7 @@
 import { B } from '../config/balance';
 import { CURRENT_TARGET, TARGETS } from '../data/targets';
 import type { PartnerId } from '../data/partners';
-import type { TimeOfDay } from '../data/types';
+import type { RoleId, TimeOfDay } from '../data/types';
 import { goTo } from '../ui/router';
 import {
   clearRun,
@@ -28,6 +28,7 @@ import {
   startRun,
 } from './actions';
 import { pickHeadline } from './headlines';
+import { onHeistStart, patrolGap } from './heistRules';
 import { runRng } from './random';
 import { currentBlind, run, type EscapeOutcome } from './state';
 
@@ -75,8 +76,9 @@ export function leaveSafehouse(): void {
   goTo('blindSelect');
 }
 
-export function beginHeist(time: TimeOfDay): void {
-  startHeist(time);
+export function beginHeist(time: TimeOfDay, roles: Record<number, RoleId>): void {
+  startHeist(time, roles, patrolGap(0));
+  onHeistStart();
   goTo('heist');
 }
 
