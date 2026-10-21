@@ -33,19 +33,19 @@
   // ---------------------------------------------------------------- capacidades
 
   const CHECKS = [
-    { id: 'secure', label: 'Conexión segura', test: async () => window.isSecureContext },
+    { id: 'secure', label: 'HTTPS', test: async () => window.isSecureContext },
     { id: 'camera', label: 'Cámara', test: async () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
     {
       id: 'webxr',
-      label: 'WebXR · AR inmersiva',
+      label: 'WebXR',
       optional: true,
       test: async () => {
         if (!navigator.xr || !navigator.xr.isSessionSupported) return false;
         try { return await navigator.xr.isSessionSupported('immersive-ar'); } catch (e) { return false; }
       },
     },
-    { id: 'motion', label: 'Sensores de movimiento', test: async () => 'DeviceOrientationEvent' in window },
-    { id: 'geo', label: 'Ubicación', optional: true, test: async () => 'geolocation' in navigator },
+    { id: 'motion', label: 'Sensores', test: async () => 'DeviceOrientationEvent' in window },
+    { id: 'geo', label: 'GPS', optional: true, test: async () => 'geolocation' in navigator },
   ];
 
   async function checkSupport() {
@@ -57,20 +57,20 @@
   async function renderChecks() {
     const list = $('#checks');
     list.replaceChildren();
+    // Una fila de indicadores: verde = listo, rojo = falta, hueco = opcional.
     const rows = CHECKS.map((c) => {
-      const state = document.createElement('span');
-      state.dataset.state = 'wait';
-      state.textContent = '…';
       const li = document.createElement('li');
-      li.append(c.label, state);
+      li.dataset.state = 'wait';
+      li.textContent = c.label;
       list.append(li);
-      return state;
+      return li;
     });
     const result = await checkSupport();
     CHECKS.forEach((c, i) => {
       const ok = result[c.id];
       rows[i].dataset.state = ok ? 'ok' : c.optional ? 'opt' : 'no';
-      rows[i].textContent = ok ? 'Listo' : c.optional ? 'Opcional' : 'No disponible';
+      rows[i].title = ok ? 'Listo' : c.optional ? 'Opcional' : 'No disponible';
+      rows[i].setAttribute('aria-label', c.label + ': ' + rows[i].title);
     });
 
     const note = $('#note');

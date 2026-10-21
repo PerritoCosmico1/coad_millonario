@@ -4,11 +4,11 @@
  * No hace falta tocar HTML, CSS ni app.js para cambiar la fecha, los puntos,
  * los artistas o los links: edita este archivo y recarga.
  *
- * ⚠ Los valores marcados con [PENDIENTE] son de ejemplo y hay que reemplazarlos
- *   con los datos reales antes de publicar.
+ * ⚠ Lo marcado con [PENDIENTE] es provisorio o falta confirmarlo.
+ *   Cualquier texto o link que se deje vacío ('') simplemente no aparece.
  *
- * Fechas: formato ISO con zona horaria. En noviembre Chile continental está
- * en horario de verano (UTC-3), por eso terminan en "-03:00".
+ * Fechas: formato ISO con zona horaria. En verano Chile continental está en
+ * UTC-3, por eso terminan en "-03:00".
  *
  * Coordenadas: en Google Maps, clic derecho sobre el lugar → el primer ítem
  * del menú son "lat, lng". Cópialos tal cual en `lat` y `lng`.
@@ -18,15 +18,14 @@ window.IRRUMPE_CONFIG = {
     nombre: 'IRRUMPE',
     bajada: 'Intervención musical',
     ciudad: 'Concepción',
-    inicio: '2026-11-27T19:00:00-03:00', // [PENDIENTE] fecha y hora reales
-    fin: '2026-11-27T23:00:00-03:00',    // [PENDIENTE] cuándo termina
+    inicio: '2027-02-01T17:00:00-03:00', // fecha provisoria
+    fin: '2027-02-01T23:00:00-03:00',    // [PENDIENTE] hora de término
     zonaHoraria: 'America/Santiago',
   },
 
   compania: {
     nombre: 'La Única Compañía',
-    // [PENDIENTE] reemplazar por el logo oficial (SVG o PNG con fondo transparente).
-    logo: 'assets/logo-la-unica-compania.svg',
+    logo: 'assets/logo-la-unica-compania.png',
     web: 'https://launicacompania.cl/',
   },
 
@@ -38,108 +37,84 @@ window.IRRUMPE_CONFIG = {
   },
 
   /*
-   * Los puntos del mapa. Puede haber más o menos de cuatro.
+   * Los puntos del mapa, en orden (01, 02, ...). Puede haber más o menos de cuatro.
    *
-   * artista.foto:   ruta a una imagen en assets/artistas/ (ideal 800×1000, vertical).
-   *                 Si se deja vacía se muestra un recuadro con el número del punto.
-   * artista.redes:  cualquier red que se deje vacía ('') no aparece.
-   * artista.musica: `url` es el link que se abre al hacer clic en el tema.
+   * hora:           opcional, p. ej. '17:30'. Vacío = no se muestra.
+   * artista.foto:   imagen en assets/artistas/ (cuadrada o vertical).
+   * artista.genero / artista.bio: textos cortos; vacíos = no se muestran.
+   * artista.redes:  links completos (https://...). Vacíos = no aparecen.
+   * artista.musica: `titulo` + `url` muestran un tema destacado.
    *                 `embed` (opcional) es un link de Spotify o YouTube que se
    *                 incrusta como reproductor cuando la tarjeta queda fija.
    *                 `preview` (opcional) es un .mp3 corto en assets/audio/ que
    *                 se reproduce con el botón ▶ de la tarjeta.
+   *
+   * [PENDIENTE] qué artista va en qué punto (hoy siguen el orden de la web de
+   * La Única Compañía) y confirmar las coordenadas exactas de cada lugar.
    */
   puntos: [
     {
-      id: 'plaza',
-      lugar: 'Plaza de la Independencia',             // [PENDIENTE]
+      id: 'parque-ecuador',
+      lugar: 'Parque Ecuador',
+      direccion: 'Av. Víctor Lamas, a los pies del cerro Caracol',
+      lat: -36.8320,
+      lng: -73.0465,
+      hora: '',
+      artista: {
+        nombre: 'Azga',
+        genero: '',
+        bio: '',
+        foto: 'assets/artistas/azga.jpg',
+        musica: { titulo: '', url: '', embed: '', preview: '' },
+        redes: { instagram: '', spotify: '', youtube: '', soundcloud: '', tiktok: '', web: '' },
+      },
+    },
+    {
+      id: 'plaza-independencia',
+      lugar: 'Plaza de la Independencia',
       direccion: 'Barros Arana con Caupolicán',
       lat: -36.8270,
       lng: -73.0503,
-      hora: '19:00',
+      hora: '',
       artista: {
-        nombre: 'Artista 01',                          // [PENDIENTE]
-        genero: 'Electrónica / ambient',
-        bio: 'Texto breve sobre el artista y lo que va a pasar en este punto. Una o dos líneas bastan.',
-        foto: '',
-        musica: { titulo: 'Tema por anunciar', url: 'https://open.spotify.com/', embed: '', preview: '' },
-        redes: {
-          instagram: 'https://www.instagram.com/',
-          spotify: 'https://open.spotify.com/',
-          youtube: 'https://www.youtube.com/',
-          soundcloud: '',
-          tiktok: '',
-          web: '',
-        },
+        nombre: 'Surdo',
+        genero: '',
+        bio: '',
+        foto: 'assets/artistas/surdo.jpg',
+        musica: { titulo: '', url: '', embed: '', preview: '' },
+        redes: { instagram: '', spotify: '', youtube: '', soundcloud: '', tiktok: '', web: '' },
       },
     },
     {
-      id: 'campanil',
-      lugar: 'Campanil UdeC',                          // [PENDIENTE]
-      direccion: 'Universidad de Concepción',
-      lat: -36.8299,
-      lng: -73.0357,
-      hora: '19:40',
+      id: 'plaza-bicentenario',
+      lugar: 'Plaza Bicentenario',
+      direccion: 'Barrio Cívico',
+      lat: -36.8282,
+      lng: -73.0609,
+      hora: '',
       artista: {
-        nombre: 'Artista 02',                          // [PENDIENTE]
-        genero: 'Rock / experimental',
-        bio: 'Texto breve sobre el artista y lo que va a pasar en este punto. Una o dos líneas bastan.',
-        foto: '',
-        musica: { titulo: 'Tema por anunciar', url: 'https://open.spotify.com/', embed: '', preview: '' },
-        redes: {
-          instagram: 'https://www.instagram.com/',
-          spotify: 'https://open.spotify.com/',
-          youtube: '',
-          soundcloud: '',
-          tiktok: '',
-          web: '',
-        },
+        nombre: 'Yuri',
+        genero: '',
+        bio: '',
+        foto: 'assets/artistas/yuri.jpg',
+        musica: { titulo: '', url: '', embed: '', preview: '' },
+        redes: { instagram: '', spotify: '', youtube: '', soundcloud: '', tiktok: '', web: '' },
       },
     },
     {
-      id: 'pascualas',
-      lugar: 'Laguna Las Tres Pascualas',              // [PENDIENTE]
-      direccion: 'Barrio Lorenzo Arenas',
-      lat: -36.8130,
-      lng: -73.0386,
-      hora: '20:20',
+      id: 'udec',
+      lugar: 'Universidad de Concepción',
+      direccion: 'Campanil · Barrio Universitario',
+      lat: -36.8297,
+      lng: -73.0359,
+      hora: '',
       artista: {
-        nombre: 'Artista 03',                          // [PENDIENTE]
-        genero: 'Hip hop / spoken word',
-        bio: 'Texto breve sobre el artista y lo que va a pasar en este punto. Una o dos líneas bastan.',
-        foto: '',
-        musica: { titulo: 'Tema por anunciar', url: 'https://open.spotify.com/', embed: '', preview: '' },
-        redes: {
-          instagram: 'https://www.instagram.com/',
-          spotify: 'https://open.spotify.com/',
-          youtube: 'https://www.youtube.com/',
-          soundcloud: '',
-          tiktok: '',
-          web: '',
-        },
-      },
-    },
-    {
-      id: 'costanera',
-      lugar: 'Costanera · Teatro Biobío',              // [PENDIENTE]
-      direccion: 'Ribera norte del río Biobío',
-      lat: -36.8337,
-      lng: -73.0630,
-      hora: '21:00',
-      artista: {
-        nombre: 'Artista 04',                          // [PENDIENTE]
-        genero: 'Pop / synth',
-        bio: 'Texto breve sobre el artista y lo que va a pasar en este punto. Una o dos líneas bastan.',
-        foto: '',
-        musica: { titulo: 'Tema por anunciar', url: 'https://open.spotify.com/', embed: '', preview: '' },
-        redes: {
-          instagram: 'https://www.instagram.com/',
-          spotify: '',
-          youtube: 'https://www.youtube.com/',
-          soundcloud: '',
-          tiktok: '',
-          web: '',
-        },
+        nombre: 'Antipatriarka',
+        genero: '',
+        bio: '',
+        foto: 'assets/artistas/antipatriarka.jpg',
+        musica: { titulo: '', url: '', embed: '', preview: '' },
+        redes: { instagram: '', spotify: '', youtube: '', soundcloud: '', tiktok: '', web: '' },
       },
     },
   ],

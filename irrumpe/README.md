@@ -7,21 +7,22 @@ Es un sitio estático: HTML, CSS y JS planos, sin build ni dependencias que inst
 ## Qué hay en la página
 
 - **Mapa estilizado de Concepción**: la costa, la bahía, el río Biobío y las lagunas dibujados como una grilla de puntos (datos reales de OpenStreetMap). En escritorio el cursor funciona como linterna y revela el terreno.
-- **Cuatro puntos rojos** que tiemblan y emiten ondas. Al pasar el mouse (o tocar en celular) muestran: lugar, hora, foto, nombre y género del artista, una bio corta, un tema, redes sociales y un link "Cómo llegar". Con un clic la tarjeta queda fija; si el artista tiene un link de Spotify o YouTube en `musica.embed`, en ese momento se carga el reproductor.
+- **Cuatro puntos rojos** (Parque Ecuador, Plaza de la Independencia, Plaza Bicentenario y UdeC) que tiemblan y emiten ondas. Al pasar el mouse (o tocar en celular) muestran: lugar, foto y nombre del artista, y un link "Cómo llegar"; también hora, género, bio, un tema y redes cuando estén cargados. Con un clic la tarjeta queda fija; si el artista tiene un link de Spotify o YouTube en `musica.embed`, en ese momento se carga el reproductor.
+- **Los cuatro puntos siempre están a la vista**: la tarjeta nunca tapa un punto. En escritorio se ubica al costado del grupo de puntos (y si no cabe, el mapa se desliza para hacerle lugar). En celular es una hoja inferior compacta: la cuenta regresiva se achica y el mapa se reencuadra arriba de la hoja. Nada de la página necesita scroll, ni en celular horizontal.
 - **Cuenta regresiva** grande hasta el inicio, con el nombre y logo de La Única Compañía. Durante el evento cambia a "EN VIVO" y al terminar a "YA IRRUMPIÓ".
 - **Acceso AR**: botón arriba a la derecha. Abre un panel con el estado del acceso y, en escritorio, un QR para abrirlo en el celular. Lleva a `ar/`, que está preparada para montar la experiencia de realidad aumentada más adelante (ver [`ar/README.md`](ar/README.md)).
 - Una intro corta tipo "acceso concedido" (se salta con un clic, en la segunda visita y con movimiento reducido).
 
 ## Editar el contenido
 
-Todo se cambia en **[`js/config.js`](js/config.js)**: fecha y hora, nombre de la compañía y logo, y los puntos (lugar, coordenadas, hora, artista, foto, música, redes). Los datos marcados con `[PENDIENTE]` son de ejemplo.
+Todo se cambia en **[`js/config.js`](js/config.js)**: fecha y hora, nombre de la compañía y logo, y los puntos (lugar, coordenadas, hora, artista, foto, música, redes). Lo marcado con `[PENDIENTE]` falta confirmarlo; los campos vacíos no se muestran.
 
-- **Logo**: reemplazar `assets/logo-la-unica-compania.svg` (o apuntar `compania.logo` a otro archivo). El actual es provisorio.
-- **Fotos de artistas**: dejarlas en `assets/artistas/` (vertical, idealmente 800×1000) y poner la ruta en `artista.foto`. Se muestran en blanco y negro con un tinte rojo para que todas se vean parejas.
+- **Logo**: `assets/logo-la-unica-compania.png` (blanco sobre transparente). Para cambiarlo, reemplazar el archivo o apuntar `compania.logo` a otro.
+- **Fotos de artistas**: en `assets/artistas/` (cuadradas o verticales); la ruta va en `artista.foto`. Se muestran en blanco y negro con un tinte rojo para que todas se vean parejas. La de Yuri salió de una captura de la web y es de baja resolución: conviene reemplazarla por el original.
 - **Coordenadas**: en Google Maps, clic derecho sobre el lugar → el primer ítem son `lat, lng`.
 - **Puntos**: pueden ser más o menos de cuatro; el mapa se encuadra solo.
-- **Colores y tipografías**: variables al inicio de [`styles.css`](styles.css). Hoy son *Archivo* (cuenta regresiva y títulos) y *JetBrains Mono* (todo lo demás), desde Google Fonts.
-- **Imagen para compartir** (`assets/og.jpg`, 1200×630): tiene la fecha de ejemplo; reemplazarla por una captura con la fecha real. Algunos sitios (WhatsApp, Facebook) exigen que `og:image` en `index.html` sea una URL absoluta: cambiarla al publicar.
+- **Colores y tipografías**: variables al inicio de [`styles.css`](styles.css). El rojo (`--red`) es el de la web de La Única Compañía. Las fuentes son *Archivo* (cuenta regresiva y títulos) y *JetBrains Mono* (todo lo demás), desde Google Fonts.
+- **Imagen para compartir** (`assets/og.jpg`, 1200×630): captura con la fecha del 1 de febrero de 2027; si la fecha cambia, hay que rehacerla. Algunos sitios (WhatsApp, Facebook) exigen que `og:image` en `index.html` sea una URL absoluta: cambiarla al publicar.
 
 ## Verla en local
 

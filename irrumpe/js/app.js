@@ -16,6 +16,11 @@
   const pad = (n) => String(n).padStart(2, '0');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
+  // Colores de marca: se leen de las variables de styles.css para no duplicarlos.
+  const rootStyle = getComputedStyle(document.documentElement);
+  const INK = rootStyle.getPropertyValue('--ink').trim() || '#ece9e2';
+  const RED = rootStyle.getPropertyValue('--red').trim() || '#f11b1a';
+
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
   const narrow = matchMedia('(max-width: 720px)');
@@ -204,12 +209,57 @@
       requestAnimationFrame((t) => this.frame(t));
     },
 
-    shift(px) {
-      this.el.style.transform = px ? 'translateY(' + (-px).toFixed(0) + 'px)' : '';
+    project(lat, lng) {
+      return this.projectWith(this, lat, lng);
     },
 
-    project(lat, lng) {
-      return { x: this.cx + (lng - this.lng0) * this.kx * this.s, y: this.cy - (lat - this.lat0) * KM_PER_DEG_LAT * this.s };
+    // Proyecta con una vista cualquiera {s, cx, cy} (escala en px/km y centro en pantalla).
+    projectWith(v, lat, lng) {
+      return { x: v.cx + (lng - this.lng0) * this.kx * v.s, y: v.cy - (lat - this.lat0) * KM_PER_DEG_LAT * v.s };
+    },
+
+    // Caja que ocupan los pins (con halo y etiqueta "01") en una vista dada.
+    pinBounds(v) {
+      const pts = POINTS.map((p) => this.projectWith(v, p.lat, p.lng));
+      const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+      return { x0: Math.min(...xs) - 26, x1: Math.max(...xs) + 58, y0: Math.min(...ys) - 26, y1: Math.max(...ys) + 26 };
+    },
+
+    // Vista en la que todos los pins caben dentro del rectángulo libre f. Mueve lo
+    // mínimo y solo aleja el mapa si el grupo de puntos no cabe a escala normal.
+    fitView(f) {
+      const home = this.home;
+      const bb = this.pinBounds(home);
+      const k = Math.min(1, (f.right - f.left) / (bb.x1 - bb.x0), (f.bottom - f.top) / (bb.y1 - bb.y0));
+      const bcx = (bb.x0 + bb.x1) / 2, bcy = (bb.y0 + bb.y1) / 2;
+      let nx = (f.left + f.right) / 2, ny = (f.top + f.bottom) / 2;
+      if (k === 1) {
+        nx = bcx + Math.max(0, f.left - bb.x0) + Math.min(0, f.right - bb.x1);
+        ny = bcy + Math.max(0, f.top - bb.y0) + Math.min(0, f.bottom - bb.y1);
+      }
+      // x' = cx' + (x − cx)·k  ⇒  cx' = nx − (bcx − cx)·k
+      return { s: home.s * k, cx: nx - (bcx - home.cx) * k, cy: ny - (bcy - home.cy) * k };
+    },
+
+    // Cambia la vista; con animación el mapa se desliza (y se redibuja) en ~0,5 s.
+    setView(v, animate) {
+      const same = Math.abs(v.s - this.s) < 1e-6 && Math.abs(v.cx - this.cx) < 0.5 && Math.abs(v.cy - this.cy) < 0.5;
+      if (same && !this.anim) return;
+      if (!animate || reducedMotion.matches) {
+        this.anim = null;
+        this.applyView(v, true);
+        return;
+      }
+      this.anim = { from: { s: this.s, cx: this.cx, cy: this.cy }, to: v, t0: performance.now(), dur: 520 };
+    },
+
+    applyView(v, final) {
+      this.s = v.s;
+      this.cx = v.cx;
+      this.cy = v.cy;
+      this.rasterize(this.sp);
+      this.drawBase();
+      this.placeOverlay(final);
     },
 
     unproject(x, y) {
@@ -224,11 +274,17 @@
       const dpr = (this.dpr = Math.min(window.devicePixelRatio || 1, 2));
       const small = narrow.matches;
 
+      // Se mide con el hero y el índice en su estado normal (no el compacto
+      // que se usa en celular mientras hay una tarjeta abierta).
+      const sheet = document.body.classList.contains('is-sheet');
+      if (sheet) document.body.classList.remove('is-sheet');
       const stageTop = this.el.getBoundingClientRect().top;
       const heroBottom = $('#hero').getBoundingClientRect().bottom - stageTop;
-      const indexTop = $('#index').getBoundingClientRect().top - stageTop;
-      const top = heroBottom + (small ? 36 : 48);
-      const bottom = small ? indexTop - 28 : H - 64;
+      const index = $('#index');
+      const indexTop = index.offsetParent ? index.getBoundingClientRect().top - stageTop : H;
+      if (sheet) document.body.classList.add('is-sheet');
+      const top = heroBottom + (small ? 36 : 44);
+      const bottom = Math.min(H - 40, indexTop - (small ? 28 : 24));
       const side = small ? 34 : W * 0.16;
 
       const lats = POINTS.map((p) => p.lat);
@@ -244,11 +300,10 @@
       const availW = Math.max(W - side * 2, 120);
       const availH = Math.max(bottom - top, 120);
       // px por km. El factor deja ver río, lagunas y bahía alrededor de los
-      // puntos; nunca menos de ~3 km ni más de ~26 km de ancho visible.
+      // puntos; entre ~4,5 km (celular) / ~11 km (escritorio) y ~26 km de ancho visible.
       const zoom = small ? 0.6 : 0.42;
-      this.s = clamp(Math.min(availW / wKm, availH / hKm) * zoom, W / 26, W / 3);
-      this.cx = W / 2;
-      this.cy = top + availH / 2;
+      const s = clamp(Math.min(availW / wKm, availH / hKm) * zoom, W / 26, W / (small ? 4.5 : 11));
+      this.home = { s, cx: W / 2, cy: top + availH / 2 };
 
       for (const c of [this.base, this.fx]) {
         c.width = Math.round(W * dpr);
@@ -257,10 +312,10 @@
       this.bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      this.rasterize(small ? 6 : 7);
-      this.drawBase();
-      this.placeOverlay();
-      card.reposition();
+      this.sp = small ? 6 : 7;
+      this.anim = null;
+      this.applyView(this.home, true);
+      card.reposition(false);
     },
 
     // Convierte costa y agua en una grilla de celdas: 0 = agua, 1 = tierra, 2 = borde costero.
@@ -274,10 +329,14 @@
       const mask = (this.mask = new Uint8Array(cols * rows));
       if (!GEO) { mask.fill(1); return; }
 
-      const off = document.createElement('canvas');
-      off.width = cols;
-      off.height = rows;
+      const off = this.off || (this.off = document.createElement('canvas'));
+      if (off.width !== cols || off.height !== rows) {
+        off.width = cols;
+        off.height = rows;
+      }
       const m = off.getContext('2d', { willReadFrequently: true });
+      m.setTransform(1, 0, 0, 1, 0, 0);
+      m.clearRect(0, 0, cols, rows);
       // Pantalla → grilla: la celda (i, j) cubre el centro ox + i·sp, oy + j·sp.
       m.setTransform(1 / sp, 0, 0, 1 / sp, 0.5 - this.ox / sp, 0.5 - this.oy / sp);
       const path = (rings) => {
@@ -312,7 +371,7 @@
       ctx.clearRect(0, 0, W, H);
       const reach = Math.max(W, H) * 0.75;
       const d = 1.5;
-      ctx.fillStyle = '#ece9e2';
+      ctx.fillStyle = INK;
       for (let j = 0; j < rows; j++) {
         const y = oy + j * sp;
         for (let i = 0; i < cols; i++) {
@@ -333,7 +392,15 @@
       ctx.globalAlpha = 1;
     },
 
-    placeOverlay() {
+    placeOverlay(checkLabels) {
+      POINTS.forEach((pt, i) => {
+        const p = this.project(pt.lat, pt.lng);
+        const pin = this.pins[i];
+        pin.x = p.x;
+        pin.y = p.y;
+        pin.el.style.left = p.x + 'px';
+        pin.el.style.top = p.y + 'px';
+      });
       for (const l of this.labels) {
         const p = this.project(l.lat, l.lng);
         let rot = 0;
@@ -343,16 +410,18 @@
           if (rot > 90) rot -= 180;
           if (rot < -90) rot += 180;
         }
-        l.el.hidden = false;
+        if (checkLabels) l.el.hidden = false;
         l.el.style.left = p.x + 'px';
         l.el.style.top = p.y + 'px';
         l.el.style.setProperty('--rot', rot.toFixed(1) + 'deg');
       }
-      // Etiquetas cortadas por el borde o tapadas por la cuenta regresiva / índice: fuera.
+      if (!checkLabels) return;
+      // Etiquetas cortadas por el borde o tapadas por la cuenta regresiva / índice / tarjeta: fuera.
       const r0 = this.el.getBoundingClientRect();
-      const blockers = ['#hero .countdown', '#hero .hero__title', '#hero .hero__date', '#index', '.readout']
+      const blockers = ['.topbar .brand', '#ar-open', '#hero .hero__kicker', '#hero .countdown', '#hero .hero__live',
+        '#hero .hero__title', '#hero .hero__date', '#index', '.readout', '#card']
         .map((sel) => document.querySelector(sel))
-        .filter((el) => el && !el.hidden)
+        .filter((el) => el && !el.hidden && el.offsetParent)
         .map((el) => el.getBoundingClientRect());
       const hit = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
       for (const l of this.labels) {
@@ -360,18 +429,18 @@
         const out = b.left < r0.left + 8 || b.right > r0.right - 8 || b.top < r0.top + 8 || b.bottom > r0.bottom - 8;
         l.el.hidden = out || blockers.some((k) => hit(b, k));
       }
-      POINTS.forEach((pt, i) => {
-        const p = this.project(pt.lat, pt.lng);
-        const pin = this.pins[i];
-        pin.x = p.x;
-        pin.y = p.y;
-        pin.el.style.left = p.x + 'px';
-        pin.el.style.top = p.y + 'px';
-      });
     },
 
     // Capa animada: la luz del cursor y las ondas rojas de cada punto.
     frame(t) {
+      if (this.anim) {
+        const a = this.anim;
+        const p = Math.min(1, (t - a.t0) / a.dur);
+        const e = 1 - Math.pow(1 - p, 3);
+        const mix = (k) => a.from[k] + (a.to[k] - a.from[k]) * e;
+        if (p >= 1) this.anim = null;
+        this.applyView({ s: mix('s'), cx: mix('cx'), cy: mix('cy') }, p >= 1);
+      }
       const ctx = this.fctx;
       ctx.clearRect(0, 0, this.W, this.H);
       if (this.pointer) this.light(this.pointer.x, this.pointer.y);
@@ -396,7 +465,7 @@
     light(x, y) {
       const ctx = this.fctx;
       const R = 180;
-      ctx.fillStyle = '#ece9e2';
+      ctx.fillStyle = INK;
       this.eachCell(x, y, R, (cx, cy, d, v) => {
         if (!v) return;
         const k = 1 - d / R;
@@ -411,7 +480,7 @@
       const period = 2800;
       const maxR = narrow.matches ? 110 : 170;
       const band = 12;
-      ctx.fillStyle = '#ff2b1c';
+      ctx.fillStyle = RED;
       this.pins.forEach((pin, i) => {
         // Brillo rojo fijo alrededor del punto.
         this.eachCell(pin.x, pin.y, 30, (cx, cy, d, v) => {
@@ -458,7 +527,7 @@
     m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{6,})/);
     if (m) return { src: 'https://www.youtube-nocookie.com/embed/' + m[1], height: 0 };
     if (/soundcloud\.com\//.test(url)) {
-      return { src: 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(url) + '&color=%23ff2b1c&visual=false', height: 120 };
+      return { src: 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(url) + '&color=' + encodeURIComponent(RED) + '&visual=false', height: 120 };
     }
     return null;
   }
@@ -498,6 +567,8 @@
       this.pinned = pinned;
       if (changed) this.render();
       this.el.hidden = false;
+      document.body.classList.add('has-card');
+      document.body.classList.toggle('is-sheet', narrow.matches);
       map.pins.forEach((p, k) => p.el.classList.toggle('is-active', k === i));
       document.querySelectorAll('.index__item').forEach((el, k) => el.classList.toggle('is-active', k === i));
       this.reposition();
@@ -509,35 +580,65 @@
       this.index = -1;
       this.pinned = false;
       this.el.hidden = true;
-      map.shift(0);
+      document.body.classList.remove('is-sheet', 'has-card');
       this.el.replaceChildren();
+      map.setView(map.home, true);
       map.pins.forEach((p) => p.el.classList.remove('is-active'));
       document.querySelectorAll('.index__item').forEach((el) => el.classList.remove('is-active'));
     },
 
     scheduleClose() {
       clearTimeout(this.hideTimer);
-      this.hideTimer = setTimeout(() => { if (!this.pinned) this.close(); }, 260);
+      this.hideTimer = setTimeout(() => { if (!this.pinned) this.close(); }, 400);
     },
 
-    reposition() {
-      if (this.index < 0) { map.shift(0); return; }
-      const pin = map.pins[this.index];
+    // Ubica la tarjeta sin tapar nunca ningún punto: en escritorio va al costado
+    // del grupo de puntos; en celular es una hoja inferior y el mapa se reencuadra
+    // en el espacio que queda libre arriba de ella.
+    reposition(animate = true) {
+      if (!map.ready) return;
+      if (this.index < 0) { map.setView(map.home, animate); return; }
+      document.body.classList.toggle('is-sheet', narrow.matches);
+      const W = map.W, H = map.H, m = 16, gap = 28;
+      const r0 = map.el.getBoundingClientRect();
+      const heroBottom = $('#hero').getBoundingClientRect().bottom - r0.top;
+
       if (narrow.matches) {
-        // Hoja inferior: si tapa el punto activo, el mapa sube lo justo para mostrarlo.
-        const sheetTop = window.innerHeight - this.el.offsetHeight;
-        map.shift(Math.max(0, pin.y - (sheetTop - 70)));
+        const sheetTop = H - this.el.offsetHeight;
+        map.setView(map.fitView({ left: m, right: W - m, top: heroBottom + 12, bottom: sheetTop - 12 }), animate);
         return;
       }
-      map.shift(0);
-      const r = map.el.getBoundingClientRect();
-      const x = r.left + pin.x, y = r.top + pin.y;
-      const cw = this.el.offsetWidth, ch = this.el.offsetHeight;
-      let left = x + 34;
-      if (left + cw > window.innerWidth - 16) left = x - 34 - cw;
-      const top = clamp(y - 56, 16, window.innerHeight - ch - 16);
-      this.el.style.left = Math.max(16, left) + 'px';
-      this.el.style.top = top + 'px';
+
+      this.el.classList.remove('card--peek');
+      let cw = this.el.offsetWidth, ch = this.el.offsetHeight;
+      const bb = map.pinBounds(map.home);
+      const p = POINTS[this.index];
+      const home = map.projectWith(map.home, p.lat, p.lng);
+      let view = map.home;
+      let left, top = null;
+      if (bb.x1 + gap + cw <= W - m) left = bb.x1 + gap;
+      else if (bb.x0 - gap - cw >= m) left = bb.x0 - gap - cw;
+      else if (this.pinned) {
+        // No cabe al costado: la tarjeta va a la derecha y el mapa se corre a la izquierda.
+        left = W - m - cw;
+        view = map.fitView({ left: m, right: left - gap, top: Math.min(heroBottom + 12, H / 2), bottom: H - m });
+      } else {
+        // Solo hover en pantallas medianas: el mapa no se mueve (el punto no se
+        // escapa del cursor) y se muestra una versión mínima de la tarjeta
+        // (foto, nombre, lugar) debajo o encima del grupo de puntos. Con clic
+        // aparece la completa.
+        this.el.classList.add('card--peek');
+        cw = this.el.offsetWidth;
+        ch = this.el.offsetHeight;
+        left = clamp(home.x - cw / 2, m, W - m - cw);
+        if (bb.y1 + 20 + ch <= H - m) top = bb.y1 + 20;
+        else if (bb.y0 - 20 - ch >= m) top = bb.y0 - 20 - ch;
+        else left = clamp(home.x + 34 + cw <= W - m ? home.x + 34 : home.x - 34 - cw, m, W - m - cw);
+      }
+      if (top == null) top = clamp(map.projectWith(view, p.lat, p.lng).y - 56, m, H - ch - m);
+      this.el.style.left = r0.left + left + 'px';
+      this.el.style.top = r0.top + top + 'px';
+      map.setView(view, animate);
     },
 
     stopAudio() {
@@ -603,6 +704,7 @@
           photo,
           h('div', null,
             h('h2', { class: 'card__name', text: a.nombre }),
+            h('p', { class: 'card__peek-place', text: p.lugar }),
             a.genero && h('p', { class: 'card__genre', text: a.genero }),
             a.bio && h('p', { class: 'card__bio', text: a.bio }),
           ),
@@ -637,7 +739,8 @@
       list.append(h('li', null, item));
 
       for (const el of [pin, item]) {
-        el.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') card.open(i, card.pinned && card.index === i); });
+        // Hover muestra la tarjeta de paso; si hay una fija, se cambia solo con clic.
+        el.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && !card.pinned) card.open(i, false); });
         el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !card.pinned) card.scheduleClose(); });
         el.addEventListener('click', () => {
           if (card.index === i && card.pinned) { card.close(); return; }
@@ -645,7 +748,7 @@
         });
       }
       // Teclado: al enfocar se muestra la tarjeta, Enter la deja fija.
-      pin.addEventListener('focus', () => { if (pin.matches(':focus-visible')) card.open(i, card.pinned && card.index === i); });
+      pin.addEventListener('focus', () => { if (pin.matches(':focus-visible') && !card.pinned) card.open(i, false); });
       pin.addEventListener('blur', () => { if (!card.pinned) card.scheduleClose(); });
     });
   }

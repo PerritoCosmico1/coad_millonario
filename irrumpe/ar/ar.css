@@ -1,19 +1,21 @@
-/* Acceso AR — usa los tokens de ../styles.css */
+/* Acceso AR — usa los tokens de ../styles.css.
+ * Todo cabe en una pantalla: el escenario toma el alto que sobra. */
 
 .arpage {
-  min-height: 100svh;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .arpage__top {
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px var(--gutter);
-  padding-top: max(16px, env(safe-area-inset-top));
-  background: linear-gradient(to bottom, var(--bg) 60%, rgba(7, 7, 7, 0));
+  padding: 14px var(--gutter);
+  padding-top: max(14px, env(safe-area-inset-top));
   font-size: 10px;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -23,25 +25,29 @@
 .arpage__tag { color: var(--red); }
 
 .arpage__main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   width: min(520px, 100%);
   margin: 0 auto;
-  padding: 12px var(--gutter) max(40px, env(safe-area-inset-bottom));
+  padding: 0 var(--gutter) max(16px, env(safe-area-inset-bottom));
 }
+.arpage__main > * { flex: none; margin: 0; }
 
 .arpage__kicker {
-  margin: 8px 0 12px;
   font-size: 10px;
   letter-spacing: 0.36em;
   text-transform: uppercase;
   color: var(--red);
 }
 .arpage__title {
-  margin: 0 0 22px;
   font-family: var(--font-display);
   font-weight: 200;
   font-stretch: 72%;
-  font-size: clamp(54px, 16vw, 84px);
-  line-height: 0.9;
+  font-size: clamp(38px, min(11vw, 7svh), 72px);
+  line-height: 0.92;
   text-transform: uppercase;
 }
 
@@ -49,8 +55,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 18px;
-  padding: 12px 14px;
+  padding: 11px 14px;
   border: 1px solid var(--line);
   font-size: 10px;
   letter-spacing: 0.2em;
@@ -70,14 +75,16 @@
 .arpage__status.is-open::before { background: #3dff8b; box-shadow: 0 0 10px #3dff8b; }
 
 /* Escenario: hoy muestra la cámara; mañana, la experiencia AR */
+.arpage__main > .arpage__stage {
+  flex: 1 1 auto;
+  min-height: 120px;
+}
 .arpage__stage {
   position: relative;
-  aspect-ratio: 3 / 4;
-  margin: 0 0 16px;
   overflow: hidden;
   border: 1px solid var(--line);
   background:
-    radial-gradient(circle at 50% 50%, rgba(255, 43, 28, 0.08), transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(241, 27, 26, 0.08), transparent 60%),
     repeating-linear-gradient(0deg, rgba(236, 233, 226, 0.035) 0 1px, transparent 1px 6px),
     #0a0a0a;
 }
@@ -93,7 +100,8 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 46%;
+  width: min(46%, 60%);
+  max-height: 60%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -116,7 +124,7 @@
   margin: -5px 0 0 -5px;
   border-radius: 50%;
   background: var(--red);
-  box-shadow: 0 0 16px 4px rgba(255, 43, 28, 0.5);
+  box-shadow: 0 0 16px 4px rgba(241, 27, 26, 0.5);
 }
 .arpage__reticle span::after {
   content: '';
@@ -130,7 +138,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 14px;
+  bottom: 12px;
   margin: 0;
   text-align: center;
   font-size: 10px;
@@ -139,9 +147,9 @@
   color: var(--ink-2);
 }
 
-.arpage__actions { display: grid; gap: 10px; margin: 0 0 30px; }
+.arpage__actions { display: grid; gap: 8px; }
 .arpage__btn {
-  padding: 15px;
+  padding: 14px;
   border: 1px solid var(--line);
   background: none;
   font-size: 11px;
@@ -151,34 +159,58 @@
   transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
 .arpage__btn:hover:not(:disabled) { border-color: var(--ink-2); }
-.arpage__btn--primary { border-color: var(--red); background: rgba(255, 43, 28, 0.1); }
+.arpage__btn--primary { border-color: var(--red); background: rgba(241, 27, 26, 0.1); }
 .arpage__btn--primary:hover:not(:disabled) { background: var(--red); color: var(--bg); border-color: var(--red); }
 .arpage__btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-.arpage__h2 {
-  margin: 0 0 10px;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-.arpage__list { list-style: none; margin: 0 0 14px; padding: 0; }
-.arpage__list li {
+/* Revisión del dispositivo: una fila de indicadores */
+.arpage__checks { display: grid; gap: 8px; }
+.arpage__list {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 0;
-  border-top: 1px solid var(--line);
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arpage__list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
   color: var(--ink-2);
 }
-.arpage__list li:last-child { border-bottom: 1px solid var(--line); }
-.arpage__list [data-state] { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; }
-.arpage__list [data-state='ok'] { color: #3dff8b; }
-.arpage__list [data-state='no'] { color: var(--red); }
-.arpage__list [data-state='opt'],
-.arpage__list [data-state='wait'] { color: var(--ink-3); }
+.arpage__list li::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid var(--ink-3);
+}
+.arpage__list li[data-state='ok']::before { background: #3dff8b; border-color: #3dff8b; }
+.arpage__list li[data-state='no']::before { background: var(--red); border-color: var(--red); }
+.arpage__list li[data-state='opt'] { color: var(--ink-3); }
+.arpage__note { margin: 0; font-size: 10px; line-height: 1.5; color: var(--ink-3); }
 
-.arpage__note { margin: 0; font-size: 11px; line-height: 1.6; color: var(--ink-3); }
+@media (max-height: 600px) {
+  .arpage__kicker { display: none; }
+  .arpage__main { gap: 8px; }
+  .arpage__btn { padding: 11px; }
+}
+
+/* Celular horizontal: dos columnas, el escenario a la derecha. */
+@media (max-height: 480px) and (orientation: landscape) {
+  .arpage__top { padding-top: 10px; padding-bottom: 10px; }
+  .arpage__main {
+    width: min(920px, 100%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto 1fr;
+    gap: 8px 20px;
+    align-content: start;
+  }
+  .arpage__main > .arpage__stage { grid-column: 2; grid-row: 1 / -1; min-height: 0; }
+  .arpage__title { font-size: 34px; }
+}
