@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Acceso AR — IRRUMPE</title>
   <meta name="description" content="Acceso especial de realidad aumentada para IRRUMPE.">
   <meta name="theme-color" content="#070707">
@@ -16,36 +16,81 @@
   <link rel="stylesheet" href="ar.css">
 </head>
 <body class="arpage">
-  <header class="arpage__top">
-    <a class="arpage__back" href="../">← <span data-event-name>IRRUMPE</span></a>
-    <span class="arpage__tag">Acceso AR</span>
-  </header>
+  <!-- Lanzador: una sola pantalla, con una vista previa 3D del holograma -->
+  <div class="launch" id="launch">
+    <header class="arpage__top">
+      <a class="arpage__back" href="../">← <span data-event-name>IRRUMPE</span></a>
+      <span class="arpage__tag">Acceso AR</span>
+    </header>
 
-  <main class="arpage__main">
-    <p class="arpage__kicker">Acceso especial</p>
-    <h1 class="arpage__title">Realidad<br>aumentada<br>en vivo</h1>
+    <main class="arpage__main">
+      <p class="arpage__kicker">Acceso especial <span class="arpage__proto" id="proto-tag" hidden>· Prototipo</span></p>
+      <h1 class="arpage__title">Realidad<br>aumentada<br>en vivo</h1>
 
-    <p class="arpage__status" id="status" role="status"></p>
+      <p class="arpage__status" id="status" role="status"></p>
 
-    <!-- Aquí se montará la experiencia AR (ver ar/README.md). Por ahora muestra la cámara al prepararla. -->
-    <section class="arpage__stage" id="stage" aria-label="Vista de la experiencia">
-      <video class="arpage__video" id="camera" playsinline muted hidden></video>
-      <div class="arpage__reticle" aria-hidden="true"><span></span></div>
-      <p class="arpage__stage-msg" id="stage-msg">Señal en espera</p>
-    </section>
+      <section class="arpage__stage" id="preview" aria-label="Vista previa del holograma">
+        <p class="arpage__stage-msg" id="stage-msg">Cargando holograma…</p>
+      </section>
 
-    <div class="arpage__actions">
-      <button class="arpage__btn" id="prepare" type="button">Preparar mi celular</button>
-      <button class="arpage__btn arpage__btn--primary" id="enter" type="button" disabled>Entrar a la experiencia</button>
+      <div class="arpage__actions" id="actions">
+        <button class="arpage__btn arpage__btn--primary" id="enter" type="button" disabled>Entrar a la experiencia</button>
+        <div class="arpage__row">
+          <button class="arpage__btn arpage__btn--small" id="enter-nocam" type="button" disabled>Sin cámara</button>
+          <button class="arpage__btn arpage__btn--small" id="mic" type="button" aria-pressed="false">Música: demo</button>
+        </div>
+      </div>
+
+      <!-- Solo en computador: esta experiencia es para celulares -->
+      <div class="arpage__desktop" id="desktop" hidden>
+        <div class="arpage__qr" id="qr" aria-hidden="true"></div>
+        <p>Esta experiencia es para celulares.<br>Escanea el código o abre<br><a id="desktop-link"></a></p>
+      </div>
+
+      <section class="arpage__checks" aria-label="Tu dispositivo">
+        <ul class="arpage__list" id="checks"></ul>
+        <p class="arpage__note" id="note"></p>
+      </section>
+    </main>
+  </div>
+
+  <!-- Experiencia a pantalla completa. En WebXR esta capa va encima de la cámara (dom-overlay). -->
+  <div class="xr" id="xr" hidden>
+    <video class="xr__video" id="xr-video" playsinline muted hidden></video>
+    <div class="xr__ui" id="xr-ui">
+      <header class="xr__top">
+        <button class="xr__chip" id="xr-exit" type="button">← Salir</button>
+        <span class="xr__mode" id="xr-mode"></span>
+        <button class="xr__chip" id="xr-recenter" type="button">Recentrar</button>
+      </header>
+
+      <p class="xr__toast" id="xr-toast" role="status" hidden></p>
+
+      <div class="xr__dock">
+        <p class="xr__hint" id="xr-hint" hidden></p>
+        <button class="xr__live" id="xr-live" type="button">
+          <span class="xr__live-head"><span class="xr__live-dot"></span><span id="xr-live-label">En vivo</span></span>
+          <span class="xr__live-name" id="xr-live-name"></span>
+          <span class="xr__live-place" id="xr-live-place"></span>
+          <span class="xr__live-bar"><span id="xr-live-bar"></span></span>
+          <span class="xr__live-next" id="xr-live-next"></span>
+        </button>
+        <div class="xr__actions">
+          <button class="xr__btn xr__btn--wide" id="xr-lineup" type="button">Artistas</button>
+          <button class="xr__btn" data-react="corazon" type="button" aria-label="Enviar corazón"></button>
+          <button class="xr__btn" data-react="chispa" type="button" aria-label="Enviar chispa"></button>
+          <button class="xr__btn" data-react="rayo" type="button" aria-label="Enviar rayo"></button>
+          <button class="xr__btn xr__btn--wide" id="xr-mic" type="button" aria-pressed="false">Música</button>
+        </div>
+      </div>
+
+      <section class="xr__sheet" id="xr-sheet" hidden aria-live="polite"></section>
     </div>
-
-    <section class="arpage__checks" aria-label="Tu dispositivo">
-      <ul class="arpage__list" id="checks"></ul>
-      <p class="arpage__note" id="note"></p>
-    </section>
-  </main>
+  </div>
 
   <script src="../js/config.js"></script>
-  <script src="ar.js"></script>
+  <script src="../js/concepcion-geo.js"></script>
+  <script src="../vendor/qrcode.js"></script>
+  <script type="module" src="ar.js"></script>
 </body>
 </html>

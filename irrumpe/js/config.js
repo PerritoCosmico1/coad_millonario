@@ -32,7 +32,12 @@ window.IRRUMPE_CONFIG = {
   // Acceso especial de realidad aumentada (ver ar/README.md).
   ar: {
     url: 'ar/',
-    // Desde cuándo se puede entrar a la experiencia. null = al inicio del evento.
+    // Prototipo: la AR se abre en cualquier momento y lugar, y simula el show
+    // en vivo (cada artista "toca" `segundosPorSet` segundos, en loop).
+    // Para el evento real: prototipo: false.
+    prototipo: true,
+    segundosPorSet: 45,
+    // Sin prototipo, desde cuándo se puede entrar. null = al inicio del evento.
     activaDesde: null,
   },
 

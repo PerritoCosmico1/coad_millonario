@@ -793,8 +793,10 @@
       const now = Date.now();
       const status = $('#ar-status');
       const d = dateParts(AR_FROM);
-      status.classList.toggle('is-open', now >= AR_FROM && now < END);
-      status.textContent = now < AR_FROM
+      const proto = !!(C.ar && C.ar.prototipo);
+      status.classList.toggle('is-open', proto || (now >= AR_FROM && now < END));
+      status.textContent = proto ? 'Prototipo · disponible ahora'
+        : now < AR_FROM
         ? 'Bloqueado · se activa el ' + d.weekday + ' ' + d.day + '.' + d.month + ' · ' + d.hour + ':' + d.minute
         : now < END ? 'Abierto · experiencia en vivo' : 'Cerrado · la noche ya pasó';
       $('#ar-enter').textContent = finePointer.matches ? 'Abrir en este dispositivo' : 'Abrir acceso';

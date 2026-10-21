@@ -10,7 +10,7 @@ Es un sitio estático: HTML, CSS y JS planos, sin build ni dependencias que inst
 - **Cuatro puntos rojos** (Parque Ecuador, Plaza de la Independencia, Plaza Bicentenario y UdeC) que tiemblan y emiten ondas. Al pasar el mouse (o tocar en celular) muestran: lugar, foto y nombre del artista, y un link "Cómo llegar"; también hora, género, bio, un tema y redes cuando estén cargados. Con un clic la tarjeta queda fija; si el artista tiene un link de Spotify o YouTube en `musica.embed`, en ese momento se carga el reproductor.
 - **Los cuatro puntos siempre están a la vista**: la tarjeta nunca tapa un punto. En escritorio se ubica al costado del grupo de puntos (y si no cabe, el mapa se desliza para hacerle lugar). En celular es una hoja inferior compacta: la cuenta regresiva se achica y el mapa se reencuadra arriba de la hoja. Nada de la página necesita scroll, ni en celular horizontal.
 - **Cuenta regresiva** grande hasta el inicio, con el nombre y logo de La Única Compañía. Durante el evento cambia a "EN VIVO" y al terminar a "YA IRRUMPIÓ".
-- **Acceso AR**: botón arriba a la derecha. Abre un panel con el estado del acceso y, en escritorio, un QR para abrirlo en el celular. Lleva a `ar/`, que está preparada para montar la experiencia de realidad aumentada más adelante (ver [`ar/README.md`](ar/README.md)).
+- **Acceso AR** (prototipo funcional): botón arriba a la derecha. En celular lleva a `ar/`: un holograma de Concepción con los cuatro puntos y las tarjetas de los artistas; al tocar una se ven su foto y sus redes. Además muestra quién está tocando, el line-up, reacciones y visuales que siguen la música. En Android con Chrome es AR real (se apoya en el suelo o en una mesa); en otros celulares usa la cámara y el giroscopio. Ver [`ar/README.md`](ar/README.md).
 - Una intro corta tipo "acceso concedido" (se salta con un clic, en la segunda visita y con movimiento reducido).
 
 ## Editar el contenido
@@ -56,9 +56,11 @@ styles.css              estilos (tokens de color/tipografía al inicio)
 js/config.js            ← contenido editable
 js/app.js               mapa, puntos, tarjeta, cuenta regresiva, panel AR
 js/concepcion-geo.js    costa y agua (generado)
-ar/                     acceso AR (andamiaje para la experiencia futura)
+ar/                     experiencia AR (prototipo)
 assets/                 logo, favicon, íconos, imagen para compartir, fotos
 vendor/qrcode.js        generador de QR (MIT, Kazuhiko Arase)
+vendor/three.min.js     three.js 0.186.1 minificado (MIT), para la AR
 tools/build-geo.py      genera js/concepcion-geo.js
+tools/build-three.sh    genera vendor/three.min.js
 manifest.webmanifest    permite "agregar a pantalla de inicio"
 ```
