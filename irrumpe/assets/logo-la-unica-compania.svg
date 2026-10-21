@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="La Única Compañía (logo provisorio)">
+  <!-- Logo PROVISORIO: reemplazar por el oficial de La Única Compañía. -->
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#ECE9E2" stroke-width="2.5"/>
+  <path d="M32 13v38" stroke="#ECE9E2" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="5.5" fill="#FF2B1C"/>
+</svg>

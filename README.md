@@ -19,6 +19,7 @@ public/                  todo lo que se sirve al navegador
 data/                    config/preguntas/estado persistente (si no hay Volume, vive aquí)
 seed/                    banco de preguntas de fábrica, se usa solo si data/ está vacío
 test/                    suite de pruebas (`npm test`)
+irrumpe/                 landing de IRRUMPE (sitio estático independiente, ver irrumpe/README.md)
 ```
 
 Antes del repo tenía una carpeta nueva por cada versión (`foco_audiovisual_v2_1`, `_v2_2`...) y Railway apuntaba su *Root Directory* a la última. Eso se consolidó: ahora todo vive en la raíz y el historial de versiones queda en los commits de git, no en carpetas duplicadas. Ver `CHANGELOG.md`.

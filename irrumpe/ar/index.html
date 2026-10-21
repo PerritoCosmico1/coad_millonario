@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Acceso AR — IRRUMPE</title>
+  <meta name="description" content="Acceso especial de realidad aumentada para IRRUMPE.">
+  <meta name="theme-color" content="#070707">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="ar.css">
+</head>
+<body class="arpage">
+  <header class="arpage__top">
+    <a class="arpage__back" href="../">← <span data-event-name>IRRUMPE</span></a>
+    <span class="arpage__tag">Acceso AR</span>
+  </header>
+
+  <main class="arpage__main">
+    <p class="arpage__kicker">Acceso especial</p>
+    <h1 class="arpage__title">Realidad<br>aumentada<br>en vivo</h1>
+
+    <p class="arpage__status" id="status" role="status"></p>
+
+    <!-- Aquí se montará la experiencia AR (ver ar/README.md). Por ahora muestra la cámara al prepararla. -->
+    <section class="arpage__stage" id="stage" aria-label="Vista de la experiencia">
+      <video class="arpage__video" id="camera" playsinline muted hidden></video>
+      <div class="arpage__reticle" aria-hidden="true"><span></span></div>
+      <p class="arpage__stage-msg" id="stage-msg">Señal en espera</p>
+    </section>
+
+    <div class="arpage__actions">
+      <button class="arpage__btn" id="prepare" type="button">Preparar mi celular</button>
+      <button class="arpage__btn arpage__btn--primary" id="enter" type="button" disabled>Entrar a la experiencia</button>
+    </div>
+
+    <section class="arpage__checks" aria-labelledby="checks-title">
+      <h2 class="arpage__h2" id="checks-title">Tu dispositivo</h2>
+      <ul class="arpage__list" id="checks"></ul>
+      <p class="arpage__note" id="note"></p>
+    </section>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="ar.js"></script>
+</body>
+</html>

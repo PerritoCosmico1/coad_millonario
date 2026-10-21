@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>IRRUMPE — La Única Compañía</title>
+  <meta name="description" content="IRRUMPE. Una intervención musical en cuatro puntos de Concepción. La Única Compañía.">
+  <meta name="theme-color" content="#070707">
+  <meta property="og:title" content="IRRUMPE">
+  <meta property="og:description" content="Cuatro puntos. Una noche. Concepción.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Secuencia de entrada. Se salta con clic, con movimiento reducido o en la segunda visita de la sesión. -->
+  <div class="boot" id="boot" aria-hidden="true">
+    <pre class="boot__log" id="boot-log"></pre>
+  </div>
+
+  <main class="stage" id="stage">
+    <header class="topbar">
+      <a class="brand" id="brand" target="_blank" rel="noopener">
+        <img class="brand__logo" id="brand-logo" alt="" width="34" height="34">
+        <span class="brand__name" id="brand-name"></span>
+      </a>
+      <button class="ar-trigger" id="ar-open" type="button" aria-haspopup="dialog">
+        <span class="ar-trigger__dot" aria-hidden="true"></span>
+        <span>Acceso AR</span>
+      </button>
+    </header>
+
+    <section class="hero" id="hero">
+      <p class="hero__kicker" id="event-kicker"></p>
+      <h1 class="hero__title" id="event-name">IRRUMPE</h1>
+      <div class="countdown" id="countdown" role="timer" aria-label="Cuenta regresiva">
+        <div class="countdown__unit"><span class="countdown__num" data-unit="d">00</span><span class="countdown__label">días</span></div>
+        <span class="countdown__sep" aria-hidden="true">:</span>
+        <div class="countdown__unit"><span class="countdown__num" data-unit="h">00</span><span class="countdown__label">horas</span></div>
+        <span class="countdown__sep" aria-hidden="true">:</span>
+        <div class="countdown__unit"><span class="countdown__num" data-unit="m">00</span><span class="countdown__label">min</span></div>
+        <span class="countdown__sep" aria-hidden="true">:</span>
+        <div class="countdown__unit"><span class="countdown__num" data-unit="s">00</span><span class="countdown__label">seg</span></div>
+      </div>
+      <p class="hero__live" id="live-state" hidden></p>
+      <p class="hero__date" id="event-date"></p>
+    </section>
+
+    <!-- Mapa: puntos en canvas + capa HTML con etiquetas y pins. Queda al fondo por z-index;
+         va aquí en el DOM para que el orden de tabulación sea logo → AR → pins → índice. -->
+    <section class="map" id="map" aria-label="Mapa de Concepción con los puntos de la intervención">
+      <canvas class="map__canvas" id="map-base" aria-hidden="true"></canvas>
+      <canvas class="map__canvas" id="map-fx" aria-hidden="true"></canvas>
+      <div class="map__layer" id="map-layer"></div>
+      <div class="map__shade" aria-hidden="true"></div>
+    </section>
+
+    <nav class="index" id="index" aria-label="Puntos de la intervención">
+      <p class="index__title"><span id="index-count"></span> puntos · una noche</p>
+      <ol class="index__list" id="index-list"></ol>
+    </nav>
+
+    <footer class="readout">
+      <span class="readout__coords" id="coords" aria-hidden="true"></span>
+      <span class="readout__credit">Proyecto universitario · Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
+    </footer>
+  </main>
+
+  <!-- Tarjeta de información del punto activo (flotante en escritorio, hoja inferior en celular) -->
+  <aside class="card" id="card" aria-live="polite" hidden></aside>
+
+  <!-- Acceso especial AR -->
+  <dialog class="ar" id="ar-dialog" aria-labelledby="ar-title">
+    <div class="ar__inner">
+      <button class="ar__close" id="ar-close" type="button" aria-label="Cerrar">×</button>
+      <p class="ar__kicker">Acceso especial</p>
+      <h2 class="ar__title" id="ar-title">Realidad aumentada<br>en vivo</h2>
+      <p class="ar__text">La noche de <strong data-event-name>IRRUMPE</strong> tu celular es la llave. Apúntalo a cada punto para ver lo que no está ahí.</p>
+      <p class="ar__status" id="ar-status"></p>
+      <div class="ar__handoff" id="ar-handoff">
+        <div class="ar__qr" id="ar-qr" aria-hidden="true"></div>
+        <p class="ar__hint">Escanea con tu celular<br>o abre <a id="ar-link-text"></a></p>
+      </div>
+      <a class="ar__enter" id="ar-enter">Abrir acceso</a>
+    </div>
+  </dialog>
+
+  <noscript><p class="noscript">IRRUMPE necesita JavaScript para mostrar el mapa.</p></noscript>
+
+  <script src="js/config.js"></script>
+  <script src="js/concepcion-geo.js"></script>
+  <script src="vendor/qrcode.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
