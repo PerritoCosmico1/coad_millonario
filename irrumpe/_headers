@@ -1,0 +1,8 @@
+# Cabeceras para Netlify (otros hostings las ignoran).
+# El modelo para iPhone (AR Quick Look) necesita su tipo MIME exacto.
+/assets/*.usdz
+  Content-Type: model/vnd.usdz+zip
+  Cache-Control: public, max-age=3600
+
+/vendor/*
+  Cache-Control: public, max-age=604800

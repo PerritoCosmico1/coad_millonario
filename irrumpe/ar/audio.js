@@ -32,6 +32,18 @@ export const pulse = {
     return true;
   },
 
+  // Al volver de segundo plano: reanudar el audio o reabrir el micrófono si se cortó.
+  async resume() {
+    if (!this.analyser) return;
+    const alive = this.stream && this.stream.getAudioTracks().some((t) => t.readyState === 'live');
+    if (!alive) {
+      this.disableMic();
+      await this.enableMic().catch(() => {});
+      return;
+    }
+    if (this.ctx.state !== 'running') await this.ctx.resume().catch(() => {});
+  },
+
   disableMic() {
     if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
     if (this.ctx) this.ctx.close().catch(() => {});

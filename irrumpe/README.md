@@ -36,6 +36,8 @@ python3 -m http.server 8080 --directory irrumpe
 
 ## Publicar
 
+Para el pitch, seguir [`PITCH.md`](PITCH.md) (dirección fija, QR, ensayo).
+
 Cualquier hosting estático sirve (GitHub Pages, Netlify, Vercel, Cloudflare Pages): publicar el contenido de esta carpeta tal cual. Tiene que ser **HTTPS** para que el acceso AR pueda usar la cámara.
 
 ## Mapa
@@ -57,10 +59,14 @@ js/config.js            ← contenido editable
 js/app.js               mapa, puntos, tarjeta, cuenta regresiva, panel AR
 js/concepcion-geo.js    costa y agua (generado)
 ar/                     experiencia AR (prototipo)
-assets/                 logo, favicon, íconos, imagen para compartir, fotos
+qr.html                 genera el QR y la placa final para el video del pitch
+PITCH.md                plan y checklist para el pitch
+_headers                cabeceras para Netlify (tipo del modelo de iPhone, caché)
+assets/                 logo, favicon, íconos, imagen para compartir, fotos, irrumpe.usdz (iPhone)
 vendor/qrcode.js        generador de QR (MIT, Kazuhiko Arase)
 vendor/three.min.js     three.js 0.186.1 minificado (MIT), para la AR
 tools/build-geo.py      genera js/concepcion-geo.js
-tools/build-three.sh    genera vendor/three.min.js
+tools/build-three.sh    genera vendor/three.min.js y tools/usdz-exporter.js
+tools/export-usdz.html  genera assets/irrumpe.usdz (el tótem para iPhone)
 manifest.webmanifest    permite "agregar a pantalla de inicio"
 ```

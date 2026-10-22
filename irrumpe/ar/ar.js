@@ -1,9 +1,13 @@
 /*
  * IRRUMPE AR — página de acceso y experiencia.
  *
- * Lanzador (una pantalla): estado, vista previa 3D del holograma, revisión del
- * celular y botones para entrar. Al entrar elige el mejor modo disponible
- * (ver sessions.js): WebXR → cámara + giroscopio → sin cámara.
+ * Lanzador (una pantalla): estado, vista previa 3D del tótem, revisión del
+ * celular y el botón para entrar. Según el navegador ofrece la mejor forma de
+ * verlo anclado al mundo:
+ *   - Chrome en Android con ARCore → WebXR (sessions.js), interactivo.
+ *   - Otro navegador en Android → botón para abrir la misma página en Chrome.
+ *   - iPhone → "Ver en tu espacio" con AR Quick Look (assets/irrumpe.usdz),
+ *     más el modo interactivo con cámara y giroscopio.
  *
  * Dentro de la experiencia: quién está tocando ahora, line-up, ficha de cada
  * artista con foto y redes, reacciones y visuales que siguen la música.
@@ -23,6 +27,7 @@ const POINTS = C.puntos || [];
 const AR = C.ar || {};
 const PROTO = !!AR.prototipo;
 const PREVIEW = new URLSearchParams(location.search).has('preview');
+const USDZ = '../assets/irrumpe.usdz';
 
 const $ = (sel) => document.querySelector(sel);
 const pad = (n) => String(n).padStart(2, '0');
@@ -32,9 +37,21 @@ const END = C.evento.fin ? new Date(C.evento.fin).getTime() : START + 4 * 3600e3
 const OPENS = AR.activaDesde ? new Date(AR.activaDesde).getTime() : START;
 const isOpen = (now) => PROTO || PREVIEW || (now >= OPENS && now < END);
 
+// ------------------------------------------------------------------ navegador
+
+const UA = navigator.userAgent;
 const IS_MOBILE = (navigator.userAgentData && navigator.userAgentData.mobile)
-  || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  || /Android|iPhone|iPad|iPod|Mobile/i.test(UA)
   || (navigator.maxTouchPoints > 1 && matchMedia('(pointer: coarse)').matches);
+const IS_ANDROID = /Android/i.test(UA);
+// Navegadores dentro de apps (Instagram, WhatsApp, lectores de QR...): sin WebXR y a veces sin cámara.
+const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|WhatsApp|LinkedInApp|Snapchat|TikTok|musical_ly|Twitter|; wv\)/i.test(UA);
+const IS_CHROME_ANDROID = IS_ANDROID && /Chrome\/\d/.test(UA) && !/SamsungBrowser|EdgA|OPR\/|Firefox|YaBrowser|; wv\)/i.test(UA) && !IN_APP;
+// AR Quick Look: Safari (y otros navegadores) en iPhone/iPad.
+const QUICKLOOK = (() => {
+  const a = document.createElement('a');
+  return !!(a.relList && a.relList.supports && a.relList.supports('ar'));
+})();
 
 const SOCIAL_LABELS = {
   instagram: 'Instagram', spotify: 'Spotify', youtube: 'YouTube', soundcloud: 'SoundCloud',
@@ -94,7 +111,7 @@ const scene = new THREE.Scene();
 let holo = null;
 let session = null;
 
-// Vista previa en el lanzador: la cámara se mece frente al holograma.
+// Vista previa en el lanzador: la cámara se mece frente al tótem.
 const previewCam = new THREE.PerspectiveCamera(38, 1, 0.01, 50);
 function fitPreview() {
   const box = $('#preview').getBoundingClientRect();
@@ -132,7 +149,7 @@ new ResizeObserver(() => { if (!session) fitPreview(); }).observe($('#preview'))
 const CHECKS = [
   { id: 'secure', label: 'HTTPS', test: async () => window.isSecureContext },
   { id: 'camera', label: 'Cámara', test: async () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
-  { id: 'xr', label: 'AR completa', optional: true, test: xrSupported },
+  { id: 'xr', label: 'AR anclada', optional: true, test: async () => (await xrSupported()) || QUICKLOOK },
   { id: 'motion', label: 'Giroscopio', test: async () => 'DeviceOrientationEvent' in window },
   { id: 'mic', label: 'Micrófono', optional: true, test: async () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
 ];
@@ -145,18 +162,49 @@ async function renderChecks() {
     list.append(li);
     return li;
   });
+  support.webxr = await xrSupported();
   for (const [i, c] of CHECKS.entries()) {
     support[c.id] = await c.test();
     const state = support[c.id] ? 'ok' : c.optional ? 'opt' : 'no';
     rows[i].dataset.state = state;
     rows[i].setAttribute('aria-label', c.label + ': ' + (state === 'ok' ? 'listo' : state === 'opt' ? 'opcional' : 'no disponible'));
   }
+  renderActions();
+}
+
+// Elige el botón principal según lo que el celular puede hacer.
+function renderActions() {
+  if (!IS_MOBILE && !PREVIEW) return;
+  const enter = $('#enter');
   const note = $('#note');
-  if (!IS_MOBILE && !PREVIEW) note.textContent = '';
-  else if (!support.secure) note.textContent = 'La cámara y la AR solo funcionan con el sitio publicado en HTTPS.';
-  else if (support.xr) note.textContent = 'Tu celular soporta AR completa: el holograma se apoya en el suelo o en una mesa.';
-  else if (support.camera) note.textContent = 'Se usará la cámara y el giroscopio. Para AR completa, usa Chrome en Android.';
-  else note.textContent = 'Sin cámara disponible: entra en modo sin cámara.';
+  const chrome = $('#open-chrome');
+  const ql = $('#quicklook');
+  const secondary = (text) => {
+    enter.classList.remove('arpage__btn--primary');
+    enter.textContent = text;
+  };
+  if (!support.secure) {
+    note.textContent = 'La cámara y la AR solo funcionan con el sitio publicado en HTTPS.';
+  } else if (support.webxr) {
+    note.textContent = 'AR anclada: el tótem se apoya en el suelo o en una mesa y puedes caminar a su alrededor.';
+  } else if (IS_ANDROID) {
+    // Samsung Internet, navegadores de apps, etc.: la misma página en Chrome.
+    chrome.href = 'intent://' + location.host + location.pathname + location.search
+      + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(location.href) + ';end';
+    chrome.hidden = false;
+    secondary('Entrar aquí (sin anclaje)');
+    note.textContent = 'Este navegador no permite AR anclada. En Chrome el tótem queda fijo en tu espacio y puedes caminar a su alrededor.';
+  } else if (QUICKLOOK) {
+    ql.hidden = false;
+    secondary('Modo interactivo');
+    note.textContent = '«Ver en tu espacio» lo deja anclado al piso con la AR del iPhone. El modo interactivo muestra artistas, reacciones y música.';
+  } else if (IN_APP) {
+    note.textContent = 'Estás en el navegador de una app. Ábrelo en Safari o Chrome (menú ⋯ → Abrir en el navegador) para verlo anclado.';
+  } else if (support.camera) {
+    note.textContent = 'Se usará la cámara y el giroscopio: el tótem sigue tus giros, pero no tus pasos.';
+  } else {
+    note.textContent = 'Sin cámara disponible: entra en modo sin cámara.';
+  }
 }
 
 function renderStatus() {
@@ -174,6 +222,7 @@ function renderStatus() {
   const ready = open && !!holo && (IS_MOBILE || PREVIEW);
   $('#enter').disabled = !ready;
   $('#enter-nocam').disabled = !ready;
+  $('#quicklook').disabled = !open;
 }
 
 function renderDesktop() {
@@ -195,14 +244,34 @@ function renderDesktop() {
   $('#qr').innerHTML = '<svg viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges"><path fill="#070707" d="' + d + '"/></svg>';
 }
 
+// iPhone: AR Quick Look necesita un <a rel="ar"> con una imagen adentro.
+// El banner inferior muestra el evento y un botón que vuelve al sitio.
+function openQuickLook() {
+  const parts = new Intl.DateTimeFormat('es-CL', { timeZone: C.evento.zonaHoraria || 'America/Santiago', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(new Date(START));
+  const part = (type) => (parts.find((x) => x.type === type) || {}).value;
+  const d = part('day') + '.' + part('month') + '.' + part('year');
+  const params = new URLSearchParams({
+    checkoutTitle: (C.evento.nombre || 'IRRUMPE') + ' · ' + C.compania.nombre,
+    checkoutSubtitle: (C.evento.bajada || '') + ' · ' + (C.evento.ciudad || '') + ' · ' + d,
+    callToAction: 'Ver artistas',
+  });
+  const a = document.createElement('a');
+  a.rel = 'ar';
+  a.href = USDZ + '#' + params.toString().replace(/\+/g, '%20');
+  a.appendChild(document.createElement('img'));
+  a.addEventListener('message', (e) => {
+    if (e.data === '_apple_ar_quicklook_button_tapped') location.href = '../';
+  });
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => a.remove(), 1000);
+}
+
 function syncMicButtons() {
   const on = pulse.micOn;
-  for (const id of ['#mic', '#xr-mic']) {
-    const b = $(id);
-    b.setAttribute('aria-pressed', String(on));
-  }
+  $('#mic').setAttribute('aria-pressed', String(on));
+  $('#xr-mic').setAttribute('aria-pressed', String(on));
   $('#mic').textContent = on ? 'Música: micrófono' : 'Música: demo';
-  $('#xr-mic').textContent = on ? 'Mic' : 'Música';
 }
 
 async function toggleMic() {
@@ -212,9 +281,9 @@ async function toggleMic() {
   } else {
     try {
       await pulse.enableMic();
-      toast('Las visuales siguen la música que suena');
+      toast('Las visuales siguen la música');
     } catch (e) {
-      toast(session && session.mode === 'xr' ? 'Activa el micrófono antes de entrar' : 'Sin micrófono: visuales en modo demo');
+      toast(session && session.mode === 'xr' ? 'Activa la música antes de entrar' : 'Sin micrófono: modo demo');
     }
   }
   syncMicButtons();
@@ -227,6 +296,7 @@ const video = $('#xr-video');
 const sheet = $('#xr-sheet');
 let hintTimer = 0;
 let toastTimer = 0;
+let idleTimer = 0;
 let lastSurface = null;
 
 function setHint(text, hideAfter) {
@@ -245,7 +315,14 @@ function toast(text) {
   toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
 }
 
-const MODE_LABELS = { xr: 'AR completa', camera: 'AR · cámara', nocamera: 'Sin cámara' };
+// La interfaz se atenúa si no se toca por unos segundos.
+function wake() {
+  xrRoot.classList.remove('is-idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { if (sheet.hidden) xrRoot.classList.add('is-idle'); }, 3500);
+}
+
+const MODE_LABELS = { xr: 'AR anclada', camera: 'AR · giro', nocamera: 'Sin cámara' };
 
 const ctx = {
   renderer, scene, canvas,
@@ -261,23 +338,32 @@ const ctx = {
   onSurface(found) {
     if (found === lastSurface) return;
     lastSurface = found;
-    setHint(found ? 'Toca la pantalla para hacer irrumpir aquí' : 'Apunta al suelo o a una mesa y mueve un poco el celular');
+    setHint(found ? 'Toca para colocar el tótem aquí' : 'Apunta al suelo o a una mesa y mueve un poco el celular');
+  },
+  onNoSurface() {
+    $('#xr-ahead').hidden = false;
   },
   onPlaced() {
     lastSurface = null;
-    setHint('Toca una tarjeta para ver al artista', 5000);
+    $('#xr-ahead').hidden = true;
+    setHint('Acércate, rodéalo · pellizca para cambiar el tamaño', 5000);
     if (navigator.vibrate) navigator.vibrate(30);
   },
   onLook(kind) {
-    setHint(kind === 'gyro' ? 'Mueve el celular para mirar · toca una tarjeta' : 'Arrastra para mirar alrededor · toca una tarjeta', 6000);
+    setHint(kind === 'gyro' ? 'Mueve el celular para mirar · pellizca para cambiar el tamaño' : 'Arrastra para mirar · pellizca para cambiar el tamaño', 6000);
   },
-  onEnd() {
+  onCameraLost() {
+    toast('No se pudo reabrir la cámara');
+  },
+  onEnd({ unexpected } = {}) {
     session = null;
+    clearTimeout(idleTimer);
     closeSheet();
     xrRoot.hidden = true;
-    xrRoot.classList.remove('xr--webxr');
+    xrRoot.classList.remove('xr--webxr', 'is-idle');
     document.body.classList.remove('is-xr');
     $('#launch').hidden = false;
+    $('#stage-msg').textContent = unexpected ? 'La AR se pausó al salir. Toca Entrar para volver.' : 'Vista previa del tótem';
     startPreview();
   },
 };
@@ -293,8 +379,9 @@ async function enter(useCamera) {
   video.after(canvas); // el 3D va sobre el video de la cámara y debajo de la interfaz
   lastSurface = null;
   setHint('');
+  $('#xr-ahead').hidden = true;
 
-  if (useCamera && support.xr) {
+  if (useCamera && support.webxr) {
     xrRoot.classList.add('xr--webxr');
     try {
       session = await startXR(ctx);
@@ -302,7 +389,7 @@ async function enter(useCamera) {
     } catch (e) {
       xrRoot.classList.remove('xr--webxr');
       session = null;
-      toast('AR completa no disponible: usando la cámara');
+      toast('AR anclada no disponible: usando la cámara');
     }
   }
   if (!session) {
@@ -315,8 +402,8 @@ async function enter(useCamera) {
     }
   }
   $('#xr-mode').textContent = MODE_LABELS[session.mode] + (PROTO ? ' · prototipo' : '');
-  $('#xr-recenter').textContent = session.mode === 'xr' ? 'Mover' : 'Recentrar';
   updateLive();
+  wake();
 }
 
 // ------------------------------------------------------------------ fichas
@@ -364,7 +451,7 @@ function openArtist(i) {
       h('span', { text: 'Escucha' }), h('strong', { text: mus.titulo || 'Escuchar' })),
     h('div', { class: 'sheet__actions' },
       h('a', { class: 'sheet__link', href: maps, target: '_blank', rel: 'noopener', text: 'Cómo llegar ↗' }),
-      h('button', { class: 'sheet__link', type: 'button', text: 'Ver en el holograma', onclick: () => { sheet.hidden = true; holo.select(i); } }),
+      h('button', { class: 'sheet__link', type: 'button', text: 'Ver en el tótem', onclick: () => { sheet.hidden = true; holo.select(i); } }),
     ),
   );
   sheet.dataset.kind = 'artist';
@@ -379,7 +466,7 @@ function openLineup() {
     h('p', { class: 'sheet__kicker', text: 'Line-up · ' + POINTS.length + ' puntos' }),
     h('ol', { class: 'sheet__list' }, POINTS.map((p, i) => h('li', null,
       h('button', { class: 'sheet__row', type: 'button', onclick: () => openArtist(i) },
-        a11yThumb(p, i),
+        thumb(p, i),
         h('span', { class: 'sheet__row-num', text: pad(i + 1) }),
         h('span', { class: 'sheet__row-text' }, h('strong', { text: p.artista.nombre }), h('span', { text: p.lugar })),
         live && live.index === i ? h('span', { class: 'sheet__row-tag', text: 'En vivo' })
@@ -390,7 +477,7 @@ function openLineup() {
   sheet.dataset.kind = 'lineup';
   sheet.hidden = false;
 }
-function a11yThumb(p, i) {
+function thumb(p, i) {
   return p.artista.foto
     ? h('img', { class: 'sheet__thumb', src: asset(p.artista.foto), alt: '' })
     : h('span', { class: 'sheet__thumb sheet__thumb--empty', text: pad(i + 1) });
@@ -413,8 +500,9 @@ function updateLive() {
   $('#xr-live-name').textContent = p.artista.nombre;
   $('#xr-live-place').textContent = p.lugar;
   $('#xr-live-bar').style.transform = 'scaleX(' + live.progress.toFixed(3) + ')';
-  $('#xr-live-next').textContent = live.next >= 0 ? 'Sigue ' + POINTS[live.next].artista.nombre + ' en ' + fmtLeft(live.remaining) : '';
+  $('#xr-live-next').textContent = live.next >= 0 ? 'sigue ' + POINTS[live.next].artista.nombre + ' ' + fmtLeft(live.remaining) : '';
   box.dataset.index = live.index;
+  box.setAttribute('aria-label', 'En vivo: ' + p.artista.nombre + ', ' + p.lugar);
 }
 
 // ------------------------------------------------------------------ arranque
@@ -422,14 +510,16 @@ function updateLive() {
 function bindUI() {
   $('#enter').addEventListener('click', () => enter(true));
   $('#enter-nocam').addEventListener('click', () => enter(false));
+  $('#quicklook').addEventListener('click', openQuickLook);
   $('#mic').addEventListener('click', toggleMic);
   $('#xr-mic').addEventListener('click', toggleMic);
   $('#xr-exit').addEventListener('click', () => { if (session) session.end(); });
   $('#xr-recenter').addEventListener('click', () => {
     if (!session) return;
     session.recenter();
-    if (session.mode !== 'xr') setHint('Listo: el holograma quedó al frente', 2500);
+    if (session.mode !== 'xr') setHint('El tótem quedó al frente', 2500);
   });
+  $('#xr-ahead').addEventListener('click', () => { if (session && session.placeAhead) session.placeAhead(); });
   $('#xr-lineup').addEventListener('click', () => (sheet.hidden || sheet.dataset.kind !== 'lineup' ? openLineup() : closeSheet()));
   $('#xr-live').addEventListener('click', () => {
     const i = Number($('#xr-live').dataset.index);
@@ -446,9 +536,14 @@ function bindUI() {
       if (navigator.vibrate) navigator.vibrate(12);
     });
   });
+  xrRoot.addEventListener('pointerdown', wake);
   // En WebXR, los toques sobre la interfaz no deben contar como toques en la escena.
   $('#xr-ui').addEventListener('beforexrselect', (e) => {
-    if (e.target.closest('button, a, .xr__sheet, .xr__dock, .xr__top')) e.preventDefault();
+    if (e.target.closest('button, a, .xr__sheet')) e.preventDefault();
+  });
+  // Al volver de otra app o de la pantalla bloqueada: reanudar el micrófono.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') pulse.resume().then(syncMicButtons);
   });
 }
 
@@ -465,7 +560,7 @@ async function boot() {
   renderChecks();
   try {
     holo = await createHologram({ config: C, geo: GEO });
-    $('#stage-msg').textContent = PROTO ? 'Vista previa del holograma' : '';
+    $('#stage-msg').textContent = 'Vista previa del tótem';
     startPreview();
   } catch (e) {
     $('#stage-msg').textContent = 'No se pudo cargar el 3D en este navegador';

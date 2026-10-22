@@ -4,25 +4,27 @@ Experiencia de realidad aumentada de IRRUMPE para celulares. Es un **prototipo**
 
 ## Qué se ve
 
-Un holograma con el mapa de puntos de Concepción y los cuatro puntos rojos. Desde cada punto sube un rayo de luz hasta la tarjeta de su artista (foto, nombre y lugar), con el título IRRUMPE arriba.
+Un tótem holográfico: el mapa de puntos de Concepción en un disco con los cuatro puntos rojos. Desde cada punto sube un rayo de luz hasta la tarjeta de su artista (foto, nombre y lugar), con el título IRRUMPE arriba.
 
-- **Tocar una tarjeta** abre la ficha del artista: foto a color, punto, redes sociales, tema destacado, "Cómo llegar" y "Ver en el holograma".
-- **En vivo**: abajo se muestra quién está tocando, con barra de progreso y quién sigue. En el holograma, ese artista tiene la insignia "EN VIVO" y sus ondas son más fuertes. En el prototipo cada artista toca `ar.segundosPorSet` segundos, en loop; en el evento real se usa la `hora` de cada punto.
-- **Artistas**: el line-up completo, con quién está en vivo y quién sigue.
-- **Reacciones** (corazón, chispa, rayo): suben desde el punto que está en vivo.
-- **Música**: con el micrófono activado, las ondas, rayos y partículas siguen la música que suena en el lugar. Sin micrófono, laten a un pulso de demostración.
+- **Tocar una tarjeta** abre la ficha del artista: foto a color, punto, redes sociales, tema destacado, "Cómo llegar" y "Ver en el tótem".
+- **En vivo** (línea inferior): quién está tocando, con barra de progreso y quién sigue. En el tótem, ese artista tiene la insignia "EN VIVO" y sus ondas son más fuertes. En el prototipo cada artista toca `ar.segundosPorSet` segundos, en loop; en el evento real se usa la `hora` de cada punto.
+- **Íconos inferiores**: line-up, reacciones (corazón, chispa, rayo, que suben desde el punto en vivo) y música.
+- **Música**: con el micrófono, las ondas, rayos y partículas siguen la música que suena en el lugar. Sin micrófono laten a un pulso de demostración.
+- **Pellizcar** con dos dedos cambia el tamaño del tótem.
+- La interfaz es mínima y se atenúa sola tras unos segundos sin tocarla.
 
 ## Modos
 
-Al tocar **Entrar a la experiencia** se elige solo el mejor modo:
+Según el celular, el lanzador ofrece la mejor forma de verlo **anclado al mundo** (que uno pueda acercarse, alejarse y rodearlo):
 
-| Modo | Dónde | Cómo se ve |
+| Celular | Botón principal | Cómo se ve |
 |---|---|---|
-| **AR completa** (WebXR) | Chrome en Android con ARCore, como el Samsung Galaxy S24 FE | Se apunta al suelo o a una mesa, aparece un anillo rojo y al tocar se apoya el holograma ahí. Se puede caminar alrededor. En una mesa cercana se achica solo. |
-| **AR · cámara** | Cualquier celular con cámara y giroscopio (iPhone incluido) | La cámara de fondo y el holograma delante; se mira alrededor moviendo el celular. "Recentrar" lo vuelve a poner al frente. |
-| **Sin cámara** | Botón "Sin cámara", o si se niega el permiso | El holograma sobre fondo oscuro; con giroscopio o arrastrando el dedo. |
+| Android con **Chrome** y ARCore (p. ej. Galaxy S24 FE) | Entrar a la experiencia | **AR anclada** (WebXR): se apunta al suelo o a una mesa, aparece un anillo rojo y al tocar se apoya el tótem. ARCore lo mantiene fijo en ese punto. En una mesa cercana se achica solo. Si no detecta superficie (sala oscura), a los 5 s aparece "Colocar al frente". |
+| Android con otro navegador (Samsung Internet, apps) | Abrir en Chrome · AR anclada | Abre la misma página en Chrome. "Entrar aquí (sin anclaje)" usa el modo con giroscopio. |
+| **iPhone** | Ver en tu espacio | **AR Quick Look** (la AR del sistema): el tótem animado (`assets/irrumpe.usdz`) anclado al piso, con un banner de IRRUMPE y el botón "Ver artistas". "Modo interactivo" abre la experiencia con cámara y giroscopio. |
+| Cualquier otro | Entrar a la experiencia | **AR · giro**: cámara de fondo y giroscopio. Sigue los giros del celular pero no los pasos. |
 
-Si WebXR falla por cualquier motivo, entra en "AR · cámara" automáticamente.
+"Sin cámara" muestra el tótem sobre fondo oscuro. Si WebXR falla, entra en "AR · giro" automáticamente. Al minimizar o bloquear el celular, la cámara se reabre sola al volver (en AR anclada la sesión se cierra y se vuelve a entrar con un toque).
 
 En computador la página muestra un QR para abrirla en el celular. Para verla igual en un computador (para probar o proyectar), agrega `?preview` a la URL.
 
@@ -50,17 +52,22 @@ En `ar` de `config.js`:
 index.html     lanzador (vista previa 3D) + capa de la experiencia
 ar.css         estilos del lanzador y de la interfaz en AR
 ar.js          lanzador, elección de modo, interfaz (en vivo, fichas, line-up, reacciones)
-hologram.js    el holograma 3D (mapa, puntos, rayos, tarjetas, partículas, reacciones)
-sessions.js    los tres modos: WebXR, cámara + giroscopio, sin cámara
+hologram.js    el tótem 3D (mapa, puntos, rayos, tarjetas, partículas, reacciones)
+sessions.js    los modos: WebXR anclado, cámara + giroscopio, sin cámara; pellizco para escalar
 audio.js       intensidad de la música por micrófono, o pulso de demostración
 ```
 
 Usa [three.js](https://threejs.org) desde `../vendor/three.min.js` (generado con `../tools/build-three.sh`). No necesita compilar nada.
 
+### Modelo para iPhone (`assets/irrumpe.usdz`)
+
+Es una versión del tótem para AR Quick Look, con animaciones en loop (tarjetas que flotan, ondas, pulso a 118 BPM, partículas). Se genera con `../tools/export-usdz.html` a partir del mismo `config.js`: si cambian artistas, fotos o puntos, hay que regenerarlo (abrir esa página desde un servidor local y apretar "Generar y descargar") y reemplazar el archivo.
+
 Para depurar desde la consola del navegador: `IrrumpeAR.openArtist(0)`, `IrrumpeAR.openLineup()`, `IrrumpeAR.session`, `IrrumpeAR.holo`.
 
 ## Ideas para seguir
 
+- Resaltar el artista del punto donde está cada persona (GPS) o al que está mirando (GPS + brújula). Es posible en la web; necesita permiso de ubicación.
 - Seguimiento de imagen (afiches en cada punto) con [MindAR](https://github.com/hiukim/mind-ar-js), para que cada tarjeta aparezca sobre el afiche real de su punto.
 - Reacciones compartidas entre todo el público (requiere un servidor).
 - Captura de foto con el holograma para compartir en Instagram.

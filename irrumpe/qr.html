@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>QR para el pitch — IRRUMPE</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { min-height: 100vh; }
+    .qrtool { width: min(980px, 100%); margin: 0 auto; padding: 32px var(--gutter) 48px; }
+    .qrtool h1 { margin: 0 0 6px; font: 800 26px var(--font-display); font-stretch: 125%; letter-spacing: 0.3em; text-transform: uppercase; }
+    .qrtool p { margin: 0 0 18px; color: var(--ink-2); font-size: 12px; line-height: 1.7; }
+    .qrtool label { display: block; margin: 0 0 6px; font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-3); }
+    .qrtool input, .qrtool select {
+      width: 100%; padding: 12px; border: 1px solid var(--line); background: #0d0d0d; color: var(--ink);
+      font: 13px var(--font-mono);
+    }
+    .qrtool .row { display: grid; grid-template-columns: 1fr 180px; gap: 12px; margin-bottom: 18px; }
+    .qrtool .btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+    .qrtool button {
+      padding: 12px 16px; border: 1px solid var(--red); background: rgba(241, 27, 26, 0.12); color: var(--ink);
+      font: 11px var(--font-mono); letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer;
+    }
+    .qrtool canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+    .qrtool .meta { margin-top: 10px; font-size: 11px; color: var(--ink-3); }
+  </style>
+</head>
+<body>
+  <main class="qrtool">
+    <h1>QR para el pitch</h1>
+    <p>Genera el código QR que va al final del video. Ábrela desde el sitio ya publicado para que la dirección quede bien.<br>
+       Los QR negros sobre fondo claro son los que leen todas las cámaras; mientras más corta la dirección, más grandes los cuadrados y más fácil leerlo desde lejos.</p>
+    <div class="row">
+      <div>
+        <label for="url">Dirección a la que lleva</label>
+        <input id="url" type="url" spellcheck="false">
+      </div>
+      <div>
+        <label for="ecc">Corrección de errores</label>
+        <select id="ecc">
+          <option value="L">L · cuadrados más grandes</option>
+          <option value="M" selected>M · recomendado</option>
+          <option value="Q">Q</option>
+          <option value="H">H · más robusto</option>
+        </select>
+      </div>
+    </div>
+    <canvas id="card" width="1920" height="1080" aria-label="Placa final para el video"></canvas>
+    <p class="meta" id="meta"></p>
+    <div class="btns">
+      <button id="dl-card" type="button">Descargar placa 1920×1080 (PNG)</button>
+      <button id="dl-png" type="button">Descargar QR solo (PNG 2048)</button>
+      <button id="dl-svg" type="button">Descargar QR solo (SVG)</button>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="vendor/qrcode.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const C = window.IRRUMPE_CONFIG;
+      const INK = '#ece9e2', RED = '#f11b1a', BG = '#070707';
+      const $ = (s) => document.querySelector(s);
+      const base = location.href.replace(/qr\.html.*$/, '');
+      $('#url').value = base + (C.ar && C.ar.url ? C.ar.url : 'ar/');
+
+      function make() {
+        const qr = window.qrcode(0, $('#ecc').value);
+        qr.addData($('#url').value.trim());
+        qr.make();
+        return qr;
+      }
+
+      // Dibuja el QR con 4 módulos de margen blanco (zona de silencio).
+      function drawQR(ctx, qr, x, y, size) {
+        const n = qr.getModuleCount() + 8;
+        const m = size / n;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y, size, size);
+        ctx.fillStyle = BG;
+        for (let r = 0; r < qr.getModuleCount(); r++) {
+          for (let c = 0; c < qr.getModuleCount(); c++) {
+            if (qr.isDark(r, c)) ctx.fillRect(Math.floor(x + (c + 4) * m), Math.floor(y + (r + 4) * m), Math.ceil(m), Math.ceil(m));
+          }
+        }
+      }
+
+      function spaced(ctx, text, x, y, spacing) {
+        let cx = x;
+        for (const ch of text) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; }
+        return cx - x;
+      }
+
+      // Placa final: marca a la izquierda, QR grande a la derecha.
+      function drawCard(qr) {
+        const cv = $('#card');
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = BG;
+        ctx.fillRect(0, 0, 1920, 1080);
+        // Grilla de puntos tenue, como el mapa.
+        ctx.fillStyle = 'rgba(236, 233, 226, 0.07)';
+        for (let y = 20; y < 1080; y += 22) for (let x = 20; x < 1920; x += 22) ctx.fillRect(x, y, 2, 2);
+        ctx.fillStyle = RED;
+        ctx.fillRect(0, 0, 1920, 8);
+
+        const size = 820, qx = 1920 - size - 130, qy = (1080 - size) / 2;
+        drawQR(ctx, qr, qx, qy, size);
+
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = 'rgba(236, 233, 226, 0.6)';
+        ctx.font = '400 30px "JetBrains Mono", monospace';
+        spaced(ctx, (C.compania.nombre + ' presenta').toUpperCase(), 130, 330, 8);
+        ctx.fillStyle = INK;
+        // El título se achica hasta caber antes del QR.
+        const title = (C.evento.nombre || 'IRRUMPE').toUpperCase();
+        const maxW = qx - 130 - 70;
+        let fs = 132;
+        const widthAt = (f) => {
+          ctx.font = '800 ' + f + 'px Archivo, sans-serif';
+          if ('fontStretch' in ctx) ctx.fontStretch = 'expanded';
+          return [...title].reduce((w, ch) => w + ctx.measureText(ch).width + f * 0.16, 0);
+        };
+        while (fs > 40 && widthAt(fs) > maxW) fs -= 4;
+        widthAt(fs);
+        spaced(ctx, title, 124, 480, fs * 0.16);
+        if ('fontStretch' in ctx) ctx.fontStretch = 'normal';
+        ctx.font = '400 40px "JetBrains Mono", monospace';
+        ctx.fillStyle = INK;
+        spaced(ctx, 'ESCANEA Y MÍRALO', 130, 620, 6);
+        spaced(ctx, 'EN TU ESPACIO', 130, 676, 6);
+        ctx.fillStyle = RED;
+        ctx.beginPath();
+        ctx.arc(142, 776, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = '500 34px "JetBrains Mono", monospace';
+        spaced(ctx, $('#url').value.trim().replace(/^https?:\/\//, '').replace(/\/$/, ''), 172, 788, 2);
+        ctx.fillStyle = 'rgba(236, 233, 226, 0.45)';
+        ctx.font = '400 24px "JetBrains Mono", monospace';
+        spaced(ctx, 'REALIDAD AUMENTADA · PROTOTIPO', 130, 860, 6);
+      }
+
+      function render() {
+        let qr;
+        try { qr = make(); } catch (e) { $('#meta').textContent = 'La dirección es demasiado larga para un QR.'; return; }
+        drawCard(qr);
+        const n = qr.getModuleCount();
+        $('#meta').textContent = 'QR de ' + n + '×' + n + ' módulos. En la placa, cada módulo mide ' + (820 / (n + 8)).toFixed(1)
+          + ' px de 1080. Regla práctica: se lee bien hasta unas 10 veces el ancho del QR en la pantalla.';
+        return qr;
+      }
+
+      function save(blob, name) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }
+
+      $('#url').addEventListener('input', render);
+      $('#ecc').addEventListener('change', render);
+      $('#dl-card').addEventListener('click', () => $('#card').toBlob((b) => save(b, 'irrumpe-placa-qr.png')));
+      $('#dl-png').addEventListener('click', () => {
+        const qr = make();
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = 2048;
+        drawQR(cv.getContext('2d'), qr, 0, 0, 2048);
+        cv.toBlob((b) => save(b, 'irrumpe-qr.png'));
+      });
+      $('#dl-svg').addEventListener('click', () => {
+        const qr = make();
+        const n = qr.getModuleCount();
+        let d = '';
+        for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += 'M' + (c + 4) + ' ' + (r + 4) + 'h1v1h-1z';
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + (n + 8) + ' ' + (n + 8) + '" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path fill="#070707" d="' + d + '"/></svg>';
+        save(new Blob([svg], { type: 'image/svg+xml' }), 'irrumpe-qr.svg');
+      });
+
+      render();
+      if (document.fonts) document.fonts.ready.then(render);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Exportar tótem para iPhone (USDZ)</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@300;400;500&display=swap">
+  <style>
+    body { margin: 0; padding: 32px; background: #070707; color: #ece9e2; font: 13px/1.6 'JetBrains Mono', monospace; }
+    h1 { font: 800 22px Archivo, sans-serif; text-transform: uppercase; letter-spacing: 0.1em; }
+    button { padding: 12px 18px; border: 1px solid #f11b1a; background: rgba(241, 27, 26, 0.12); color: inherit; font: inherit; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; }
+    #log { white-space: pre-wrap; color: rgba(236, 233, 226, 0.6); }
+  </style>
+</head>
+<body>
+  <h1>Tótem para AR Quick Look</h1>
+  <p>Genera <code>assets/irrumpe.usdz</code>: el tótem animado que se abre en iPhone con «Ver en tu espacio».<br>
+     Vuelve a generarlo si cambian artistas, fotos o puntos en <code>js/config.js</code>, y reemplaza el archivo.</p>
+  <p>Hay que abrir esta página desde un servidor local (por ejemplo <code>npx serve irrumpe</code>), no con doble clic.</p>
+  <button id="go" type="button">Generar y descargar</button>
+  <p id="log"></p>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/concepcion-geo.js"></script>
+  <script type="module">
+    import * as THREE from '../vendor/three.min.js';
+    import { USDZExporter } from './usdz-exporter.js';
+    import { createHologram, COLORS } from '../ar/hologram.js';
+
+    const log = (t) => { document.querySelector('#log').textContent += t + '\n'; };
+
+    // Escala y alto: igual que en la AR anclada (tarjetas cerca de la altura de los ojos).
+    const SCALE = 1.35;
+    const HEIGHT = 0.96;
+    // Un loop de 12 pulsos a 118 BPM.
+    const BEAT = 60 / 118;
+    const T = BEAT * 12;
+
+    const glow = (color, opacity = 1) => new THREE.MeshStandardMaterial({
+      color: 0x000000, emissive: color, roughness: 1, metalness: 0, transparent: opacity < 1, opacity,
+    });
+    // Textura que "brilla" (sin sombras) y usa su canal alfa como transparencia.
+    const lit = (map) => new THREE.MeshStandardMaterial({
+      color: 0x000000, map, emissive: 0xffffff, emissiveMap: map, roughness: 1, metalness: 0, transparent: true,
+    });
+
+    // Diente de sierra: valores que van de `from` a `to` cada `period` segundos, con desfase.
+    function saw(period, offset, from, to) {
+      const times = [], values = [];
+      const push = (t, k) => {
+        t = +t.toFixed(4);
+        if (times.length && t <= times[times.length - 1]) return; // los tiempos deben ser crecientes
+        times.push(t);
+        values.push(from + (to - from) * k);
+      };
+      let t = 0;
+      let k0 = ((offset % period) + period) % period / period;
+      push(0, k0);
+      while (t < T - 1e-6) {
+        const tEnd = Math.min(T, t + period * (1 - k0));
+        push(tEnd - (tEnd < T ? 0.001 : 0), tEnd < T ? 1 : k0 + (tEnd - t) / period);
+        if (tEnd < T) push(tEnd, 0);
+        t = tEnd;
+        k0 = 0;
+      }
+      return { times, values };
+    }
+
+    async function build() {
+      const C = window.IRRUMPE_CONFIG;
+      const holo = await createHologram({ config: C, geo: window.IRRUMPE_GEO });
+      holo.setHeight(HEIGHT);
+      const viewer = new THREE.Vector3(0, HEIGHT, 2.6 / SCALE * 1.6);
+      const root = new THREE.Group();
+      root.name = 'irrumpe';
+      root.scale.setScalar(SCALE);
+      const tracks = [];
+      const byRole = (role) => holo.group.children.filter((o) => o.userData.role === role);
+
+      const disc = byRole('disc')[0];
+      const discMesh = new THREE.Mesh(disc.geometry, lit(disc.material.map));
+      discMesh.position.copy(disc.position);
+      discMesh.rotation.copy(disc.rotation);
+      discMesh.name = 'disco';
+      root.add(discMesh);
+
+      const ring = byRole('glow')[0];
+      const ringMesh = new THREE.Mesh(ring.geometry, glow(COLORS.red, 0.3));
+      ringMesh.position.copy(ring.position);
+      ringMesh.rotation.copy(ring.rotation);
+      ringMesh.name = 'brillo';
+      root.add(ringMesh);
+
+      const pins = byRole('pin').sort((a, b) => a.userData.index - b.userData.index);
+      const cards = byRole('card').sort((a, b) => a.userData.index - b.userData.index);
+      const ringGeo = new THREE.RingGeometry(0.9, 1, 48).rotateX(-Math.PI / 2);
+      const coreGeo = new THREE.SphereGeometry(0.011, 16, 12);
+      const beamGeo = new THREE.CylinderGeometry(0.0022, 0.0022, 1, 6);
+      const backMat = new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 1, metalness: 0 });
+
+      pins.forEach((pin, i) => {
+        const g = new THREE.Group();
+        g.position.copy(pin.position);
+        g.name = 'punto' + i;
+        const core = new THREE.Mesh(coreGeo, glow(COLORS.red));
+        core.position.y = 0.008;
+        core.name = 'punto' + i + '_nucleo';
+        g.add(core);
+        // Pulso a 118 BPM: golpe instantáneo y caída, como un bombo.
+        const times = [], values = [];
+        for (let b = 0; b < 12; b++) {
+          times.push(+(b * BEAT).toFixed(4), +(b * BEAT + 0.03).toFixed(4), +(b * BEAT + BEAT * 0.45).toFixed(4));
+          values.push(1, 1, 1, 1.7, 1.7, 1.7, 1, 1, 1);
+        }
+        times.push(+T.toFixed(4)); values.push(1, 1, 1);
+        tracks.push(new THREE.VectorKeyframeTrack(core.name + '.scale', times, values));
+        // Dos ondas que se expanden, desfasadas.
+        [0, 1].forEach((k) => {
+          const r = new THREE.Mesh(ringGeo, glow(COLORS.red, 0.55));
+          r.name = 'punto' + i + '_onda' + k;
+          g.add(r);
+          const s = saw(BEAT * 3, -(k * 1.5 + i * 0.4) * BEAT, 0.015, 0.14);
+          tracks.push(new THREE.VectorKeyframeTrack(r.name + '.scale', s.times, s.values.flatMap((v) => [v, v, v])));
+        });
+        root.add(g);
+      });
+
+      cards.forEach((card, i) => {
+        const g = new THREE.Group();
+        g.name = 'tarjeta' + i;
+        g.position.copy(card.position);
+        g.position.y = HEIGHT;
+        g.rotation.y = Math.atan2(viewer.x - g.position.x, viewer.z - g.position.z);
+        const front = new THREE.Mesh(card.geometry, lit(card.material.map));
+        const back = new THREE.Mesh(card.geometry, backMat);
+        back.rotation.y = Math.PI;
+        back.position.z = -0.002;
+        g.add(front, back);
+        root.add(g);
+        // Flota suavemente.
+        const times = [], values = [];
+        for (let k = 0; k <= 8; k++) {
+          const t = (T / 8) * k;
+          times.push(+t.toFixed(4));
+          values.push(g.position.x, HEIGHT + Math.sin((t / T) * Math.PI * 2 + i) * 0.014, g.position.z);
+        }
+        tracks.push(new THREE.VectorKeyframeTrack(g.name + '.position', times, values));
+
+        // Rayo del punto a la base de la tarjeta.
+        const a = pins[i].position.clone().setY(0.01);
+        const bpt = new THREE.Vector3(g.position.x, HEIGHT - card.geometry.parameters.height / 2, g.position.z);
+        const dir = bpt.clone().sub(a);
+        const beam = new THREE.Mesh(beamGeo, glow(COLORS.red, 0.7));
+        beam.name = 'rayo' + i;
+        beam.scale.set(1, dir.length(), 1);
+        beam.position.copy(a).addScaledVector(dir, 0.5);
+        beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+        root.add(beam);
+      });
+
+      const title = byRole('title')[0];
+      const titleMesh = new THREE.Mesh(title.geometry, lit(title.material.map));
+      titleMesh.name = 'titulo';
+      const ty = HEIGHT + cards[0].geometry.parameters.height / 2 + 0.16;
+      titleMesh.position.set(0, ty, title.position.z);
+      root.add(titleMesh);
+      const tt = [], tv = [];
+      for (let k = 0; k <= 8; k++) {
+        const t = (T / 8) * k;
+        tt.push(+t.toFixed(4));
+        tv.push(0, ty + Math.sin((t / T) * Math.PI * 2) * 0.01, title.position.z);
+      }
+      tracks.push(new THREE.VectorKeyframeTrack('titulo.position', tt, tv));
+
+      // Partículas que suben.
+      const dotGeo = new THREE.SphereGeometry(0.005, 6, 4);
+      const dotRed = glow(COLORS.red), dotInk = glow(COLORS.ink);
+      for (let n = 0; n < 28; n++) {
+        const m = new THREE.Mesh(dotGeo, n % 3 ? dotRed : dotInk);
+        m.name = 'chispa' + n;
+        const ang = (n / 28) * Math.PI * 2 * 3.7, r = 0.15 + ((n * 37) % 100) / 100 * 0.55;
+        const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
+        root.add(m);
+        const s = saw(T / (1 + (n % 3)), -(n / 28) * T, 0.02, HEIGHT + 0.4);
+        tracks.push(new THREE.VectorKeyframeTrack(m.name + '.position', s.times, s.values.flatMap((y) => [x, y, z])));
+      }
+
+      const clip = new THREE.AnimationClip('irrumpe', T, tracks);
+      const scene = new THREE.Scene();
+      scene.add(root);
+      scene.updateMatrixWorld(true);
+      const data = await new USDZExporter().parseAsync(scene, {
+        quickLookCompatible: true,
+        maxTextureSize: 1024,
+        animations: [clip],
+        animationFrameRate: 30,
+      });
+      log('listo: ' + (data.byteLength / 1024 / 1024).toFixed(2) + ' MB, ' + tracks.length + ' animaciones, loop de ' + T.toFixed(2) + ' s');
+      return data;
+    }
+
+    function download(data) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([data], { type: 'model/vnd.usdz+zip' }));
+      a.download = 'irrumpe.usdz';
+      a.click();
+    }
+
+    document.querySelector('#go').addEventListener('click', async () => {
+      log('generando…');
+      try { download(await build()); } catch (e) { log('error: ' + e.message); console.error(e); }
+    });
+
+    // Para automatizar desde un navegador sin interfaz.
+    window.buildUSDZ = async () => {
+      const data = new Uint8Array(await build());
+      let s = '';
+      for (let i = 0; i < data.length; i += 0x8000) s += String.fromCharCode(...data.subarray(i, i + 0x8000));
+      return btoa(s);
+    };
+  </script>
+</body>
+</html>

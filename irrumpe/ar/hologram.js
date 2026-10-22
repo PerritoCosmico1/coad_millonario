@@ -329,12 +329,14 @@ export async function createHologram({ config, geo }) {
   );
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = 0.003;
+  disc.userData.role = 'disc';
   group.add(disc);
 
   // Brillo bajo el disco.
   const glow = new THREE.Mesh(new THREE.RingGeometry(DISC_RADIUS, DISC_RADIUS + 0.06, 96), additive(COLORS.red, 0.18));
   glow.rotation.x = -Math.PI / 2;
   glow.position.y = 0.002;
+  glow.userData.role = 'glow';
   group.add(glow);
 
   // Disposición de las tarjetas: en fila, detrás del disco, ordenadas de oeste a este
@@ -350,6 +352,7 @@ export async function createHologram({ config, geo }) {
     const d = toDisc(p);
     const pin = new THREE.Group();
     pin.position.set(d.x, 0.006, d.z);
+    pin.userData = { role: 'pin', index: i };
     const core = new THREE.Mesh(new THREE.SphereGeometry(0.011, 16, 12), new THREE.MeshBasicMaterial({ color: COLORS.red }));
     core.position.y = 0.008;
     pin.add(core);
@@ -366,7 +369,7 @@ export async function createHologram({ config, geo }) {
       map: cardTexture(p, i, points.length, photos[i]), transparent: true, side: THREE.DoubleSide,
     }));
     card.position.set((k - (points.length - 1) / 2) * CARD_GAP, 1, -0.32 - Math.abs(k - (points.length - 1) / 2) * 0.06);
-    card.userData.index = i;
+    card.userData = { role: 'card', index: i };
     group.add(card);
 
     // Rayo desde el punto hasta la base de la tarjeta.
@@ -374,6 +377,7 @@ export async function createHologram({ config, geo }) {
     const beam = new THREE.Line(beamGeo, new THREE.LineBasicMaterial({
       color: COLORS.red, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false,
     }));
+    beam.userData = { role: 'beam', index: i };
     group.add(beam);
 
     pins.push({ group: pin, core, rings });
@@ -385,6 +389,7 @@ export async function createHologram({ config, geo }) {
     new THREE.PlaneGeometry(0.72, 0.18),
     new THREE.MeshBasicMaterial({ map: titleTexture(config, logo), transparent: true, depthWrite: false, side: THREE.DoubleSide }),
   );
+  title.userData.role = 'title';
   group.add(title);
 
   // Insignia "EN VIVO" que se mueve a la tarjeta del artista que está tocando.
@@ -392,6 +397,7 @@ export async function createHologram({ config, geo }) {
     new THREE.PlaneGeometry(0.11, 0.0275),
     new THREE.MeshBasicMaterial({ map: badgeTexture(), transparent: true, side: THREE.DoubleSide }),
   );
+  badge.userData.role = 'badge';
   group.add(badge);
 
   // Partículas rojas y blancas que suben.
@@ -419,6 +425,7 @@ export async function createHologram({ config, geo }) {
     size: 0.012, map: new THREE.CanvasTexture(dot), vertexColors: true, transparent: true, opacity: 0.9,
     blending: THREE.AdditiveBlending, depthWrite: false,
   }));
+  dust.userData.role = 'dust';
   group.add(dust);
 
   // Reacciones: pool de sprites.
