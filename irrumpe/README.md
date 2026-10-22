@@ -10,8 +10,7 @@ Es un sitio estático: HTML, CSS y JS planos, sin build ni dependencias que inst
 - **Cuatro puntos rojos** (Parque Ecuador, Plaza de la Independencia, Plaza Bicentenario y UdeC) que tiemblan y emiten ondas. Al pasar el mouse (o tocar en celular) muestran: lugar, foto y nombre del artista, y un link "Cómo llegar"; también hora, género, bio, un tema y redes cuando estén cargados. Con un clic la tarjeta queda fija; si el artista tiene un link de Spotify o YouTube en `musica.embed`, en ese momento se carga el reproductor.
 - **Los cuatro puntos siempre están a la vista**: la tarjeta nunca tapa un punto. En escritorio se ubica al costado del grupo de puntos (y si no cabe, el mapa se desliza para hacerle lugar). En celular es una hoja inferior compacta: la cuenta regresiva se achica y el mapa se reencuadra arriba de la hoja. Nada de la página necesita scroll, ni en celular horizontal.
 - **Cuenta regresiva** grande hasta el inicio, con el nombre y logo de La Única Compañía. Durante el evento cambia a "EN VIVO" y al terminar a "YA IRRUMPIÓ".
-- **Acceso AR** (prototipo funcional): botón arriba a la derecha. En celular lleva a `ar/`: un holograma de Concepción con los cuatro puntos y las tarjetas de los artistas; al tocar una se ven su foto y sus redes. Además muestra quién está tocando, el line-up, reacciones y visuales que siguen la música. En Android con Chrome es AR real (se apoya en el suelo o en una mesa); en otros celulares usa la cámara y el giroscopio. Ver [`ar/README.md`](ar/README.md).
-- Una intro corta tipo "acceso concedido" (se salta con un clic, en la segunda visita y con movimiento reducido).
+- **AR** (prototipo funcional): botón arriba a la derecha. En celular va directo a `ar/`; en computador muestra un QR. Un tótem holográfico de Concepción con los cuatro puntos y las tarjetas de los artistas, anclado al mundo; al tocar una tarjeta se ven su foto y sus redes. Ver [`ar/README.md`](ar/README.md).
 
 ## Editar el contenido
 
@@ -62,11 +61,11 @@ ar/                     experiencia AR (prototipo)
 qr.html                 genera el QR y la placa final para el video del pitch
 PITCH.md                plan y checklist para el pitch
 _headers                cabeceras para Netlify (tipo del modelo de iPhone, caché)
-assets/                 logo, favicon, íconos, imagen para compartir, fotos, irrumpe.usdz (iPhone)
+assets/                 logo, favicon, íconos, imagen para compartir, fotos, irrumpe.usdz / .glb (AR nativa)
 vendor/qrcode.js        generador de QR (MIT, Kazuhiko Arase)
 vendor/three.min.js     three.js 0.186.1 minificado (MIT), para la AR
 tools/build-geo.py      genera js/concepcion-geo.js
-tools/build-three.sh    genera vendor/three.min.js y tools/usdz-exporter.js
-tools/export-usdz.html  genera assets/irrumpe.usdz (el tótem para iPhone)
+tools/build-three.sh    genera vendor/three.min.js y los exportadores de tools/
+tools/export-3d.html    genera assets/irrumpe.usdz y .glb (el tótem para los visores AR del sistema)
 manifest.webmanifest    permite "agregar a pantalla de inicio"
 ```

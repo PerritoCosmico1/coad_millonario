@@ -206,7 +206,7 @@ function mapTexture(geo, center, points, toDisc) {
   return texture(c);
 }
 
-function cardTexture(point, index, total, img) {
+function cardTexture(point, index, img) {
   const W = 512, H = 704;
   const c = canvas(W, H);
   const ctx = c.getContext('2d');
@@ -218,24 +218,20 @@ function cardTexture(point, index, total, img) {
   ctx.fillStyle = COLORS.red;
   ctx.fillRect(0, 0, W, 6);
 
-  setFont(ctx, '500 20px "JetBrains Mono", monospace');
+  setFont(ctx, '500 22px "JetBrains Mono", monospace');
   ctx.fillStyle = COLORS.red;
-  spacedText(ctx, pad(index + 1) + ' / ' + pad(total), 28, 46, 3);
-  ctx.fillStyle = 'rgba(236, 233, 226, 0.45)';
-  spacedText(ctx, 'IRRUMPE', W - 28, 46, 4, 'right');
+  spacedText(ctx, pad(index + 1), 28, 48, 3);
 
-  drawDuotone(ctx, img, 28, 66, W - 56, W - 56);
+  drawDuotone(ctx, img, 28, 70, W - 56, W - 56);
 
   const name = point.artista.nombre.toUpperCase();
   ctx.fillStyle = COLORS.ink;
-  fitFont(ctx, name, 'Archivo, sans-serif', 800, 58, W - 56, 'expanded');
-  ctx.fillText(name, 28, 590);
+  fitFont(ctx, name, 'Archivo, sans-serif', 800, 64, W - 56, 'expanded');
+  ctx.fillText(name, 28, 616);
 
-  setFont(ctx, '400 18px "JetBrains Mono", monospace');
-  ctx.fillStyle = 'rgba(236, 233, 226, 0.66)';
-  spacedText(ctx, point.lugar.toUpperCase(), 28, 628, 2);
-  ctx.fillStyle = COLORS.red;
-  spacedText(ctx, 'TOCA PARA VER REDES  ↗', 28, 672, 3);
+  setFont(ctx, '400 19px "JetBrains Mono", monospace');
+  ctx.fillStyle = 'rgba(236, 233, 226, 0.6)';
+  spacedText(ctx, point.lugar.toUpperCase(), 28, 662, 2);
   return texture(c);
 }
 
@@ -244,10 +240,7 @@ function titleTexture(config, logo) {
   const c = canvas(W, H);
   const ctx = c.getContext('2d');
   ctx.textAlign = 'center';
-  if (logo) ctx.drawImage(logo, W / 2 - 26, 8, 52, 52);
-  setFont(ctx, '400 22px "JetBrains Mono", monospace');
-  ctx.fillStyle = 'rgba(236, 233, 226, 0.7)';
-  spacedText(ctx, (config.compania.nombre + ' presenta').toUpperCase(), W / 2, 100, 6, 'center');
+  if (logo) ctx.drawImage(logo, W / 2 - 34, 20, 68, 68);
   ctx.fillStyle = COLORS.ink;
   setFont(ctx, '800 110px Archivo, sans-serif', 'expanded');
   spacedText(ctx, (config.evento.nombre || 'IRRUMPE').toUpperCase(), W / 2, 220, 26, 'center');
@@ -318,6 +311,9 @@ export async function createHologram({ config, geo }) {
 
   const group = new THREE.Group();
   group.name = 'irrumpe';
+  // Orden de dibujo fijo de las capas transparentes. Sin esto, con la cámara en
+  // movimiento (AR anclada) el orden cambia cuadro a cuadro y el tótem parpadea.
+  const LAYER = { disc: 1, glow: 2, rings: 3, beams: 4, dust: 5, cards: 6, badge: 7, title: 8, reactions: 9 };
   const additive = (color, opacity) => new THREE.MeshBasicMaterial({
     color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
   });
@@ -330,6 +326,7 @@ export async function createHologram({ config, geo }) {
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = 0.003;
   disc.userData.role = 'disc';
+  disc.renderOrder = LAYER.disc;
   group.add(disc);
 
   // Brillo bajo el disco.
@@ -337,6 +334,7 @@ export async function createHologram({ config, geo }) {
   glow.rotation.x = -Math.PI / 2;
   glow.position.y = 0.002;
   glow.userData.role = 'glow';
+  glow.renderOrder = LAYER.glow;
   group.add(glow);
 
   // Disposición de las tarjetas: en fila, detrás del disco, ordenadas de oeste a este
@@ -359,6 +357,7 @@ export async function createHologram({ config, geo }) {
     const rings = [0, 1].map(() => {
       const r = new THREE.Mesh(ringGeo, additive(COLORS.red, 0));
       r.rotation.x = -Math.PI / 2;
+      r.renderOrder = LAYER.rings;
       pin.add(r);
       return r;
     });
@@ -366,10 +365,11 @@ export async function createHologram({ config, geo }) {
 
     const k = slot.get(i);
     const card = new THREE.Mesh(cardGeo, new THREE.MeshBasicMaterial({
-      map: cardTexture(p, i, points.length, photos[i]), transparent: true, side: THREE.DoubleSide,
+      map: cardTexture(p, i, photos[i]), transparent: true, side: THREE.DoubleSide,
     }));
     card.position.set((k - (points.length - 1) / 2) * CARD_GAP, 1, -0.32 - Math.abs(k - (points.length - 1) / 2) * 0.06);
     card.userData = { role: 'card', index: i };
+    card.renderOrder = LAYER.cards;
     group.add(card);
 
     // Rayo desde el punto hasta la base de la tarjeta.
@@ -378,6 +378,7 @@ export async function createHologram({ config, geo }) {
       color: COLORS.red, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false,
     }));
     beam.userData = { role: 'beam', index: i };
+    beam.renderOrder = LAYER.beams;
     group.add(beam);
 
     pins.push({ group: pin, core, rings });
@@ -390,6 +391,7 @@ export async function createHologram({ config, geo }) {
     new THREE.MeshBasicMaterial({ map: titleTexture(config, logo), transparent: true, depthWrite: false, side: THREE.DoubleSide }),
   );
   title.userData.role = 'title';
+  title.renderOrder = LAYER.title;
   group.add(title);
 
   // Insignia "EN VIVO" que se mueve a la tarjeta del artista que está tocando.
@@ -398,6 +400,7 @@ export async function createHologram({ config, geo }) {
     new THREE.MeshBasicMaterial({ map: badgeTexture(), transparent: true, side: THREE.DoubleSide }),
   );
   badge.userData.role = 'badge';
+  badge.renderOrder = LAYER.badge;
   group.add(badge);
 
   // Partículas rojas y blancas que suben.
@@ -426,6 +429,7 @@ export async function createHologram({ config, geo }) {
     blending: THREE.AdditiveBlending, depthWrite: false,
   }));
   dust.userData.role = 'dust';
+  dust.renderOrder = LAYER.dust;
   group.add(dust);
 
   // Reacciones: pool de sprites.
@@ -463,6 +467,7 @@ export async function createHologram({ config, geo }) {
       const src = from != null && from >= 0 ? pins[from].group.position : new THREE.Vector3((Math.random() - 0.5) * 0.5, 0, (Math.random() - 0.5) * 0.4);
       s.position.set(src.x + (Math.random() - 0.5) * 0.08, 0.05, src.z + (Math.random() - 0.5) * 0.08);
       s.scale.setScalar(0.07 + Math.random() * 0.04);
+      s.renderOrder = LAYER.reactions;
       s.userData = { t0: performance.now(), dx: (Math.random() - 0.5) * 0.2, spin: (Math.random() - 0.5) * 2 };
       group.add(s);
       floating.push(s);

@@ -1,20 +1,22 @@
 /*
  * IRRUMPE AR — página de acceso y experiencia.
  *
- * Lanzador (una pantalla): estado, vista previa 3D del tótem, revisión del
- * celular y el botón para entrar. Según el navegador ofrece la mejor forma de
- * verlo anclado al mundo:
- *   - Chrome en Android con ARCore → WebXR (sessions.js), interactivo.
- *   - Otro navegador en Android → botón para abrir la misma página en Chrome.
- *   - iPhone → "Ver en tu espacio" con AR Quick Look (assets/irrumpe.usdz),
- *     más el modo interactivo con cámara y giroscopio.
+ * Lanzador: el tótem girando y un solo botón, "Entrar". La mejor forma de
+ * verlo se elige sola según lo que permite el navegador (no se puede saber
+ * cuál es el navegador predeterminado, pero sí qué soporta el actual):
  *
- * Dentro de la experiencia: quién está tocando ahora, line-up, ficha de cada
- * artista con foto y redes, reacciones y visuales que siguen la música.
+ *   1. WebXR (Chrome y otros Chromium en Android con ARCore) → experiencia
+ *      completa y anclada: tótem fijo en el mundo, artistas, reacciones, música.
+ *   2. iPhone → AR Quick Look del sistema con el tótem animado y anclado
+ *      (assets/irrumpe.usdz).
+ *   3. Android sin WebXR (Firefox, Samsung Internet...) → Scene Viewer de Google
+ *      con el tótem animado y anclado (assets/irrumpe.glb). Si no abre, pasa
+ *      solo al modo 4.
+ *   4. Resto → cámara + giroscopio (sin anclaje), interactiva.
  *
- * Todo el contenido sale de js/config.js. Con `ar.prototipo: true` funciona en
- * cualquier momento y lugar, y simula el show (cada artista toca unos segundos).
- * `?preview` deja entrar también desde computador (para probar o proyectar).
+ * Después de 2 o 3 aparece "Ver artistas", que abre el modo 4 con las fichas.
+ * Todo el contenido sale de js/config.js. `?preview` deja entrar desde
+ * computador (para probar o proyectar).
  */
 import * as THREE from '../vendor/three.min.js';
 import { createHologram, REACTIONS } from './hologram.js';
@@ -26,8 +28,9 @@ const GEO = window.IRRUMPE_GEO;
 const POINTS = C.puntos || [];
 const AR = C.ar || {};
 const PROTO = !!AR.prototipo;
-const PREVIEW = new URLSearchParams(location.search).has('preview');
-const USDZ = '../assets/irrumpe.usdz';
+const PARAMS = new URLSearchParams(location.search);
+const PREVIEW = PARAMS.has('preview');
+const MODELS = { usdz: '../assets/irrumpe.usdz', glb: '../assets/irrumpe.glb' };
 
 const $ = (sel) => document.querySelector(sel);
 const pad = (n) => String(n).padStart(2, '0');
@@ -44,14 +47,21 @@ const IS_MOBILE = (navigator.userAgentData && navigator.userAgentData.mobile)
   || /Android|iPhone|iPad|iPod|Mobile/i.test(UA)
   || (navigator.maxTouchPoints > 1 && matchMedia('(pointer: coarse)').matches);
 const IS_ANDROID = /Android/i.test(UA);
-// Navegadores dentro de apps (Instagram, WhatsApp, lectores de QR...): sin WebXR y a veces sin cámara.
-const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|WhatsApp|LinkedInApp|Snapchat|TikTok|musical_ly|Twitter|; wv\)/i.test(UA);
-const IS_CHROME_ANDROID = IS_ANDROID && /Chrome\/\d/.test(UA) && !/SamsungBrowser|EdgA|OPR\/|Firefox|YaBrowser|; wv\)/i.test(UA) && !IN_APP;
 // AR Quick Look: Safari (y otros navegadores) en iPhone/iPad.
 const QUICKLOOK = (() => {
   const a = document.createElement('a');
   return !!(a.relList && a.relList.supports && a.relList.supports('ar'));
 })();
+
+// Elige el camino ("route") una vez que se sabe si hay WebXR.
+async function chooseRoute() {
+  if (PARAMS.get('ar') === 'giro') return 'window'; // vuelta desde un visor que no abrió
+  if (await xrSupported()) return 'xr';
+  if (QUICKLOOK) return 'quicklook';
+  if (IS_ANDROID) return 'sceneviewer';
+  return 'window';
+}
+let route = 'window';
 
 const SOCIAL_LABELS = {
   instagram: 'Instagram', spotify: 'Spotify', youtube: 'YouTube', soundcloud: 'SoundCloud',
@@ -64,7 +74,6 @@ function h(tag, attrs, ...children) {
     if (v == null || v === false) continue;
     if (k === 'class') el.className = v;
     else if (k === 'text') el.textContent = v;
-    else if (k === 'html') el.innerHTML = v;
     else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
     else el.setAttribute(k, v === true ? '' : v);
   }
@@ -75,19 +84,23 @@ function h(tag, attrs, ...children) {
 const icon = (kind) => '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="' + REACTIONS[kind] + '"/></svg>';
 const asset = (p) => (p ? '../' + p : '');
 
+function eventDate() {
+  const parts = new Intl.DateTimeFormat('es-CL', {
+    timeZone: C.evento.zonaHoraria || 'America/Santiago', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(START));
+  const p = (t) => (parts.find((x) => x.type === t) || {}).value;
+  return { date: p('day') + '.' + p('month') + '.' + p('year'), time: p('hour') + ':' + p('minute') };
+}
+
 // ------------------------------------------------------------------ quién está tocando
 
-// En prototipo cada artista "toca" `segundosPorSet` y se repite en loop.
-// En el evento real se usa `hora` de cada punto o, si no hay, partes iguales.
-function liveState(now) {
+// En el evento real se usa `hora` de cada punto (o partes iguales si no hay).
+// En el prototipo cada artista queda "en vivo" `segundosPorSet` segundos, en loop.
+function liveIndex(now) {
   const n = POINTS.length;
-  if (!n) return null;
-  if (PROTO) {
-    const set = (AR.segundosPorSet || 45) * 1000;
-    const k = Math.floor(now / set) % n;
-    return { index: k, progress: (now % set) / set, next: (k + 1) % n, remaining: set - (now % set) };
-  }
-  if (now < START || now >= END) return null;
+  if (!n) return -1;
+  if (PROTO) return Math.floor(now / ((AR.segundosPorSet || 120) * 1000)) % n;
+  if (now < START || now >= END) return -1;
   const day = C.evento.inicio.slice(0, 10);
   const offset = C.evento.inicio.slice(19) || '';
   const starts = POINTS.map((p, i) => (p.hora
@@ -95,9 +108,7 @@ function liveState(now) {
     : START + ((END - START) / n) * i));
   let k = -1;
   starts.forEach((s, i) => { if (now >= s && (k < 0 || s >= starts[k])) k = i; });
-  if (k < 0) return null;
-  const until = Math.min(...starts.filter((s) => s > starts[k]), END);
-  return { index: k, progress: (now - starts[k]) / (until - starts[k]), next: until < END ? starts.indexOf(until) : -1, remaining: until - now };
+  return k;
 }
 
 // ------------------------------------------------------------------ 3D compartido
@@ -111,14 +122,23 @@ const scene = new THREE.Scene();
 let holo = null;
 let session = null;
 
-// Vista previa en el lanzador: la cámara se mece frente al tótem.
-const previewCam = new THREE.PerspectiveCamera(38, 1, 0.01, 50);
+// Lanzador: el tótem gira lento a pantalla completa.
+const previewCam = new THREE.PerspectiveCamera(36, 1, 0.01, 50);
 function fitPreview() {
   const box = $('#preview').getBoundingClientRect();
   if (!box.width || !box.height) return;
   renderer.setSize(box.width, box.height, false);
   previewCam.aspect = box.width / box.height;
   previewCam.updateProjectionMatrix();
+}
+function previewLoop(t) {
+  const a = Math.sin(t / 5200) * 0.55;
+  const dist = previewCam.aspect < 0.9 ? 5.2 : 3.1;
+  previewCam.position.set(Math.sin(a) * dist, 1.5, Math.cos(a) * dist);
+  previewCam.lookAt(0, previewCam.aspect < 0.9 ? 0.75 : 0.6, 0);
+  holo.setLive(liveIndex(Date.now()));
+  holo.update(t, previewCam, pulse.sample(t));
+  renderer.render(scene, previewCam);
 }
 function startPreview() {
   if (!holo) return;
@@ -131,112 +151,40 @@ function startPreview() {
   holo.select(-1);
   scene.add(holo.group);
   fitPreview();
-  renderer.setAnimationLoop((t) => {
-    const a = Math.sin(t / 5200) * 0.55;
-    const dist = previewCam.aspect < 0.9 ? 3.6 : 2.9;
-    previewCam.position.set(Math.sin(a) * dist, 1.45, Math.cos(a) * dist);
-    previewCam.lookAt(0, 0.58, 0);
-    const live = liveState(Date.now());
-    holo.setLive(live ? live.index : -1);
-    holo.update(t, previewCam, pulse.sample(t));
-    renderer.render(scene, previewCam);
-  });
+  renderer.setAnimationLoop(document.visibilityState === 'visible' ? previewLoop : null);
 }
 new ResizeObserver(() => { if (!session) fitPreview(); }).observe($('#preview'));
 
 // ------------------------------------------------------------------ lanzador
 
-const CHECKS = [
-  { id: 'secure', label: 'HTTPS', test: async () => window.isSecureContext },
-  { id: 'camera', label: 'Cámara', test: async () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
-  { id: 'xr', label: 'AR anclada', optional: true, test: async () => (await xrSupported()) || QUICKLOOK },
-  { id: 'motion', label: 'Giroscopio', test: async () => 'DeviceOrientationEvent' in window },
-  { id: 'mic', label: 'Micrófono', optional: true, test: async () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
-];
-const support = {};
-
-async function renderChecks() {
-  const list = $('#checks');
-  const rows = CHECKS.map((c) => {
-    const li = h('li', { 'data-state': 'wait', text: c.label });
-    list.append(li);
-    return li;
-  });
-  support.webxr = await xrSupported();
-  for (const [i, c] of CHECKS.entries()) {
-    support[c.id] = await c.test();
-    const state = support[c.id] ? 'ok' : c.optional ? 'opt' : 'no';
-    rows[i].dataset.state = state;
-    rows[i].setAttribute('aria-label', c.label + ': ' + (state === 'ok' ? 'listo' : state === 'opt' ? 'opcional' : 'no disponible'));
-  }
-  renderActions();
+function msg(text) {
+  const el = $('#msg');
+  el.textContent = text || '';
+  el.hidden = !text;
 }
 
-// Elige el botón principal según lo que el celular puede hacer.
-function renderActions() {
-  if (!IS_MOBILE && !PREVIEW) return;
-  const enter = $('#enter');
-  const note = $('#note');
-  const chrome = $('#open-chrome');
-  const ql = $('#quicklook');
-  const secondary = (text) => {
-    enter.classList.remove('arpage__btn--primary');
-    enter.textContent = text;
-  };
-  if (!support.secure) {
-    note.textContent = 'La cámara y la AR solo funcionan con el sitio publicado en HTTPS.';
-  } else if (support.webxr) {
-    note.textContent = 'AR anclada: el tótem se apoya en el suelo o en una mesa y puedes caminar a su alrededor.';
-  } else if (IS_ANDROID) {
-    // Samsung Internet, navegadores de apps, etc.: la misma página en Chrome.
-    chrome.href = 'intent://' + location.host + location.pathname + location.search
-      + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(location.href) + ';end';
-    chrome.hidden = false;
-    secondary('Entrar aquí (sin anclaje)');
-    note.textContent = 'Este navegador no permite AR anclada. En Chrome el tótem queda fijo en tu espacio y puedes caminar a su alrededor.';
-  } else if (QUICKLOOK) {
-    ql.hidden = false;
-    secondary('Modo interactivo');
-    note.textContent = '«Ver en tu espacio» lo deja anclado al piso con la AR del iPhone. El modo interactivo muestra artistas, reacciones y música.';
-  } else if (IN_APP) {
-    note.textContent = 'Estás en el navegador de una app. Ábrelo en Safari o Chrome (menú ⋯ → Abrir en el navegador) para verlo anclado.';
-  } else if (support.camera) {
-    note.textContent = 'Se usará la cámara y el giroscopio: el tótem sigue tus giros, pero no tus pasos.';
-  } else {
-    note.textContent = 'Sin cámara disponible: entra en modo sin cámara.';
-  }
-}
-
-function renderStatus() {
+function renderLauncher() {
   const now = Date.now();
-  const el = $('#status');
-  const open = isOpen(now);
-  el.classList.toggle('is-open', open);
-  if (PROTO) el.textContent = 'Prototipo · funciona en cualquier lugar';
-  else if (PREVIEW) el.textContent = 'Vista previa · bloqueo desactivado';
-  else if (now < OPENS) {
-    const s = Math.floor((OPENS - now) / 1000);
-    el.textContent = 'Bloqueado · se abre en ' + Math.floor(s / 86400) + 'd ' + pad(Math.floor((s % 86400) / 3600)) + 'h ' + pad(Math.floor((s % 3600) / 60)) + 'm ' + pad(s % 60) + 's';
-  } else if (now < END) el.textContent = 'Abierto · experiencia en vivo';
-  else el.textContent = 'Cerrado · la noche ya pasó';
-  const ready = open && !!holo && (IS_MOBILE || PREVIEW);
+  if (!IS_MOBILE && !PREVIEW) return;
+  const ready = !!holo && isOpen(now);
   $('#enter').disabled = !ready;
-  $('#enter-nocam').disabled = !ready;
-  $('#quicklook').disabled = !open;
+  if (!isOpen(now)) {
+    const d = eventDate();
+    msg(now < OPENS ? d.date + ' · ' + d.time : '');
+  } else if (!window.isSecureContext) {
+    msg('Necesita HTTPS');
+  } else {
+    msg('');
+  }
 }
 
 function renderDesktop() {
   if (IS_MOBILE || PREVIEW) return;
   $('#actions').hidden = true;
-  const box = $('#desktop');
-  box.hidden = false;
-  const url = location.href.split('?')[0];
-  const link = $('#desktop-link');
-  link.href = url;
-  link.textContent = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  if (typeof window.qrcode !== 'function') { $('#qr').hidden = true; return; }
+  $('#desktop').hidden = false;
+  if (typeof window.qrcode !== 'function') return;
   const qr = window.qrcode(0, 'M');
-  qr.addData(url);
+  qr.addData(location.href.split('?')[0]);
   qr.make();
   const n = qr.getModuleCount();
   let d = '';
@@ -244,46 +192,63 @@ function renderDesktop() {
   $('#qr').innerHTML = '<svg viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges"><path fill="#070707" d="' + d + '"/></svg>';
 }
 
-// iPhone: AR Quick Look necesita un <a rel="ar"> con una imagen adentro.
-// El banner inferior muestra el evento y un botón que vuelve al sitio.
-function openQuickLook() {
-  const parts = new Intl.DateTimeFormat('es-CL', { timeZone: C.evento.zonaHoraria || 'America/Santiago', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(new Date(START));
-  const part = (type) => (parts.find((x) => x.type === type) || {}).value;
-  const d = part('day') + '.' + part('month') + '.' + part('year');
-  const params = new URLSearchParams({
-    checkoutTitle: (C.evento.nombre || 'IRRUMPE') + ' · ' + C.compania.nombre,
-    checkoutSubtitle: (C.evento.bajada || '') + ' · ' + (C.evento.ciudad || '') + ' · ' + d,
-    callToAction: 'Ver artistas',
-  });
+// Visores de AR del sistema: necesitan que el navegador abra un enlace especial.
+function clickLink(href, rel) {
   const a = document.createElement('a');
-  a.rel = 'ar';
-  a.href = USDZ + '#' + params.toString().replace(/\+/g, '%20');
-  a.appendChild(document.createElement('img'));
-  a.addEventListener('message', (e) => {
-    if (e.data === '_apple_ar_quicklook_button_tapped') location.href = '../';
-  });
+  if (rel) a.rel = rel;
+  a.href = href;
+  if (rel === 'ar') a.appendChild(document.createElement('img')); // requisito de Quick Look
   document.body.appendChild(a);
   a.click();
   setTimeout(() => a.remove(), 1000);
+  return a;
+}
+
+function openQuickLook() {
+  const d = eventDate();
+  const params = new URLSearchParams({
+    checkoutTitle: C.evento.nombre || 'IRRUMPE',
+    checkoutSubtitle: C.compania.nombre + ' · ' + d.date,
+    callToAction: 'Ver artistas',
+  });
+  const a = clickLink(MODELS.usdz + '#' + params.toString().replace(/\+/g, '%20'), 'ar');
+  a.addEventListener('message', (e) => {
+    if (e.data === '_apple_ar_quicklook_button_tapped') location.href = '../';
+  });
+}
+
+function openSceneViewer() {
+  const back = new URL(location.href);
+  back.search = '?ar=giro';
+  const params = new URLSearchParams({
+    file: new URL(MODELS.glb, location.href).href,
+    mode: 'ar_preferred',
+    title: (C.evento.nombre || 'IRRUMPE') + ' · ' + C.compania.nombre,
+    link: new URL('../', location.href).href,
+  });
+  clickLink('intent://arvr.google.com/scene-viewer/1.0?' + params.toString()
+    + '#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;'
+    + 'S.browser_fallback_url=' + encodeURIComponent(back.href) + ';end;');
+  // Si a los 3 s la página sigue a la vista, el visor no se abrió: experiencia interactiva.
+  setTimeout(() => {
+    if (document.visibilityState === 'visible' && !session) enterInteractive(false);
+  }, 3000);
 }
 
 function syncMicButtons() {
   const on = pulse.micOn;
   $('#mic').setAttribute('aria-pressed', String(on));
   $('#xr-mic').setAttribute('aria-pressed', String(on));
-  $('#mic').textContent = on ? 'Música: micrófono' : 'Música: demo';
 }
 
 async function toggleMic() {
   if (pulse.micOn) {
-    pulse.disableMic();
-    toast('Visuales en modo demo');
+    pulse.disableMic(true);
   } else {
     try {
       await pulse.enableMic();
-      toast('Las visuales siguen la música');
     } catch (e) {
-      toast(session && session.mode === 'xr' ? 'Activa la música antes de entrar' : 'Sin micrófono: modo demo');
+      toast('Sin micrófono');
     }
   }
   syncMicButtons();
@@ -298,6 +263,7 @@ let hintTimer = 0;
 let toastTimer = 0;
 let idleTimer = 0;
 let lastSurface = null;
+let pinchHinted = false;
 
 function setHint(text, hideAfter) {
   const el = $('#xr-hint');
@@ -315,14 +281,18 @@ function toast(text) {
   toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
 }
 
+function pinchHint() {
+  if (pinchHinted) return;
+  pinchHinted = true;
+  setHint('Pellizca para escalar', 2500);
+}
+
 // La interfaz se atenúa si no se toca por unos segundos.
 function wake() {
   xrRoot.classList.remove('is-idle');
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => { if (sheet.hidden) xrRoot.classList.add('is-idle'); }, 3500);
 }
-
-const MODE_LABELS = { xr: 'AR anclada', camera: 'AR · giro', nocamera: 'Sin cámara' };
 
 const ctx = {
   renderer, scene, canvas,
@@ -338,7 +308,7 @@ const ctx = {
   onSurface(found) {
     if (found === lastSurface) return;
     lastSurface = found;
-    setHint(found ? 'Toca para colocar el tótem aquí' : 'Apunta al suelo o a una mesa y mueve un poco el celular');
+    setHint(found ? 'Toca para colocar' : 'Apunta al suelo');
   },
   onNoSurface() {
     $('#xr-ahead').hidden = false;
@@ -346,16 +316,18 @@ const ctx = {
   onPlaced() {
     lastSurface = null;
     $('#xr-ahead').hidden = true;
-    setHint('Acércate, rodéalo · pellizca para cambiar el tamaño', 5000);
+    setHint('');
+    pinchHint();
     if (navigator.vibrate) navigator.vibrate(30);
   },
   onLook(kind) {
-    setHint(kind === 'gyro' ? 'Mueve el celular para mirar · pellizca para cambiar el tamaño' : 'Arrastra para mirar · pellizca para cambiar el tamaño', 6000);
+    if (kind === 'drag') setHint('Arrastra para mirar', 3000);
+    else pinchHint();
   },
   onCameraLost() {
     toast('No se pudo reabrir la cámara');
   },
-  onEnd({ unexpected } = {}) {
+  onEnd() {
     session = null;
     clearTimeout(idleTimer);
     closeSheet();
@@ -363,12 +335,19 @@ const ctx = {
     xrRoot.classList.remove('xr--webxr', 'is-idle');
     document.body.classList.remove('is-xr');
     $('#launch').hidden = false;
-    $('#stage-msg').textContent = unexpected ? 'La AR se pausó al salir. Toca Entrar para volver.' : 'Vista previa del tótem';
     startPreview();
   },
 };
 
-async function enter(useCamera) {
+// Botón "Entrar": sigue el camino elegido para este navegador.
+function enter() {
+  if (!holo || session) return;
+  if (route === 'quicklook') { openQuickLook(); $('#more').hidden = false; return; }
+  if (route === 'sceneviewer') { openSceneViewer(); $('#more').hidden = false; return; }
+  enterInteractive(route === 'xr');
+}
+
+async function enterInteractive(useXR) {
   if (!holo || session) return;
   // iPhone exige pedir el permiso de sensores dentro del toque, antes de cualquier espera.
   const motion = requestMotionPermission();
@@ -381,7 +360,7 @@ async function enter(useCamera) {
   setHint('');
   $('#xr-ahead').hidden = true;
 
-  if (useCamera && support.webxr) {
+  if (useXR) {
     xrRoot.classList.add('xr--webxr');
     try {
       session = await startXR(ctx);
@@ -389,19 +368,17 @@ async function enter(useCamera) {
     } catch (e) {
       xrRoot.classList.remove('xr--webxr');
       session = null;
-      toast('AR anclada no disponible: usando la cámara');
     }
   }
   if (!session) {
     await motion;
     try {
-      session = await startWindow(ctx, { video, useCamera });
+      session = await startWindow(ctx, { video, useCamera: true });
     } catch (e) {
-      toast('Sin acceso a la cámara: modo sin cámara');
       session = await startWindow(ctx, { video, useCamera: false });
     }
   }
-  $('#xr-mode').textContent = MODE_LABELS[session.mode] + (PROTO ? ' · prototipo' : '');
+  $('#xr-recenter').setAttribute('aria-label', session.mode === 'xr' ? 'Mover el tótem' : 'Recentrar');
   updateLive();
   wake();
 }
@@ -414,111 +391,77 @@ function closeSheet() {
   if (holo) holo.select(-1);
 }
 
-function socialLinks(a) {
-  const links = Object.entries(a.redes || {}).filter(([, url]) => url);
-  if (links.length) {
-    return h('div', { class: 'sheet__social' },
-      links.map(([k, url]) => h('a', { class: 'sheet__social-btn', href: url, target: '_blank', rel: 'noopener', text: SOCIAL_LABELS[k] || k })));
-  }
-  // Prototipo sin links cargados: se muestran como "pronto".
-  return h('div', { class: 'sheet__social' },
-    ['Instagram', 'Spotify', 'YouTube'].map((label) => h('span', { class: 'sheet__social-btn is-off', text: label })),
-    h('p', { class: 'sheet__soon', text: 'Redes por anunciar' }));
-}
-
 function openArtist(i) {
   const p = POINTS[i];
   const a = p.artista;
-  const live = liveState(Date.now());
-  const isLive = live && live.index === i;
   const mus = a.musica || {};
+  const links = Object.entries(a.redes || {}).filter(([, url]) => url);
   const maps = 'https://www.google.com/maps/search/?api=1&query=' + p.lat + ',' + p.lng;
-  sheet.replaceChildren(
+  sheet.replaceChildren(...[
     h('button', { class: 'sheet__close', type: 'button', 'aria-label': 'Cerrar', text: '×', onclick: closeSheet }),
     h('div', { class: 'sheet__head' },
       a.foto ? h('img', { class: 'sheet__photo', src: asset(a.foto), alt: a.nombre }) : h('div', { class: 'sheet__photo sheet__photo--empty', text: pad(i + 1) }),
       h('div', null,
-        h('p', { class: 'sheet__kicker' }, h('strong', { text: pad(i + 1) }), ' / ' + pad(POINTS.length) + (p.hora ? ' · ' + p.hora + ' hrs' : '')),
+        h('p', { class: 'sheet__kicker' }, h('strong', { text: pad(i + 1) }), p.hora ? ' · ' + p.hora : ''),
         h('h2', { class: 'sheet__name', text: a.nombre }),
-        isLive && h('p', { class: 'sheet__live', text: 'En vivo ahora' }),
+        liveIndex(Date.now()) === i && h('p', { class: 'sheet__live', text: 'En vivo' }),
         a.genero && h('p', { class: 'sheet__genre', text: a.genero }),
         h('p', { class: 'sheet__place', text: p.lugar }),
       ),
     ),
     a.bio && h('p', { class: 'sheet__bio', text: a.bio }),
-    socialLinks(a),
+    links.length > 0 && h('div', { class: 'sheet__social' },
+      links.map(([k, url]) => h('a', { class: 'sheet__social-btn', href: url, target: '_blank', rel: 'noopener', text: SOCIAL_LABELS[k] || k }))),
     (mus.titulo || mus.url) && h('a', { class: 'sheet__music', href: mus.url || null, target: '_blank', rel: 'noopener' },
-      h('span', { text: 'Escucha' }), h('strong', { text: mus.titulo || 'Escuchar' })),
-    h('div', { class: 'sheet__actions' },
-      h('a', { class: 'sheet__link', href: maps, target: '_blank', rel: 'noopener', text: 'Cómo llegar ↗' }),
-      h('button', { class: 'sheet__link', type: 'button', text: 'Ver en el tótem', onclick: () => { sheet.hidden = true; holo.select(i); } }),
-    ),
-  );
+      h('strong', { text: mus.titulo || 'Escuchar' })),
+    h('a', { class: 'sheet__link', href: maps, target: '_blank', rel: 'noopener', text: 'Cómo llegar ↗' }),
+  ].filter(Boolean)); // los campos vacíos no se muestran
   sheet.dataset.kind = 'artist';
   sheet.hidden = false;
   holo.select(i);
 }
 
 function openLineup() {
-  const live = liveState(Date.now());
+  const live = liveIndex(Date.now());
   sheet.replaceChildren(
     h('button', { class: 'sheet__close', type: 'button', 'aria-label': 'Cerrar', text: '×', onclick: closeSheet }),
-    h('p', { class: 'sheet__kicker', text: 'Line-up · ' + POINTS.length + ' puntos' }),
     h('ol', { class: 'sheet__list' }, POINTS.map((p, i) => h('li', null,
       h('button', { class: 'sheet__row', type: 'button', onclick: () => openArtist(i) },
-        thumb(p, i),
+        p.artista.foto ? h('img', { class: 'sheet__thumb', src: asset(p.artista.foto), alt: '' }) : h('span', { class: 'sheet__thumb sheet__thumb--empty', text: pad(i + 1) }),
         h('span', { class: 'sheet__row-num', text: pad(i + 1) }),
         h('span', { class: 'sheet__row-text' }, h('strong', { text: p.artista.nombre }), h('span', { text: p.lugar })),
-        live && live.index === i ? h('span', { class: 'sheet__row-tag', text: 'En vivo' })
-          : live && live.next === i ? h('span', { class: 'sheet__row-tag is-next', text: 'Sigue' }) : null,
+        live === i && h('span', { class: 'sheet__row-tag', text: 'En vivo' }),
       ),
     ))),
   );
   sheet.dataset.kind = 'lineup';
   sheet.hidden = false;
 }
-function thumb(p, i) {
-  return p.artista.foto
-    ? h('img', { class: 'sheet__thumb', src: asset(p.artista.foto), alt: '' })
-    : h('span', { class: 'sheet__thumb sheet__thumb--empty', text: pad(i + 1) });
-}
 
 // ------------------------------------------------------------------ en vivo
 
-function fmtLeft(ms) {
-  const s = Math.max(0, Math.ceil(ms / 1000));
-  return s >= 3600 ? Math.floor(s / 3600) + ' h ' + pad(Math.floor((s % 3600) / 60)) + ' min' : Math.floor(s / 60) + ':' + pad(s % 60);
-}
-
 function updateLive() {
-  const live = liveState(Date.now());
+  const k = liveIndex(Date.now());
   const box = $('#xr-live');
-  box.hidden = !live;
-  if (holo) holo.setLive(live ? live.index : -1);
-  if (!live) return;
-  const p = POINTS[live.index];
+  box.hidden = k < 0;
+  if (holo) holo.setLive(k);
+  if (k < 0) return;
+  const p = POINTS[k];
   $('#xr-live-name').textContent = p.artista.nombre;
   $('#xr-live-place').textContent = p.lugar;
-  $('#xr-live-bar').style.transform = 'scaleX(' + live.progress.toFixed(3) + ')';
-  $('#xr-live-next').textContent = live.next >= 0 ? 'sigue ' + POINTS[live.next].artista.nombre + ' ' + fmtLeft(live.remaining) : '';
-  box.dataset.index = live.index;
+  box.dataset.index = k;
   box.setAttribute('aria-label', 'En vivo: ' + p.artista.nombre + ', ' + p.lugar);
 }
 
 // ------------------------------------------------------------------ arranque
 
 function bindUI() {
-  $('#enter').addEventListener('click', () => enter(true));
-  $('#enter-nocam').addEventListener('click', () => enter(false));
-  $('#quicklook').addEventListener('click', openQuickLook);
+  $('#enter').addEventListener('click', enter);
+  $('#more').addEventListener('click', () => enterInteractive(false));
   $('#mic').addEventListener('click', toggleMic);
   $('#xr-mic').addEventListener('click', toggleMic);
   $('#xr-exit').addEventListener('click', () => { if (session) session.end(); });
-  $('#xr-recenter').addEventListener('click', () => {
-    if (!session) return;
-    session.recenter();
-    if (session.mode !== 'xr') setHint('El tótem quedó al frente', 2500);
-  });
+  $('#xr-recenter').addEventListener('click', () => { if (session) session.recenter(); });
   $('#xr-ahead').addEventListener('click', () => { if (session && session.placeAhead) session.placeAhead(); });
   $('#xr-lineup').addEventListener('click', () => (sheet.hidden || sheet.dataset.kind !== 'lineup' ? openLineup() : closeSheet()));
   $('#xr-live').addEventListener('click', () => {
@@ -528,8 +471,7 @@ function bindUI() {
   document.querySelectorAll('[data-react]').forEach((b) => {
     b.innerHTML = icon(b.dataset.react);
     b.addEventListener('click', () => {
-      const live = liveState(Date.now());
-      holo.react(b.dataset.react, live ? live.index : -1);
+      holo.react(b.dataset.react, liveIndex(Date.now()));
       b.classList.remove('is-pop');
       void b.offsetWidth;
       b.classList.add('is-pop');
@@ -541,32 +483,37 @@ function bindUI() {
   $('#xr-ui').addEventListener('beforexrselect', (e) => {
     if (e.target.closest('button, a, .xr__sheet')) e.preventDefault();
   });
-  // Al volver de otra app o de la pantalla bloqueada: reanudar el micrófono.
+  // Al minimizar o volver: soltar/retomar micrófono y la vista previa del lanzador.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') pulse.resume().then(syncMicButtons);
+    if (document.visibilityState === 'hidden') {
+      pulse.suspend();
+      if (!session) renderer.setAnimationLoop(null);
+    } else {
+      pulse.resume().then(syncMicButtons);
+      if (!session && holo) renderer.setAnimationLoop(previewLoop);
+    }
   });
 }
 
 async function boot() {
   document.querySelectorAll('[data-event-name]').forEach((el) => { el.textContent = C.evento.nombre || 'IRRUMPE'; });
-  document.title = 'Acceso AR — ' + (C.evento.nombre || 'IRRUMPE');
-  $('#proto-tag').hidden = !PROTO;
   bindUI();
   syncMicButtons();
   renderDesktop();
-  renderStatus();
-  setInterval(renderStatus, 1000);
-  setInterval(updateLive, 500);
-  renderChecks();
+  renderLauncher();
+  setInterval(renderLauncher, 1000);
+  setInterval(updateLive, 1000);
+  route = await chooseRoute();
+  // La música solo aplica a los modos interactivos (no a los visores del sistema).
+  $('#mic').hidden = !(route === 'xr' || route === 'window');
   try {
     holo = await createHologram({ config: C, geo: GEO });
-    $('#stage-msg').textContent = 'Vista previa del tótem';
     startPreview();
   } catch (e) {
-    $('#stage-msg').textContent = 'No se pudo cargar el 3D en este navegador';
+    msg('Este navegador no puede mostrar 3D');
     console.error(e);
   }
-  renderStatus();
+  renderLauncher();
 }
 
 // Acceso para depurar desde la consola del navegador.
@@ -574,7 +521,8 @@ window.IrrumpeAR = {
   renderer,
   get holo() { return holo; },
   get session() { return session; },
-  openArtist, openLineup, closeSheet, liveState,
+  get route() { return route; },
+  openArtist, openLineup, closeSheet, liveIndex, enterInteractive,
 };
 
 boot();

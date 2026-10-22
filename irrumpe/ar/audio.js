@@ -29,22 +29,32 @@ export const pulse = {
     this.analyser.smoothingTimeConstant = 0.6;
     this.ctx.createMediaStreamSource(this.stream).connect(this.analyser);
     this.data = new Uint8Array(this.analyser.frequencyBinCount);
+    if (this.ctx.state !== 'running') {
+      const wake = () => { if (this.ctx) this.ctx.resume().catch(() => {}); };
+      document.addEventListener('pointerdown', wake, { once: true });
+    }
     return true;
   },
 
-  // Al volver de segundo plano: reanudar el audio o reabrir el micrófono si se cortó.
-  async resume() {
+  // Al ocultarse la página se suelta el micrófono; al volver se reabre (una sola vez).
+  wasOn: false,
+  busy: null,
+  suspend() {
     if (!this.analyser) return;
-    const alive = this.stream && this.stream.getAudioTracks().some((t) => t.readyState === 'live');
-    if (!alive) {
-      this.disableMic();
-      await this.enableMic().catch(() => {});
-      return;
-    }
-    if (this.ctx.state !== 'running') await this.ctx.resume().catch(() => {});
+    this.wasOn = true;
+    this.disableMic();
+  },
+  resume() {
+    if (!this.wasOn || this.analyser || this.busy) return Promise.resolve();
+    this.busy = this.enableMic()
+      .then(() => { this.wasOn = false; })
+      .catch(() => {})
+      .finally(() => { this.busy = null; });
+    return this.busy;
   },
 
-  disableMic() {
+  disableMic(byUser) {
+    if (byUser) this.wasOn = false;
     if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
     if (this.ctx) this.ctx.close().catch(() => {});
     this.stream = this.ctx = this.analyser = this.data = null;
@@ -53,7 +63,9 @@ export const pulse = {
   // Llamar una vez por cuadro con el tiempo en ms.
   sample(t) {
     let raw;
-    if (this.analyser) {
+    // Sin un toque reciente algunos navegadores dejan el audio en pausa: mientras
+    // tanto se usa el pulso de demostración.
+    if (this.analyser && this.ctx.state === 'running') {
       this.analyser.getByteFrequencyData(this.data);
       // Bins ~40 Hz a ~2 kHz (con fftSize 512 y 48 kHz cada bin son ~94 Hz).
       let sum = 0;

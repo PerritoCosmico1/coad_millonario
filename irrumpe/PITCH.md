@@ -24,21 +24,24 @@ Si se necesita solo el código (para otro diseño), la misma página descarga el
 
 ## 3. Qué verá cada persona
 
+Un solo botón, **Entrar**; la página elige sola lo mejor para cada celular, sin redirigir a otro navegador:
+
 | Celular | Qué pasa |
 |---|---|
-| Android con **Chrome** | AR anclada e interactiva: apunta al piso, toca, y el tótem queda fijo; puede acercarse, rodearlo, tocar artistas y reaccionar. |
-| Android con **Samsung Internet** u otro navegador | Botón **Abrir en Chrome · AR anclada** (la cámara de Samsung suele abrir los QR en Samsung Internet). |
-| **iPhone** | **Ver en tu espacio**: el tótem animado anclado al piso con la AR del iPhone (se puede caminar alrededor y pellizcar para escalar). **Modo interactivo**: artistas, reacciones y música. |
-| QR leído desde Instagram, WhatsApp u otra app | Mensaje para abrir la página en el navegador. |
+| Android con **Chrome** | AR anclada e interactiva: apunta al piso, toca, y el tótem queda fijo; puede acercarse, rodearlo, tocar artistas, reaccionar y activar la música. |
+| Android con **Firefox, Samsung Internet** u otro | Se abre el visor AR de Google (Scene Viewer) con el tótem animado anclado al piso. Al volver, "Ver artistas" abre la versión interactiva. |
+| **iPhone** | Se abre la AR del iPhone (Quick Look) con el tótem animado anclado al piso. Al volver, "Ver artistas". |
 | Computador | Muestra un QR para abrirlo en el celular. |
+
+Las fichas, reacciones y música en AR anclada son exclusivas de los navegadores con WebXR (Chrome y otros Chromium en Android): Firefox y Safari no lo implementan. En esos casos se usa el visor AR del propio sistema, que sí ancla el tótem.
 
 ## 4. Ensayo (con al menos dos días de margen)
 
 - En **la sala real**, con su luz y su Wi-Fi o datos móviles.
-- Con al menos **un iPhone, un Samsung** (dejando que abra Samsung Internet) **y un Android con Chrome**.
+- Con al menos **un iPhone, un Samsung** (dejando que abra Samsung Internet), **un Android con Chrome y uno con Firefox**.
 - Cronometrar: desde escanear hasta ver el tótem, idealmente menos de 30 s.
 - **Luz**: la AR necesita ver el piso. Si la sala queda a oscuras para el video, pedir que suban las luces cuando aparezca el QR. Si igual no detecta el piso, a los 5 segundos aparece **Colocar al frente**.
-- **Música**: con el botón de música activado (en el lanzador, antes de entrar), el tótem late con lo que suena en la sala, incluida la música del video. Que el audio de la sala esté fuerte en ese momento.
+- **Música**: con el ícono de ondas activado (junto a Entrar, antes de entrar), el tótem late con lo que suena en la sala, incluida la música del video. Que el audio de la sala esté fuerte en ese momento.
 
 ## 5. Cierre sugerido
 
@@ -54,5 +57,5 @@ En pantalla o dicho en vivo, 5 segundos: **"Escaneen el código, toquen Entrar y
 
 - [ ] `ar.prototipo: true` en `js/config.js` (la AR está abierta siempre y simula el show).
 - [ ] Redes de los artistas cargadas en `js/config.js` (si no, aparecen como "Redes por anunciar").
-- [ ] Si cambian fotos, artistas o puntos: regenerar `assets/irrumpe.usdz` con `tools/export-usdz.html` (instrucciones en esa página) y volver a publicar.
-- [ ] Revisar que `https://…/assets/irrumpe.usdz` descargue (en iPhone abre directo la AR).
+- [ ] Si cambian fotos, artistas o puntos: regenerar `assets/irrumpe.usdz` y `assets/irrumpe.glb` con `tools/export-3d.html` (instrucciones en esa página) y volver a publicar.
+- [ ] Revisar en un iPhone y en un Android con Firefox que "Entrar" abra el visor AR del sistema.

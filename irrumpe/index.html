@@ -19,25 +19,20 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Secuencia de entrada. Se salta con clic, con movimiento reducido o en la segunda visita de la sesión. -->
-  <div class="boot" id="boot" aria-hidden="true">
-    <pre class="boot__log" id="boot-log"></pre>
-  </div>
-
   <main class="stage" id="stage">
     <header class="topbar">
       <a class="brand" id="brand" target="_blank" rel="noopener">
         <img class="brand__logo" id="brand-logo" alt="" width="34" height="34">
         <span class="brand__name" id="brand-name"></span>
       </a>
-      <button class="ar-trigger" id="ar-open" type="button" aria-haspopup="dialog">
+      <!-- En celular va directo a la AR; en computador muestra un QR. -->
+      <a class="ar-trigger" id="ar-open" href="ar/">
         <span class="ar-trigger__dot" aria-hidden="true"></span>
-        <span>Acceso AR</span>
-      </button>
+        <span>AR</span>
+      </a>
     </header>
 
     <section class="hero" id="hero">
-      <p class="hero__kicker" id="event-kicker"></p>
       <h1 class="hero__title" id="event-name">IRRUMPE</h1>
       <div class="countdown" id="countdown" role="timer" aria-label="Cuenta regresiva">
         <div class="countdown__unit"><span class="countdown__num" data-unit="d">00</span><span class="countdown__label">días</span></div>
@@ -62,32 +57,23 @@
     </section>
 
     <nav class="index" id="index" aria-label="Puntos de la intervención">
-      <p class="index__title"><span id="index-count"></span> puntos · una noche</p>
       <ol class="index__list" id="index-list"></ol>
     </nav>
 
     <footer class="readout">
-      <span class="readout__coords" id="coords" aria-hidden="true"></span>
-      <span class="readout__credit">Proyecto universitario · Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
     </footer>
   </main>
 
   <!-- Tarjeta de información del punto activo (flotante en escritorio, hoja inferior en celular) -->
   <aside class="card" id="card" aria-live="polite" hidden></aside>
 
-  <!-- Acceso especial AR -->
-  <dialog class="ar" id="ar-dialog" aria-labelledby="ar-title">
+  <!-- Computador: QR para abrir la AR en el celular -->
+  <dialog class="ar" id="ar-dialog" aria-label="Abrir la AR en el celular">
     <div class="ar__inner">
       <button class="ar__close" id="ar-close" type="button" aria-label="Cerrar">×</button>
-      <p class="ar__kicker">Acceso especial</p>
-      <h2 class="ar__title" id="ar-title">Realidad aumentada<br>en vivo</h2>
-      <p class="ar__text">La noche de <strong data-event-name>IRRUMPE</strong> tu celular es la llave. Apúntalo a cada punto para ver lo que no está ahí.</p>
-      <p class="ar__status" id="ar-status"></p>
-      <div class="ar__handoff" id="ar-handoff">
-        <div class="ar__qr" id="ar-qr" aria-hidden="true"></div>
-        <p class="ar__hint">Escanea con tu celular<br>o abre <a id="ar-link-text"></a></p>
-      </div>
-      <a class="ar__enter" id="ar-enter">Abrir acceso</a>
+      <div class="ar__qr" id="ar-qr" aria-hidden="true"></div>
+      <p class="ar__hint">Ábrelo en tu celular</p>
     </div>
   </dialog>
 

@@ -3,12 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <title>Acceso AR — IRRUMPE</title>
-  <meta name="description" content="Acceso especial de realidad aumentada para IRRUMPE.">
+  <title>IRRUMPE · AR</title>
+  <meta name="description" content="IRRUMPE en realidad aumentada.">
   <meta name="theme-color" content="#070707">
   <meta name="robots" content="noindex">
-  <meta property="og:title" content="IRRUMPE · Acceso AR">
-  <meta property="og:description" content="Mira IRRUMPE en realidad aumentada desde tu celular.">
+  <meta property="og:title" content="IRRUMPE · AR">
   <meta property="og:image" content="../assets/og.jpg">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="../manifest.webmanifest">
@@ -23,46 +22,24 @@
   <link rel="stylesheet" href="ar.css">
 </head>
 <body class="arpage">
-  <!-- Lanzador: una sola pantalla, con una vista previa 3D del tótem -->
+  <!-- Lanzador: el tótem girando y un solo botón. El modo se elige solo (ver ar.js). -->
   <div class="launch" id="launch">
-    <header class="arpage__top">
-      <a class="arpage__back" href="../">← <span data-event-name>IRRUMPE</span></a>
-      <span class="arpage__tag">Acceso AR</span>
-    </header>
-
-    <main class="arpage__main">
-      <p class="arpage__kicker">Acceso especial <span class="arpage__proto" id="proto-tag" hidden>· Prototipo</span></p>
-      <h1 class="arpage__title">Realidad<br>aumentada<br>en vivo</h1>
-
-      <p class="arpage__status" id="status" role="status"></p>
-
-      <section class="arpage__stage" id="preview" aria-label="Vista previa del tótem">
-        <p class="arpage__stage-msg" id="stage-msg">Cargando…</p>
-      </section>
-
-      <div class="arpage__actions" id="actions">
-        <!-- Android fuera de Chrome (Samsung Internet, apps): la AR anclada necesita Chrome. -->
-        <a class="arpage__btn arpage__btn--primary" id="open-chrome" hidden>Abrir en Chrome · AR anclada</a>
-        <!-- iPhone: AR Quick Look ancla el tótem al piso con la AR del sistema. -->
-        <button class="arpage__btn arpage__btn--primary" id="quicklook" type="button" hidden>Ver en tu espacio</button>
-        <button class="arpage__btn arpage__btn--primary" id="enter" type="button" disabled>Entrar a la experiencia</button>
-        <div class="arpage__row">
-          <button class="arpage__btn arpage__btn--small" id="enter-nocam" type="button" disabled>Sin cámara</button>
-          <button class="arpage__btn arpage__btn--small" id="mic" type="button" aria-pressed="false">Música: demo</button>
-        </div>
+    <div class="launch__stage" id="preview" aria-hidden="true"></div>
+    <a class="launch__back" href="../">← <span data-event-name>IRRUMPE</span></a>
+    <div class="launch__bottom">
+      <p class="launch__msg" id="msg" hidden></p>
+      <div class="launch__row" id="actions">
+        <button class="launch__enter" id="enter" type="button" disabled>Entrar</button>
+        <button class="launch__mic" id="mic" type="button" aria-pressed="false" aria-label="Visuales con la música" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+        </button>
       </div>
-
-      <!-- Solo en computador: esta experiencia es para celulares -->
-      <div class="arpage__desktop" id="desktop" hidden>
-        <div class="arpage__qr" id="qr" aria-hidden="true"></div>
-        <p>Esta experiencia es para celulares.<br>Escanea el código o abre<br><a id="desktop-link"></a></p>
+      <button class="launch__more" id="more" type="button" hidden>Ver artistas</button>
+      <div class="launch__desktop" id="desktop" hidden>
+        <div class="launch__qr" id="qr" aria-hidden="true"></div>
+        <p>Ábrelo en tu celular</p>
       </div>
-
-      <section class="arpage__checks" aria-label="Tu dispositivo">
-        <ul class="arpage__list" id="checks"></ul>
-        <p class="arpage__note" id="note"></p>
-      </section>
-    </main>
+    </div>
   </div>
 
   <!-- Experiencia a pantalla completa. En WebXR esta capa va encima de la cámara (dom-overlay). -->
@@ -73,7 +50,6 @@
         <button class="xr__icon" id="xr-exit" type="button" aria-label="Salir">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
-        <span class="xr__mode" id="xr-mode"></span>
         <button class="xr__icon" id="xr-recenter" type="button" aria-label="Recentrar">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
         </button>
@@ -85,13 +61,9 @@
         <p class="xr__hint" id="xr-hint" hidden></p>
         <button class="xr__pill" id="xr-ahead" type="button" hidden>Colocar al frente</button>
         <button class="xr__live" id="xr-live" type="button">
-          <span class="xr__live-row">
-            <span class="xr__live-dot" aria-hidden="true"></span>
-            <span class="xr__live-name" id="xr-live-name"></span>
-            <span class="xr__live-place" id="xr-live-place"></span>
-            <span class="xr__live-next" id="xr-live-next"></span>
-          </span>
-          <span class="xr__live-bar"><span id="xr-live-bar"></span></span>
+          <span class="xr__live-dot" aria-hidden="true"></span>
+          <span class="xr__live-name" id="xr-live-name"></span>
+          <span class="xr__live-place" id="xr-live-place"></span>
         </button>
         <div class="xr__actions">
           <button class="xr__btn" id="xr-lineup" type="button" aria-label="Artistas">

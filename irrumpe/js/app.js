@@ -46,7 +46,6 @@
   const TZ = C.evento.zonaHoraria || 'America/Santiago';
   const START = new Date(C.evento.inicio).getTime();
   const END = C.evento.fin ? new Date(C.evento.fin).getTime() : START + 4 * 3600e3;
-  const AR_FROM = C.ar && C.ar.activaDesde ? new Date(C.ar.activaDesde).getTime() : START;
 
   // Fecha en hora de Chile sin importar dónde esté quien visita.
   function dateParts(ms) {
@@ -67,7 +66,6 @@
     document.title = name + ' — ' + C.compania.nombre;
     $('#event-name').textContent = name;
     document.querySelectorAll('[data-event-name]').forEach((el) => { el.textContent = name; });
-    $('#event-kicker').textContent = C.evento.bajada || '';
     $('#brand-name').textContent = C.compania.nombre;
     const brand = $('#brand');
     if (C.compania.web) brand.href = C.compania.web;
@@ -82,7 +80,7 @@
     date.replaceChildren(
       d.weekday + ' ' + d.day + '.' + d.month + '.' + d.year,
       h('span', { class: 'sep', 'aria-hidden': 'true', text: '·' }),
-      d.hour + ':' + d.minute + ' hrs',
+      d.hour + ':' + d.minute,
       h('span', { class: 'sep', 'aria-hidden': 'true', text: '·' }),
       C.evento.ciudad || 'Concepción',
     );
@@ -156,16 +154,10 @@
   };
   const kmPerDegLng = (lat) => 111.32 * Math.cos((lat * Math.PI) / 180);
 
-  // Etiquetas geográficas fijas. `to` define un segundo punto para orientar el texto.
+  // Única etiqueta del mapa: el río, que es lo que más ubica a Concepción.
+  // `to` define un segundo punto para orientar el texto.
   const GEO_LABELS = [
-    { text: 'Océano Pacífico', lat: -36.795, lng: -73.215, kind: 'water' },
-    { text: 'Bahía de Concepción', lat: -36.705, lng: -73.03, kind: 'water' },
     { text: 'Río Biobío', lat: -36.8425, lng: -73.0685, to: [-36.832, -73.0765], kind: 'water' },
-    { text: 'Talcahuano', lat: -36.722, lng: -73.105 },
-    { text: 'Hualpén', lat: -36.79, lng: -73.09 },
-    { text: 'San Pedro de la Paz', lat: -36.866, lng: -73.1 },
-    { text: 'Chiguayante', lat: -36.918, lng: -73.022 },
-    { text: 'Penco', lat: -36.738, lng: -72.985 },
   ];
 
   const map = {
@@ -502,16 +494,6 @@
     },
   };
 
-  // Coordenadas como 36°49′37″S 73°03′01″O
-  function dms(v, pos, neg) {
-    const a = Math.abs(v);
-    const d = Math.floor(a);
-    const m = Math.floor((a - d) * 60);
-    const s = Math.round(((a - d) * 60 - m) * 60);
-    return d + '°' + pad(m) + '′' + pad(Math.min(s, 59)) + '″' + (v < 0 ? neg : pos);
-  }
-  const fmtCoords = (lat, lng) => dms(lat, 'N', 'S') + '  ' + dms(lng, 'E', 'O');
-
   // ------------------------------------------------------------------ tarjeta
 
   const SOCIAL_LABELS = {
@@ -697,7 +679,7 @@
 
       this.el.replaceChildren(...[
         h('div', { class: 'card__bar' },
-          h('span', null, h('strong', { text: pad(i + 1) }), ' / ' + pad(POINTS.length) + (p.hora ? ' — ' + p.hora + ' hrs' : '')),
+          h('span', null, h('strong', { text: pad(i + 1) }), p.hora ? ' · ' + p.hora : ''),
           h('button', { class: 'card__close', type: 'button', 'aria-label': 'Cerrar', text: '×', onclick: () => this.close() }),
         ),
         h('div', { class: 'card__head' },
@@ -712,9 +694,8 @@
         music,
         embedEl,
         h('div', { class: 'card__place' },
-          h('span', { class: 'card__place-label', text: 'Ubicación' }),
           h('span', { class: 'card__place-name', text: p.lugar }),
-          h('span', { class: 'card__place-meta', text: [p.direccion, fmtCoords(p.lat, p.lng)].filter(Boolean).join(' · ') }),
+          p.direccion && h('span', { class: 'card__place-meta', text: p.direccion }),
         ),
         h('div', { class: 'card__links' },
           h('a', { href: maps, target: '_blank', rel: 'noopener', text: 'Cómo llegar' }),
@@ -728,7 +709,6 @@
 
   function bindPoints() {
     const list = $('#index-list');
-    $('#index-count').textContent = POINTS.length === 4 ? 'Cuatro' : String(POINTS.length);
 
     POINTS.forEach((p, i) => {
       const pin = map.pins[i].el;
@@ -753,22 +733,16 @@
     });
   }
 
-  // ------------------------------------------------------------------ lectura de coordenadas
+  // ------------------------------------------------------------------ linterna del cursor
 
   function bindPointer() {
-    const coords = $('#coords');
-    const rest = () => { coords.textContent = fmtCoords(map.lat0, map.lng0); };
-    rest();
     const stage = $('#stage');
     stage.addEventListener('pointermove', (e) => {
-      if (e.pointerType !== 'mouse') return;
+      if (e.pointerType !== 'mouse' || !finePointer.matches) return;
       const r = map.el.getBoundingClientRect();
-      const x = e.clientX - r.left, y = e.clientY - r.top;
-      map.pointer = finePointer.matches ? { x, y } : null;
-      const g = map.unproject(x, y);
-      coords.textContent = fmtCoords(g.lat, g.lng);
+      map.pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
     });
-    stage.addEventListener('pointerleave', () => { map.pointer = null; rest(); });
+    stage.addEventListener('pointerleave', () => { map.pointer = null; });
   }
 
   // ------------------------------------------------------------------ acceso AR
@@ -777,29 +751,20 @@
     init() {
       this.dialog = $('#ar-dialog');
       this.url = new URL((C.ar && C.ar.url) || 'ar/', location.href).href;
-      $('#ar-open').addEventListener('click', () => this.open());
+      const link = $('#ar-open');
+      link.href = this.url;
+      // En celular el enlace lleva directo a la AR; en computador se muestra un QR.
+      link.addEventListener('click', (e) => {
+        if (!finePointer.matches) return;
+        e.preventDefault();
+        this.open();
+      });
       $('#ar-close').addEventListener('click', () => this.dialog.close());
       // Clic en el fondo oscuro cierra.
       this.dialog.addEventListener('click', (e) => { if (e.target === this.dialog) this.dialog.close(); });
-
-      const enter = $('#ar-enter');
-      enter.href = this.url;
-      const link = $('#ar-link-text');
-      link.href = this.url;
-      link.textContent = this.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
     },
 
     open() {
-      const now = Date.now();
-      const status = $('#ar-status');
-      const d = dateParts(AR_FROM);
-      const proto = !!(C.ar && C.ar.prototipo);
-      status.classList.toggle('is-open', proto || (now >= AR_FROM && now < END));
-      status.textContent = proto ? 'Prototipo · disponible ahora'
-        : now < AR_FROM
-        ? 'Bloqueado · se activa el ' + d.weekday + ' ' + d.day + '.' + d.month + ' · ' + d.hour + ':' + d.minute
-        : now < END ? 'Abierto · experiencia en vivo' : 'Cerrado · la noche ya pasó';
-      $('#ar-enter').textContent = finePointer.matches ? 'Abrir en este dispositivo' : 'Abrir acceso';
       this.renderQR();
       card.close();
       this.dialog.showModal();
@@ -807,10 +772,7 @@
 
     renderQR() {
       const box = $('#ar-qr');
-      if (box.childElementCount || typeof window.qrcode !== 'function') {
-        if (typeof window.qrcode !== 'function') $('#ar-handoff').hidden = true;
-        return;
-      }
+      if (box.childElementCount || typeof window.qrcode !== 'function') return;
       const qr = window.qrcode(0, 'M');
       qr.addData(this.url);
       qr.make();
@@ -823,55 +785,10 @@
     },
   };
 
-  // ------------------------------------------------------------------ entrada
-
-  function boot() {
-    const el = $('#boot');
-    const log = $('#boot-log');
-    let skip = reducedMotion.matches;
-    try { skip = skip || sessionStorage.getItem('irrumpe:boot') === '1'; } catch (e) { /* sin storage */ }
-    if (skip) { el.remove(); return; }
-
-    const lines = [
-      ['irrumpe://' + (C.evento.ciudad || 'concepción').toLowerCase(), ''],
-      ['buscando señal', ' . . .'],
-      [fmtCoords(-36.8270, -73.0503), ''],
-      ['acceso concedido', 'ok'],
-    ];
-    let timer = 0;
-    const done = () => {
-      clearTimeout(timer);
-      el.classList.add('is-done');
-      try { sessionStorage.setItem('irrumpe:boot', '1'); } catch (e) { /* sin storage */ }
-      setTimeout(() => el.remove(), 800);
-    };
-    el.addEventListener('click', done);
-
-    let li = 0, ci = 0;
-    const type = () => {
-      if (li >= lines.length) { timer = setTimeout(done, 380); return; }
-      const [text, extra] = lines[li];
-      ci++;
-      const typed = lines.slice(0, li).map(([t, x]) => '> ' + t + (x === 'ok' ? '' : x)).join('\n');
-      log.textContent = (typed ? typed + '\n' : '') + '> ' + text.slice(0, ci);
-      if (ci >= text.length) {
-        if (extra === 'ok') log.append(' ', h('span', { class: 'ok', text: '■' }));
-        else if (extra) log.append(extra);
-        li++;
-        ci = 0;
-        timer = setTimeout(type, 160);
-      } else {
-        timer = setTimeout(type, 16);
-      }
-    };
-    type();
-  }
-
   // ------------------------------------------------------------------ arranque
 
   function start() {
     fillBrand();
-    boot();
     countdown.init();
     card.init();
     map.init();

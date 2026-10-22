@@ -198,9 +198,14 @@ export async function startXR(ctx) {
 
   let ended = false;
   let userEnded = false;
+  // Al minimizar o bloquear, el navegador termina la sesión AR de todos modos:
+  // se cierra de forma ordenada y al volver se entra con un toque.
+  const onHide = () => { if (document.visibilityState === 'hidden') session.end().catch(() => {}); };
+  document.addEventListener('visibilitychange', onHide);
   session.addEventListener('end', () => {
     if (ended) return;
     ended = true;
+    document.removeEventListener('visibilitychange', onHide);
     renderer.setAnimationLoop(null);
     try { hitSource.cancel(); } catch (e) { /* ya cancelado */ }
     if (anchor) { try { anchor.delete(); } catch (e) { /* ya no existe */ } }
@@ -255,48 +260,63 @@ function orientationQuaternion(out, e) {
   return out;
 }
 
-function openCamera() {
-  return navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-    audio: false,
-  });
-}
+// 1280×720 basta para el fondo y usa bastante menos memoria que 1080p.
+const CAMERA = {
+  video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+  audio: false,
+};
 
 export async function startWindow(ctx, { video, useCamera }) {
   const { renderer, scene, holo, canvas } = ctx;
   let stream = null;
   let ended = false;
+  let paused = false;
+  let resuming = null;
 
-  // Al minimizar, bloquear el celular o cambiar de app, Android y iOS cortan la
-  // cámara. Al volver se reabre (el permiso ya está dado, no vuelve a preguntar).
-  async function resumeCamera() {
-    if (!useCamera || ended || document.visibilityState !== 'visible') return;
-    const alive = stream && stream.getVideoTracks().some((tr) => tr.readyState === 'live');
-    if (!alive) {
-      if (stream) stream.getTracks().forEach((tr) => tr.stop());
-      try {
-        stream = await openCamera();
-      } catch (e) {
-        ctx.onCameraLost();
-        return;
-      }
-      if (ended) { stream.getTracks().forEach((tr) => tr.stop()); return; }
-      stream.getVideoTracks().forEach((tr) => tr.addEventListener('ended', resumeCamera));
-      video.srcObject = stream;
-    }
-    video.hidden = false;
-    await video.play().catch(() => {});
+  function stopStream() {
+    if (stream) stream.getTracks().forEach((tr) => tr.stop());
+    stream = null;
+    video.srcObject = null;
   }
-  if (useCamera) {
-    stream = await openCamera();
-    stream.getVideoTracks().forEach((tr) => tr.addEventListener('ended', resumeCamera));
+  async function startStream() {
+    stopStream();
+    const s = await navigator.mediaDevices.getUserMedia(CAMERA);
+    if (ended || document.visibilityState !== 'visible') {
+      s.getTracks().forEach((tr) => tr.stop());
+      return;
+    }
+    stream = s;
     video.srcObject = stream;
     video.hidden = false;
     await video.play().catch(() => {});
   }
-  const onVisible = () => { if (document.visibilityState === 'visible') resumeCamera(); };
-  document.addEventListener('visibilitychange', onVisible);
-  window.addEventListener('pageshow', onVisible);
+  if (useCamera) await startStream();
+
+  // Al minimizar, bloquear el celular o cambiar de app se suelta la cámara y se
+  // detiene el dibujo (Android y iOS cortan la cámara igual, y retenerla hace
+  // más probable que el sistema cierre la pestaña). Al volver se retoma una sola vez.
+  function suspend() {
+    if (ended || paused) return;
+    paused = true;
+    renderer.setAnimationLoop(null);
+    stopStream();
+  }
+  function resume() {
+    if (ended || !paused || resuming || document.visibilityState !== 'visible') return;
+    resuming = (async () => {
+      if (useCamera) {
+        try { await startStream(); } catch (e) { ctx.onCameraLost(); }
+      }
+      if (!ended && document.visibilityState === 'visible') {
+        paused = false;
+        renderer.setAnimationLoop(loop);
+      }
+    })().finally(() => { resuming = null; });
+  }
+  const onVisibility = () => (document.visibilityState === 'visible' ? resume() : suspend());
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('pagehide', suspend);
+  window.addEventListener('pageshow', resume);
 
   const camera = new THREE.PerspectiveCamera(62, 1, 0.01, 50);
   const resize = () => {
@@ -378,12 +398,13 @@ export async function startWindow(ctx, { video, useCamera }) {
   place();
   const lookTimer = setTimeout(() => { if (!gyro) ctx.onLook('drag'); }, 1200);
 
-  renderer.setAnimationLoop((t) => {
+  function loop(t) {
     if (gyro) camera.quaternion.slerp(target, 0.35);
     else camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
     ctx.onFrame(t, camera);
     renderer.render(scene, camera);
-  });
+  }
+  renderer.setAnimationLoop(loop);
 
   return {
     mode: useCamera ? 'camera' : 'nocamera',
@@ -395,14 +416,14 @@ export async function startWindow(ctx, { video, useCamera }) {
       pinch.dispose();
       window.removeEventListener('resize', resize);
       window.removeEventListener('deviceorientation', onOrient);
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('pageshow', onVisible);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', suspend);
+      window.removeEventListener('pageshow', resume);
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointercancel', onUp);
-      if (stream) stream.getTracks().forEach((tr) => tr.stop());
-      video.srcObject = null;
+      stopStream();
       video.hidden = true;
       ctx.onEnd({ unexpected: false });
     },

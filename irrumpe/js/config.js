@@ -36,7 +36,7 @@ window.IRRUMPE_CONFIG = {
     // en vivo (cada artista "toca" `segundosPorSet` segundos, en loop).
     // Para el evento real: prototipo: false.
     prototipo: true,
-    segundosPorSet: 45,
+    segundosPorSet: 120,
     // Sin prototipo, desde cuándo se puede entrar. null = al inicio del evento.
     activaDesde: null,
   },
