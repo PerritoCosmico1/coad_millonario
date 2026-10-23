@@ -424,7 +424,13 @@
     },
 
     // Capa animada: la luz del cursor y las ondas rojas de cada punto.
+    // En pantallas táctiles (sin luz de cursor) basta con 30 cuadros por segundo.
     frame(t) {
+      if (!this.anim && !finePointer.matches && t - (this.lastFx || 0) < 30) {
+        requestAnimationFrame((tt) => this.frame(tt));
+        return;
+      }
+      this.lastFx = t;
       if (this.anim) {
         const a = this.anim;
         const p = Math.min(1, (t - a.t0) / a.dur);
@@ -467,6 +473,22 @@
       ctx.globalAlpha = 1;
     },
 
+    // Celdas alrededor de un punto ordenadas por distancia. Se recalculan solo
+    // cuando el mapa se mueve; así cada cuadro recorre solo el anillo visible.
+    cellsAround(pin, R) {
+      const key = pin.x + ',' + pin.y + ',' + this.sp + ',' + R;
+      const old = pin.cells;
+      if (old && old.key === key && old.mask === this.mask) return old;
+      const list = [];
+      this.eachCell(pin.x, pin.y, R, (cx, cy, d, v) => list.push([d, cx, cy, v]));
+      list.sort((a, b) => a[0] - b[0]);
+      const n = list.length;
+      const c = { key, mask: this.mask, n, d: new Float32Array(n), x: new Float32Array(n), y: new Float32Array(n), v: new Uint8Array(n) };
+      list.forEach((e, k) => { c.d[k] = e[0]; c.x[k] = e[1]; c.y[k] = e[2]; c.v[k] = e[3]; });
+      pin.cells = c;
+      return c;
+    },
+
     ripples(t) {
       const ctx = this.fctx;
       const period = 2800;
@@ -474,21 +496,27 @@
       const band = 12;
       ctx.fillStyle = RED;
       this.pins.forEach((pin, i) => {
+        const c = this.cellsAround(pin, maxR + band);
         // Brillo rojo fijo alrededor del punto.
-        this.eachCell(pin.x, pin.y, 30, (cx, cy, d, v) => {
-          ctx.globalAlpha = (v ? 0.55 : 0.25) * (1 - d / 30);
-          ctx.fillRect(cx - 1, cy - 1, 2, 2);
-        });
+        for (let k = 0; k < c.n && c.d[k] <= 30; k++) {
+          ctx.globalAlpha = (c.v[k] ? 0.55 : 0.25) * (1 - c.d[k] / 30);
+          ctx.fillRect(c.x[k] - 1, c.y[k] - 1, 2, 2);
+        }
         if (t == null) return;
         const phase = ((t + i * 700) % period) / period;
         const r = phase * maxR;
         const strength = Math.pow(1 - phase, 1.6) * 0.9;
-        this.eachCell(pin.x, pin.y, r + band, (cx, cy, d, v) => {
-          const off = Math.abs(d - r);
-          if (off > band) return;
-          ctx.globalAlpha = strength * (1 - off / band) * (v ? 1 : 0.45);
-          ctx.fillRect(cx - 1, cy - 1, 2, 2);
-        });
+        // Primera celda del anillo (búsqueda binaria en las distancias ordenadas).
+        let lo = 0, hi = c.n;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (c.d[mid] < r - band) lo = mid + 1; else hi = mid;
+        }
+        for (let k = lo; k < c.n && c.d[k] <= r + band; k++) {
+          const off = Math.abs(c.d[k] - r);
+          ctx.globalAlpha = strength * (1 - off / band) * (c.v[k] ? 1 : 0.45);
+          ctx.fillRect(c.x[k] - 1, c.y[k] - 1, 2, 2);
+        }
       });
       ctx.globalAlpha = 1;
     },
@@ -759,6 +787,10 @@
         e.preventDefault();
         this.open();
       });
+      // Galería 360 (también se puede ver en computador, arrastrando para mirar).
+      const g360 = $('#ar-360');
+      g360.hidden = !(C.galeria || []).some((g) => g && g.video);
+      g360.href = this.url + (this.url.includes('?') ? '&' : '?') + 'galeria';
       $('#ar-close').addEventListener('click', () => this.dialog.close());
       // Clic en el fondo oscuro cierra.
       this.dialog.addEventListener('click', (e) => { if (e.target === this.dialog) this.dialog.close(); });

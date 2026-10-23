@@ -11,10 +11,11 @@ Es un sitio estático: HTML, CSS y JS planos, sin build ni dependencias que inst
 - **Los cuatro puntos siempre están a la vista**: la tarjeta nunca tapa un punto. En escritorio se ubica al costado del grupo de puntos (y si no cabe, el mapa se desliza para hacerle lugar). En celular es una hoja inferior compacta: la cuenta regresiva se achica y el mapa se reencuadra arriba de la hoja. Nada de la página necesita scroll, ni en celular horizontal.
 - **Cuenta regresiva** grande hasta el inicio, con el nombre y logo de La Única Compañía. Durante el evento cambia a "EN VIVO" y al terminar a "YA IRRUMPIÓ".
 - **AR** (prototipo funcional): botón arriba a la derecha. En celular va directo a `ar/`; en computador muestra un QR. Un tótem holográfico de Concepción con los cuatro puntos y las tarjetas de los artistas, anclado al mundo; al tocar una tarjeta se ven su foto y sus redes. Ver [`ar/README.md`](ar/README.md).
+- **Galería 360**: el mismo tótem sobre la transmisión 360 de cada intervención (en vivo por YouTube o grabada), para quien no pudo ir. Se abre con el botón 360 de la AR o, en computador, desde el QR ("Galería 360"). Los videos se cargan en `galeria` de `js/config.js`.
 
 ## Editar el contenido
 
-Todo se cambia en **[`js/config.js`](js/config.js)**: fecha y hora, nombre de la compañía y logo, y los puntos (lugar, coordenadas, hora, artista, foto, música, redes). Lo marcado con `[PENDIENTE]` falta confirmarlo; los campos vacíos no se muestran.
+Todo se cambia en **[`js/config.js`](js/config.js)**: fecha y hora, nombre de la compañía y logo, los puntos (lugar, coordenadas, hora, artista, foto, música, redes) y los videos de la galería 360. Lo marcado con `[PENDIENTE]` falta confirmarlo; los campos vacíos no se muestran.
 
 - **Logo**: `assets/logo-la-unica-compania.png` (blanco sobre transparente). Para cambiarlo, reemplazar el archivo o apuntar `compania.logo` a otro.
 - **Fotos de artistas**: en `assets/artistas/` (cuadradas o verticales); la ruta va en `artista.foto`. Se muestran en blanco y negro con un tinte rojo para que todas se vean parejas. La de Yuri salió de una captura de la web y es de baja resolución: conviene reemplazarla por el original.
@@ -61,11 +62,11 @@ ar/                     experiencia AR (prototipo)
 qr.html                 genera el QR y la placa final para el video del pitch
 PITCH.md                plan y checklist para el pitch
 _headers                cabeceras para Netlify (tipo del modelo de iPhone, caché)
-assets/                 logo, favicon, íconos, imagen para compartir, fotos, irrumpe.usdz / .glb (AR nativa)
+assets/                 logo, favicon, íconos, imagen para compartir, fotos, irrumpe.usdz (AR del iPhone)
 vendor/qrcode.js        generador de QR (MIT, Kazuhiko Arase)
 vendor/three.min.js     three.js 0.186.1 minificado (MIT), para la AR
 tools/build-geo.py      genera js/concepcion-geo.js
-tools/build-three.sh    genera vendor/three.min.js y los exportadores de tools/
-tools/export-3d.html    genera assets/irrumpe.usdz y .glb (el tótem para los visores AR del sistema)
+tools/build-three.sh    genera vendor/three.min.js y el exportador de tools/
+tools/export-3d.html    genera assets/irrumpe.usdz (el tótem para la AR del iPhone)
 manifest.webmanifest    permite "agregar a pantalla de inicio"
 ```

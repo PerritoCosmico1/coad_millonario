@@ -42,6 +42,23 @@ window.IRRUMPE_CONFIG = {
   },
 
   /*
+   * Galería 360: las transmisiones 360 de las intervenciones, para verlas
+   * (en vivo o después) con el tótem encima. Se abre desde el botón 360.
+   *
+   * video:  link de YouTube (en vivo o grabado; tal como sale en "Compartir")
+   *         o un .mp4 360 propio (equirectangular 2:1, p. ej. assets/360/azga.mp4).
+   * punto:  id del punto (de `puntos`) al que corresponde; toma de ahí el
+   *         artista y el lugar. Sin punto, se usa `titulo`.
+   * inicio: opcional, segundo en que parte el video.
+   *
+   * Los puntos que todavía no tienen video aparecen como "Próximamente".
+   */
+  galeria: [
+    { titulo: 'Prueba 360', video: 'https://youtu.be/Kt7motaEzfo' },
+    // { punto: 'parque-ecuador', video: 'https://youtu.be/...' },
+  ],
+
+  /*
    * Los puntos del mapa, en orden (01, 02, ...). Puede haber más o menos de cuatro.
    *
    * hora:           opcional, p. ej. '17:30'. Vacío = no se muestra.

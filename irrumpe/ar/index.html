@@ -18,11 +18,13 @@
   <link rel="modulepreload" href="hologram.js">
   <link rel="modulepreload" href="sessions.js">
   <link rel="modulepreload" href="audio.js">
+  <link rel="modulepreload" href="video360.js">
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="ar.css">
 </head>
 <body class="arpage">
-  <!-- Lanzador: el tótem girando y un solo botón. El modo se elige solo (ver ar.js). -->
+  <!-- Lanzador: el tótem girando y un solo botón. El modo se elige solo (ver ar.js).
+       El botón 360 abre la galería: el tótem sobre la grabación 360 de una intervención. -->
   <div class="launch" id="launch">
     <div class="launch__stage" id="preview" aria-hidden="true"></div>
     <a class="launch__back" href="../">← <span data-event-name>IRRUMPE</span></a>
@@ -30,6 +32,7 @@
       <p class="launch__msg" id="msg" hidden></p>
       <div class="launch__row" id="actions">
         <button class="launch__enter" id="enter" type="button" disabled>Entrar</button>
+        <button class="launch__mic launch__360" id="open-360" type="button" aria-label="Galería 360" hidden>360</button>
         <button class="launch__mic" id="mic" type="button" aria-pressed="false" aria-label="Visuales con la música" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
         </button>
@@ -38,21 +41,30 @@
       <div class="launch__desktop" id="desktop" hidden>
         <div class="launch__qr" id="qr" aria-hidden="true"></div>
         <p>Ábrelo en tu celular</p>
+        <button class="launch__more" id="desktop-360" type="button" hidden>Galería 360</button>
       </div>
     </div>
+    <section class="xr__sheet launch__sheet" id="launch-sheet" hidden></section>
   </div>
 
   <!-- Experiencia a pantalla completa. En WebXR esta capa va encima de la cámara (dom-overlay). -->
   <div class="xr" id="xr" hidden>
+    <div class="xr__bg" id="xr-bg" hidden></div>
     <video class="xr__video" id="xr-video" playsinline muted hidden></video>
     <div class="xr__ui" id="xr-ui">
       <header class="xr__top">
         <button class="xr__icon" id="xr-exit" type="button" aria-label="Salir">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
-        <button class="xr__icon" id="xr-recenter" type="button" aria-label="Recentrar">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
-        </button>
+        <div class="xr__top-right">
+          <button class="xr__icon" id="xr-sound" type="button" aria-pressed="true" aria-label="Sonido del video" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="xr__sound-on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="xr__sound-off" d="M16 9l6 6M22 9l-6 6"/></svg>
+          </button>
+          <button class="xr__icon xr__icon--360" id="xr-360" type="button" aria-label="Fondo: cámara o 360" hidden>360</button>
+          <button class="xr__icon" id="xr-recenter" type="button" aria-label="Recentrar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+          </button>
+        </div>
       </header>
 
       <p class="xr__toast" id="xr-toast" role="status" hidden></p>

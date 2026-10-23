@@ -15,20 +15,57 @@ Un tótem holográfico: el mapa de puntos de Concepción en un disco con los cua
 
 ## Un solo botón: el modo se elige solo
 
-El lanzador muestra el tótem y un botón, **Entrar**. Una página web no puede saber cuál es el navegador predeterminado, pero sí qué soporta el navegador en que se abrió, y con eso elige:
+El lanzador muestra el tótem y un botón, **Entrar**. La página no abre otras apps ni cambia de navegador: usa lo que soporta el navegador en que se abrió.
 
 | Navegador | Qué pasa al tocar Entrar |
 |---|---|
-| **Chrome** (y otros Chromium con WebXR) en Android con ARCore, p. ej. Galaxy S24 FE | **AR anclada e interactiva** (WebXR): se apunta al suelo o a una mesa y al tocar se apoya el tótem; ARCore lo mantiene fijo en ese punto. En una mesa cercana se achica solo. Si no detecta superficie (sala oscura), a los 5 s aparece "Colocar al frente". Fichas, reacciones y música. |
-| **iPhone** (Safari y otros) | **AR Quick Look** del sistema: el tótem animado (`assets/irrumpe.usdz`) anclado al piso, con un banner de IRRUMPE. |
-| **Android sin WebXR** (Firefox, Samsung Internet...) | **Scene Viewer** de Google: el tótem animado (`assets/irrumpe.glb`) anclado al piso. Si el visor no abre en 3 s, entra solo al modo con giroscopio. |
-| Cualquier otro | **Cámara + giroscopio**: interactivo, sigue los giros del celular pero no los pasos. |
+| **Chrome** en Android con ARCore, p. ej. Galaxy S24 FE | **AR anclada e interactiva** (WebXR): se apunta al suelo o a una mesa y al tocar se apoya el tótem; ARCore lo mantiene fijo en ese punto. En una mesa cercana se achica solo. Si no detecta superficie (sala oscura), a los 5 s aparece "Colocar al frente". Fichas, reacciones y música. |
+| **iPhone** (Safari y otros) | **AR Quick Look** del sistema: el tótem animado (`assets/irrumpe.usdz`) anclado al piso, sin pedir permisos. Al volver aparece "Ver artistas" (modo de abajo, con fichas, reacciones y música). |
+| **Otros navegadores** (Firefox, Samsung Internet...) | **Cámara + giroscopio**: interactivo, sigue los giros del celular pero no los pasos. En Android aparece una sola línea: "Para anclarlo al piso, ábrelo en Chrome". |
 
-Al volver de Quick Look o Scene Viewer aparece "Ver artistas", que abre la versión interactiva (fichas, reacciones, música). Si se niega la cámara, el tótem se muestra sobre fondo oscuro.
+Solo Chrome implementa la AR anclada en la web (WebXR); Firefox no la tiene. Si se niega la cámara, el tótem se muestra sobre fondo oscuro.
 
-Al minimizar o bloquear el celular se sueltan la cámara y el micrófono, y se retoman al volver. En AR anclada la sesión se cierra y se vuelve a entrar con un toque.
+### Permisos, de a uno
 
-En computador la página muestra un QR para abrirla en el celular. Para verla igual en un computador (para probar o proyectar), agrega `?preview` a la URL.
+- La cámara se pide recién al tocar Entrar, y el micrófono solo si se toca el ícono de ondas.
+- Un segundo toque mientras se abre la cámara no abre otra.
+- Al minimizar o bloquear el celular se detiene el dibujo y se suelta el micrófono. Al volver se reutiliza la misma cámara (no se vuelve a pedir); solo si el sistema la cortó se abre de nuevo, una vez. El micrófono vuelve solo si el permiso ya estaba dado y después de la cámara; si no, queda apagado hasta tocarlo.
+- En AR anclada la sesión se cierra al minimizar y se vuelve a entrar con un toque.
+
+### Rendimiento
+
+- El 3D se dibuja a 1,5× (no a la resolución completa de la pantalla, 2,5–3× en celulares, que no se nota), a un máximo de 60 cuadros por segundo (en pantallas de 120 Hz no vale el doble de trabajo), y la vista previa del lanzador a 30.
+- **Calidad adaptable**: si el celular no alcanza ~45 cuadros por segundo, baja la resolución sola hasta que fluya (y la AR anclada parte más liviana).
+- Sin desenfoques (`backdrop-filter`) sobre la cámara: se recalculaban en cada cuadro.
+- En la landing, las ondas del mapa recorren solo las celdas del anillo visible y en celular se dibujan a 30 cuadros por segundo.
+
+## Galería 360
+
+El mismo tótem sobre la **grabación 360 de una intervención**: un respaldo inmersivo para quien no pudo ir, en cualquier celular (con giroscopio) o computador (arrastrando). Se abre con el botón **360** del lanzador (o `ar/?galeria`, que es a donde lleva "Galería 360" en el QR de computador). Dentro de la experiencia, el mismo botón cambia el fondo entre **Tu cámara** y los videos.
+
+Los videos van en `galeria` de `js/config.js`:
+
+```js
+galeria: [
+  { punto: 'parque-ecuador', video: 'https://youtu.be/XXXXXXXXXXX' },   // en vivo o grabado
+  { punto: 'udec', video: 'assets/360/antipatriarka.mp4', inicio: 30 }, // archivo propio
+],
+```
+
+Los puntos sin video aparecen como "Próximamente". En el prototipo hay una entrada de prueba ("Prueba 360").
+
+**YouTube** (en vivo o grabado): la transmisión 360 de YouTube queda guardada sola en el canal al terminar, así que el mismo link sirve durante y después del evento. Un video de YouTube no se puede usar dentro del 3D (viene de otro dominio), así que el reproductor oficial va a pantalla completa detrás del tótem y en cada cuadro se le indica hacia dónde mirar (`setSphericalProperties`), con el mismo giro que la cámara virtual. Parte con sonido si el navegador lo permite; si no, en silencio, y el ícono de parlante lo activa.
+
+**Archivo propio** (`.mp4` 360): se dibuja en una esfera alrededor de la cámara; calza exacto con el tótem, pero hay que alojarlo (en el mismo sitio, o en otro servidor con CORS).
+
+⚠ **Probar YouTube en el celular antes de contar con él.** La conexión con YouTube no se pudo probar desde el entorno de desarrollo (se probó con un reproductor simulado). La ayuda de YouTube garantiza el 360 en navegadores de computador y en su app; en el navegador del celular el reproductor incrustado podría mostrarlo plano. Si pasa, el archivo propio funciona en cualquier celular. Si el fondo gira al revés que el tótem, avisar: es un signo en `video360.js`.
+
+### Cómo grabar y subir el video
+
+- **Horizontal, equirectangular 2:1** (no vertical): es lo que entrega cualquier cámara 360 y lo que entiende YouTube. Quien lo ve elige hacia dónde mirar, así que la orientación del teléfono no importa.
+- La cámara a la altura de los ojos (~1,6 m) y con el lente frontal hacia el escenario: ese es el "frente" que se ve al entrar.
+- **YouTube en vivo 360**: activar "Video 360°" al crear la transmisión y enviar en 4K (3840×2160) o 1440p. **Subido después**: 3840×1920 o 5760×2880, con los metadatos 360 que pone la app de la cámara al exportar (si no, YouTube lo muestra plano).
+- **Archivo propio**: 2880×1440 o 3840×1920, H.264, 30 fps, unos 10–20 Mbps. Resoluciones mayores (5.7K) muchos celulares no las decodifican.
 
 ## Probarla en el celular
 
@@ -44,24 +81,25 @@ En `ar` de `config.js`:
 - `prototipo: true` — abierta siempre y show simulado. Para el evento real, `false`: se abre en `activaDesde` (o al inicio del evento) y usa las horas reales.
 - `segundosPorSet` — cada cuánto rota el artista "en vivo" en la simulación.
 
-### Modelos para iPhone y Android (`assets/irrumpe.usdz`, `assets/irrumpe.glb`)
+### Modelo para iPhone (`assets/irrumpe.usdz`)
 
-Versiones del tótem para los visores de AR del sistema, con animaciones en loop (tarjetas que flotan, ondas, pulso a 118 BPM, partículas). Se generan con `../tools/export-3d.html` a partir del mismo `config.js`: si cambian artistas, fotos o puntos, hay que regenerarlos (abrir esa página desde un servidor local y apretar "Generar y descargar") y reemplazar los archivos.
+Versión del tótem para AR Quick Look, con animaciones en loop (tarjetas que flotan, ondas, pulso a 118 BPM, partículas). Se genera con `../tools/export-3d.html` a partir del mismo `config.js`: si cambian artistas, fotos o puntos, hay que regenerarlo (abrir esa página desde un servidor local y apretar "Generar y descargar") y reemplazar el archivo.
 
 ## Archivos
 
 ```text
 index.html     lanzador (tótem + Entrar) y capa de la experiencia
 ar.css         estilos del lanzador y de la interfaz en AR
-ar.js          elección automática de modo, interfaz (en vivo, fichas, line-up, reacciones)
+ar.js          elección automática de modo, interfaz (en vivo, fichas, line-up, reacciones, galería)
 hologram.js    el tótem 3D (mapa, puntos, rayos, tarjetas, partículas, reacciones)
-sessions.js    los modos: WebXR anclado, cámara + giroscopio, sin cámara; pellizco para escalar
+sessions.js    los modos: WebXR anclado, cámara + giroscopio, sin cámara, fondo 360; pellizco para escalar
+video360.js    fondo 360: reproductor de YouTube guiado por el giroscopio, o un .mp4 en una esfera
 audio.js       intensidad de la música por micrófono, o pulso de demostración
 ```
 
 Usa [three.js](https://threejs.org) desde `../vendor/three.min.js` (generado con `../tools/build-three.sh`). No necesita compilar nada.
 
-Para depurar desde la consola del navegador: `IrrumpeAR.route`, `IrrumpeAR.openArtist(0)`, `IrrumpeAR.openLineup()`, `IrrumpeAR.session`, `IrrumpeAR.holo`.
+Para depurar desde la consola del navegador: `IrrumpeAR.route`, `IrrumpeAR.openArtist(0)`, `IrrumpeAR.openLineup()`, `IrrumpeAR.openGallery()`, `IrrumpeAR.session`, `IrrumpeAR.quality`, `IrrumpeAR.holo`.
 
 ## Ideas para seguir
 

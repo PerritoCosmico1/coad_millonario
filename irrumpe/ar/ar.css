@@ -73,6 +73,8 @@
 }
 .launch__mic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
 .launch__mic[aria-pressed='true'] { border-color: var(--red); color: var(--red); }
+.launch__360 { font-size: 10px; letter-spacing: 0.06em; color: var(--ink); }
+.launch__sheet { z-index: 2; }
 .launch__more {
   border: 0;
   background: none;
@@ -112,6 +114,17 @@
 .xr.xr--webxr { background: transparent; }
 .xr--webxr .xr__canvas,
 .xr--webxr .xr__video { display: none; }
+
+/* Fondo 360: el reproductor queda debajo del tótem y no recibe toques
+   (la vista la maneja el giroscopio o el arrastre, ver video360.js). */
+.xr__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #000;
+}
+.xr__bg > *,
+.xr__bg iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
 .xr__video {
   position: absolute;
@@ -168,6 +181,11 @@
   color: var(--ink);
   cursor: pointer;
 }
+.xr__top-right { display: flex; gap: 8px; }
+.xr__icon--360 { font-size: 10px; letter-spacing: 0.04em; }
+.xr__icon--360[aria-pressed='true'] { color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+#xr-sound[aria-pressed='true'] .xr__sound-off,
+#xr-sound[aria-pressed='false'] .xr__sound-on { display: none; }
 .xr__icon svg,
 .xr__btn svg {
   width: 18px;
@@ -277,9 +295,7 @@
   max-height: 74svh;
   overflow: auto;
   padding: 18px 16px max(18px, env(safe-area-inset-bottom));
-  background: rgba(11, 11, 11, 0.96);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: #0b0b0b;
   border-top: 2px solid var(--red);
   animation: sheet-in 0.32s var(--ease);
   touch-action: pan-y;
@@ -407,3 +423,9 @@ a.sheet__social-btn::after { content: ' ↗'; }
 }
 .sheet__row-text span { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sheet__row-tag { padding: 4px 7px; background: var(--red); font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; }
+.sheet__row-tag--soft { background: none; color: var(--ink-3); padding: 0; }
+.sheet__row:disabled { cursor: default; opacity: 0.45; }
+.sheet__row.is-current .sheet__row-text strong { color: var(--red); }
+.sheet__thumb--wide { width: 44px; object-position: center; }
+.sheet__thumb--cam { display: grid; place-items: center; color: var(--ink-2); }
+.sheet__thumb--cam svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }

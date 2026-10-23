@@ -10,6 +10,8 @@
  *    anclado si uno camina). Funciona en casi cualquier celular.
  * 3. Sin cámara: igual que 2 sobre fondo oscuro. Si no hay giroscopio se mira
  *    alrededor arrastrando el dedo.
+ * 4. Fondo 360: igual que 2, pero el fondo es la grabación 360 de una
+ *    intervención (ver youtube360.js), que gira junto con el tótem.
  *
  * En todos los modos se puede pellizcar para cambiar el tamaño del tótem.
  * Cada modo recibe `ctx` (renderer, scene, holo y callbacks) y devuelve
@@ -97,7 +99,7 @@ function makeReticle() {
   return g;
 }
 
-export async function startXR(ctx) {
+export async function startXR(ctx, { scale = 1 } = {}) {
   const { renderer, scene, holo } = ctx;
   const session = await navigator.xr.requestSession('immersive-ar', {
     requiredFeatures: ['hit-test'],
@@ -107,6 +109,8 @@ export async function startXR(ctx) {
 
   renderer.xr.enabled = true;
   renderer.xr.setReferenceSpaceType('local');
+  // Resolución del 3D respecto de la pantalla (la cámara del celular no cambia).
+  renderer.xr.setFramebufferScaleFactor(scale);
   await renderer.xr.setSession(session);
 
   const camera = new THREE.PerspectiveCamera(70, 1, 0.01, 50);
@@ -266,12 +270,33 @@ const CAMERA = {
   audio: false,
 };
 
-export async function startWindow(ctx, { video, useCamera }) {
+// Espera a que el video muestre un cuadro nuevo (o se rinde a los `ms`).
+function nextFrame(video, ms) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), ms);
+    const done = () => { clearTimeout(timer); resolve(true); };
+    if (video.requestVideoFrameCallback) {
+      video.requestVideoFrameCallback(done);
+    } else {
+      const t0 = video.currentTime;
+      const check = () => (video.currentTime !== t0 ? done() : setTimeout(check, 100));
+      check();
+    }
+  });
+}
+
+// En 360 se ignora el giro del celular sobre su propio eje (roll): el
+// reproductor de YouTube no lo sigue y así el tótem y el fondo calzan.
+const look = new THREE.Euler(0, 0, 0, 'YXZ');
+const RAD = 180 / Math.PI;
+
+export async function startWindow(ctx, { video, useCamera, bg }) {
   const { renderer, scene, holo, canvas } = ctx;
   let stream = null;
   let ended = false;
   let paused = false;
   let resuming = null;
+  if (bg) useCamera = false;
 
   function stopStream() {
     if (stream) stream.getTracks().forEach((tr) => tr.stop());
@@ -290,28 +315,39 @@ export async function startWindow(ctx, { video, useCamera }) {
     video.hidden = false;
     await video.play().catch(() => {});
   }
+  // Al volver se reutiliza la cámara si sigue viva (así no se vuelve a pedir
+  // permiso); solo si no llegan imágenes se abre de nuevo.
+  async function reviveStream() {
+    const track = stream && stream.getVideoTracks()[0];
+    if (track && track.readyState === 'live') {
+      await video.play().catch(() => {});
+      if (await nextFrame(video, 1500)) return;
+    }
+    await startStream();
+  }
   if (useCamera) await startStream();
 
-  // Al minimizar, bloquear el celular o cambiar de app se suelta la cámara y se
-  // detiene el dibujo (Android y iOS cortan la cámara igual, y retenerla hace
-  // más probable que el sistema cierre la pestaña). Al volver se retoma una sola vez.
+  // Al minimizar, bloquear el celular o cambiar de app se detiene el dibujo y
+  // el fondo 360. Al volver se retoma una sola vez, aunque lleguen varios avisos.
   function suspend() {
     if (ended || paused) return;
     paused = true;
     renderer.setAnimationLoop(null);
-    stopStream();
+    if (bg) bg.pause();
   }
   function resume() {
-    if (ended || !paused || resuming || document.visibilityState !== 'visible') return;
+    if (ended || !paused || resuming || document.visibilityState !== 'visible') return resuming;
     resuming = (async () => {
       if (useCamera) {
-        try { await startStream(); } catch (e) { ctx.onCameraLost(); }
+        try { await reviveStream(); } catch (e) { ctx.onCameraLost(); }
       }
+      if (bg) bg.play();
       if (!ended && document.visibilityState === 'visible') {
         paused = false;
         renderer.setAnimationLoop(loop);
       }
     })().finally(() => { resuming = null; });
+    return resuming;
   }
   const onVisibility = () => (document.visibilityState === 'visible' ? resume() : suspend());
   document.addEventListener('visibilitychange', onVisibility);
@@ -323,8 +359,8 @@ export async function startWindow(ctx, { video, useCamera }) {
     const w = window.innerWidth, h = window.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    // Campo visual parecido al de la cámara del celular.
-    camera.fov = camera.aspect < 1 ? 62 : 40;
+    // Campo visual parecido al de la cámara del celular (en 360, un poco más abierto).
+    camera.fov = (camera.aspect < 1 ? 62 : 40) + (bg ? 10 : 0);
     camera.updateProjectionMatrix();
   };
   resize();
@@ -336,6 +372,8 @@ export async function startWindow(ctx, { video, useCamera }) {
 
   // Giroscopio; si no llega ningún dato, se mira arrastrando el dedo.
   let gyro = false;
+  // En 360, el frente del video queda hacia donde se miraba al entrar.
+  let yaw0 = 0;
   const target = new THREE.Quaternion();
   const onOrient = (e) => {
     if (e.alpha == null || e.beta == null) return;
@@ -343,13 +381,14 @@ export async function startWindow(ctx, { video, useCamera }) {
     if (!gyro) {
       gyro = true;
       camera.quaternion.copy(target);
+      yaw0 = look.setFromQuaternion(target, 'YXZ').y;
       place();
       ctx.onLook('gyro');
     }
   };
   window.addEventListener('deviceorientation', onOrient);
 
-  let yaw = 0, pitch = -0.32;
+  let yaw = 0, pitch = bg ? 0 : -0.32;
   const drag = { id: null, x: 0, y: 0, moved: 0, t: 0 };
   const ndc = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
@@ -364,7 +403,7 @@ export async function startWindow(ctx, { video, useCamera }) {
     drag.x = e.clientX; drag.y = e.clientY;
     if (!gyro && !pinch.busy) {
       yaw += dx * 0.005;
-      pitch = Math.max(-1.3, Math.min(0.6, pitch + dy * 0.005));
+      pitch = Math.max(-1.3, Math.min(bg ? 1.3 : 0.6, pitch + dy * 0.005));
     }
   };
   const onUp = (e) => {
@@ -398,17 +437,33 @@ export async function startWindow(ctx, { video, useCamera }) {
   place();
   const lookTimer = setTimeout(() => { if (!gyro) ctx.onLook('drag'); }, 1200);
 
+  // Máximo 60 cuadros por segundo: en pantallas de 120 Hz no vale la pena el doble de trabajo.
+  let last = 0;
   function loop(t) {
+    ctx.onTick(t);
+    if (t - last < 12) return;
+    last = t;
     if (gyro) camera.quaternion.slerp(target, 0.35);
-    else camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+    else camera.quaternion.setFromEuler(look.set(pitch, yaw, 0, 'YXZ'));
+    if (bg) {
+      look.setFromQuaternion(camera.quaternion, 'YXZ');
+      look.z = 0;
+      camera.quaternion.setFromEuler(look);
+      // El reproductor mide el campo visual en el lado más largo de la pantalla.
+      const v = camera.fov / RAD;
+      const fov = camera.aspect < 1 ? v : 2 * Math.atan(Math.tan(v / 2) * camera.aspect);
+      bg.look((look.y - yaw0) * RAD, look.x * RAD, fov * RAD, yaw0);
+    }
     ctx.onFrame(t, camera);
     renderer.render(scene, camera);
   }
   renderer.setAnimationLoop(loop);
 
   return {
-    mode: useCamera ? 'camera' : 'nocamera',
-    end() {
+    mode: bg ? 'video360' : useCamera ? 'camera' : 'nocamera',
+    // Promesa de la vuelta en curso (para pedir otras cosas recién después).
+    get resumed() { return resuming || Promise.resolve(); },
+    end({ silent } = {}) {
       if (ended) return;
       ended = true;
       clearTimeout(lookTimer);
@@ -425,7 +480,8 @@ export async function startWindow(ctx, { video, useCamera }) {
       canvas.removeEventListener('pointercancel', onUp);
       stopStream();
       video.hidden = true;
-      ctx.onEnd({ unexpected: false });
+      if (bg) bg.dispose();
+      ctx.onEnd({ unexpected: false, silent });
     },
     recenter: place,
   };

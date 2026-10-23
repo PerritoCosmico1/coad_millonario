@@ -441,6 +441,7 @@ export async function createHologram({ config, geo }) {
   let height = 1.1;
   let selected = -1;
   let live = -1;
+  let lastT = 0;
   const tmp = new THREE.Vector3();
 
   const api = {
@@ -476,6 +477,9 @@ export async function createHologram({ config, geo }) {
     // camera: cámara activa (para que las tarjetas la miren); level: 0..1 intensidad de la música.
     update(t, camera, level) {
       const sec = t / 1000;
+      // Segundos desde el cuadro anterior: la velocidad no depende de los cuadros por segundo.
+      const dt = lastT && t > lastT ? Math.min(0.1, (t - lastT) / 1000) : 1 / 60;
+      lastT = t;
       // Ondas en cada punto.
       pins.forEach((pin, i) => {
         const boost = i === live ? 1.6 : 1;
@@ -523,7 +527,7 @@ export async function createHologram({ config, geo }) {
       const arr = dustGeo.attributes.position.array;
       const top = height + 0.4;
       for (let n = 0; n < N; n++) {
-        arr[n * 3 + 1] += 0.0012 + level * 0.006;
+        arr[n * 3 + 1] += (0.072 + level * 0.36) * dt;
         if (arr[n * 3 + 1] > top) arr[n * 3 + 1] = 0;
       }
       dustGeo.attributes.position.needsUpdate = true;

@@ -1,27 +1,27 @@
 /*
  * IRRUMPE AR — página de acceso y experiencia.
  *
- * Lanzador: el tótem girando y un solo botón, "Entrar". La mejor forma de
- * verlo se elige sola según lo que permite el navegador (no se puede saber
- * cuál es el navegador predeterminado, pero sí qué soporta el actual):
+ * Lanzador: el tótem girando y un solo botón, "Entrar". El modo se elige solo
+ * según lo que permite el navegador, sin abrir otras apps ni otros navegadores:
  *
- *   1. WebXR (Chrome y otros Chromium en Android con ARCore) → experiencia
- *      completa y anclada: tótem fijo en el mundo, artistas, reacciones, música.
+ *   1. WebXR (Chrome en Android con ARCore) → AR anclada: el tótem queda fijo
+ *      en el mundo; artistas, reacciones, música.
  *   2. iPhone → AR Quick Look del sistema con el tótem animado y anclado
- *      (assets/irrumpe.usdz).
- *   3. Android sin WebXR (Firefox, Samsung Internet...) → Scene Viewer de Google
- *      con el tótem animado y anclado (assets/irrumpe.glb). Si no abre, pasa
- *      solo al modo 4.
- *   4. Resto → cámara + giroscopio (sin anclaje), interactiva.
+ *      (assets/irrumpe.usdz). Al volver, "Ver artistas" abre el modo 3.
+ *   3. Resto (Firefox, Samsung Internet...) → cámara + giroscopio, interactiva
+ *      pero sin anclaje.
  *
- * Después de 2 o 3 aparece "Ver artistas", que abre el modo 4 con las fichas.
- * Todo el contenido sale de js/config.js. `?preview` deja entrar desde
- * computador (para probar o proyectar).
+ * El botón 360 abre la galería: el mismo tótem sobre la transmisión 360 de una
+ * intervención (en vivo o grabada), en cualquier celular o computador.
+ *
+ * Todo el contenido sale de js/config.js. `?preview` deja entrar a la AR desde
+ * computador (para probar o proyectar) y `?galeria` abre directo la galería.
  */
 import * as THREE from '../vendor/three.min.js';
 import { createHologram, REACTIONS } from './hologram.js';
 import { xrSupported, startXR, startWindow, requestMotionPermission } from './sessions.js';
 import { pulse } from './audio.js';
+import { createBackground, thumbnail } from './video360.js';
 
 const C = window.IRRUMPE_CONFIG;
 const GEO = window.IRRUMPE_GEO;
@@ -30,7 +30,10 @@ const AR = C.ar || {};
 const PROTO = !!AR.prototipo;
 const PARAMS = new URLSearchParams(location.search);
 const PREVIEW = PARAMS.has('preview');
-const MODELS = { usdz: '../assets/irrumpe.usdz', glb: '../assets/irrumpe.glb' };
+const USDZ = '../assets/irrumpe.usdz';
+// Galería 360: solo las entradas con video; los puntos sin video salen como "Próximamente".
+const GALLERY = (C.galeria || []).filter((g) => g && g.video);
+const POINT_INDEX = Object.fromEntries(POINTS.map((p, i) => [p.id, i]));
 
 const $ = (sel) => document.querySelector(sel);
 const pad = (n) => String(n).padStart(2, '0');
@@ -47,6 +50,8 @@ const IS_MOBILE = (navigator.userAgentData && navigator.userAgentData.mobile)
   || /Android|iPhone|iPad|iPod|Mobile/i.test(UA)
   || (navigator.maxTouchPoints > 1 && matchMedia('(pointer: coarse)').matches);
 const IS_ANDROID = /Android/i.test(UA);
+// Chrome propiamente tal (no Samsung Internet, Edge, Opera ni otros basados en Chromium).
+const IS_CHROME = /Chrome\/\d/.test(UA) && !/SamsungBrowser|EdgA|OPR|YaBrowser|UCBrowser|; wv\)/.test(UA);
 // AR Quick Look: Safari (y otros navegadores) en iPhone/iPad.
 const QUICKLOOK = (() => {
   const a = document.createElement('a');
@@ -54,14 +59,16 @@ const QUICKLOOK = (() => {
 })();
 
 // Elige el camino ("route") una vez que se sabe si hay WebXR.
+// `?ar=giro` fuerza la cámara + giroscopio (para comparar en Chrome).
 async function chooseRoute() {
-  if (PARAMS.get('ar') === 'giro') return 'window'; // vuelta desde un visor que no abrió
+  if (PARAMS.get('ar') === 'giro') return 'window';
   if (await xrSupported()) return 'xr';
   if (QUICKLOOK) return 'quicklook';
-  if (IS_ANDROID) return 'sceneviewer';
   return 'window';
 }
 let route = 'window';
+// En Android sin WebXR se avisa una sola vez, en una línea, dónde se ancla.
+let note = '';
 
 const SOCIAL_LABELS = {
   instagram: 'Instagram', spotify: 'Spotify', youtube: 'YouTube', soundcloud: 'SoundCloud',
@@ -115,12 +122,44 @@ function liveIndex(now) {
 
 const canvas = document.createElement('canvas');
 canvas.className = 'xr__canvas';
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
 renderer.setClearColor(0x000000, 0);
 const scene = new THREE.Scene();
 let holo = null;
 let session = null;
+let entering = false;
+
+// Calidad adaptable: el 3D parte a 1,5× (no a la resolución completa de la
+// pantalla, que en celulares es 2,5–3× y no se nota) y, si el celular no
+// alcanza ~45 cuadros por segundo, baja la resolución hasta que fluya.
+const quality = {
+  ratio: Math.min(window.devicePixelRatio || 1, 1.5),
+  min: 0.75,
+  slow: false,
+  frames: 0,
+  sum: 0,
+  last: 0,
+  from: 0,
+  reset() { this.frames = 0; this.sum = 0; this.last = 0; this.from = performance.now() + 1500; },
+  tick(t) {
+    const dt = this.last ? t - this.last : 0;
+    this.last = t;
+    // Se ignoran el arranque (compilación, texturas) y las pausas.
+    if (!dt || dt > 250 || performance.now() < this.from) return;
+    this.sum += dt;
+    if (++this.frames < 50) return;
+    const avg = this.sum / this.frames;
+    this.frames = 0;
+    this.sum = 0;
+    if (avg > 22 && this.ratio > this.min) {
+      this.slow = true;
+      this.ratio = Math.max(this.min, this.ratio * 0.8);
+      renderer.setPixelRatio(this.ratio);
+    }
+  },
+};
+renderer.setPixelRatio(quality.ratio);
+quality.reset();
 
 // Lanzador: el tótem gira lento a pantalla completa.
 const previewCam = new THREE.PerspectiveCamera(36, 1, 0.01, 50);
@@ -131,7 +170,12 @@ function fitPreview() {
   previewCam.aspect = box.width / box.height;
   previewCam.updateProjectionMatrix();
 }
+// La vista previa es decorativa: 30 cuadros por segundo bastan.
+let lastPreview = 0;
 function previewLoop(t) {
+  quality.tick(t);
+  if (t - lastPreview < 30) return;
+  lastPreview = t;
   const a = Math.sin(t / 5200) * 0.55;
   const dist = previewCam.aspect < 0.9 ? 5.2 : 3.1;
   previewCam.position.set(Math.sin(a) * dist, 1.5, Math.cos(a) * dist);
@@ -174,7 +218,7 @@ function renderLauncher() {
   } else if (!window.isSecureContext) {
     msg('Necesita HTTPS');
   } else {
-    msg('');
+    msg(note);
   }
 }
 
@@ -182,6 +226,7 @@ function renderDesktop() {
   if (IS_MOBILE || PREVIEW) return;
   $('#actions').hidden = true;
   $('#desktop').hidden = false;
+  $('#desktop-360').hidden = !GALLERY.length;
   if (typeof window.qrcode !== 'function') return;
   const qr = window.qrcode(0, 'M');
   qr.addData(location.href.split('?')[0]);
@@ -192,18 +237,7 @@ function renderDesktop() {
   $('#qr').innerHTML = '<svg viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges"><path fill="#070707" d="' + d + '"/></svg>';
 }
 
-// Visores de AR del sistema: necesitan que el navegador abra un enlace especial.
-function clickLink(href, rel) {
-  const a = document.createElement('a');
-  if (rel) a.rel = rel;
-  a.href = href;
-  if (rel === 'ar') a.appendChild(document.createElement('img')); // requisito de Quick Look
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => a.remove(), 1000);
-  return a;
-}
-
+// AR Quick Look (iPhone): se abre con un enlace especial al modelo .usdz.
 function openQuickLook() {
   const d = eventDate();
   const params = new URLSearchParams({
@@ -211,28 +245,16 @@ function openQuickLook() {
     checkoutSubtitle: C.compania.nombre + ' · ' + d.date,
     callToAction: 'Ver artistas',
   });
-  const a = clickLink(MODELS.usdz + '#' + params.toString().replace(/\+/g, '%20'), 'ar');
+  const a = document.createElement('a');
+  a.rel = 'ar';
+  a.href = USDZ + '#' + params.toString().replace(/\+/g, '%20');
+  a.appendChild(document.createElement('img')); // requisito de Quick Look
   a.addEventListener('message', (e) => {
     if (e.data === '_apple_ar_quicklook_button_tapped') location.href = '../';
   });
-}
-
-function openSceneViewer() {
-  const back = new URL(location.href);
-  back.search = '?ar=giro';
-  const params = new URLSearchParams({
-    file: new URL(MODELS.glb, location.href).href,
-    mode: 'ar_preferred',
-    title: (C.evento.nombre || 'IRRUMPE') + ' · ' + C.compania.nombre,
-    link: new URL('../', location.href).href,
-  });
-  clickLink('intent://arvr.google.com/scene-viewer/1.0?' + params.toString()
-    + '#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;'
-    + 'S.browser_fallback_url=' + encodeURIComponent(back.href) + ';end;');
-  // Si a los 3 s la página sigue a la vista, el visor no se abrió: experiencia interactiva.
-  setTimeout(() => {
-    if (document.visibilityState === 'visible' && !session) enterInteractive(false);
-  }, 3000);
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => a.remove(), 1000);
 }
 
 function syncMicButtons() {
@@ -294,10 +316,16 @@ function wake() {
   idleTimer = setTimeout(() => { if (sheet.hidden) xrRoot.classList.add('is-idle'); }, 3500);
 }
 
+// Fondo actual: null = cámara (o AR anclada); si no, la entrada de la galería.
+let background = null;
+let bgCtl = null;
+let pendingSwitch = null;
+
 const ctx = {
   renderer, scene, canvas,
   get holo() { return holo; },
   overlayRoot: xrRoot,
+  onTick(t) { quality.tick(t); },
   onFrame(t, camera) {
     holo.update(t, camera, pulse.sample(t));
   },
@@ -329,10 +357,19 @@ const ctx = {
   },
   onEnd() {
     session = null;
+    bgCtl = null;
+    background = null;
     clearTimeout(idleTimer);
     closeSheet();
-    xrRoot.hidden = true;
     xrRoot.classList.remove('xr--webxr', 'is-idle');
+    // Cambio de fondo: se entra de inmediato con el nuevo, sin pasar por el lanzador.
+    if (pendingSwitch) {
+      const { item } = pendingSwitch;
+      pendingSwitch = null;
+      enterInteractive(route === 'xr' && !item, item);
+      return;
+    }
+    xrRoot.hidden = true;
     document.body.classList.remove('is-xr');
     $('#launch').hidden = false;
     startPreview();
@@ -341,14 +378,17 @@ const ctx = {
 
 // Botón "Entrar": sigue el camino elegido para este navegador.
 function enter() {
-  if (!holo || session) return;
+  if (!holo || session || entering) return;
   if (route === 'quicklook') { openQuickLook(); $('#more').hidden = false; return; }
-  if (route === 'sceneviewer') { openSceneViewer(); $('#more').hidden = false; return; }
   enterInteractive(route === 'xr');
 }
 
-async function enterInteractive(useXR) {
-  if (!holo || session) return;
+// useXR: AR anclada. item: entrada de la galería para el fondo 360 (o null).
+async function enterInteractive(useXR, item = null) {
+  // Un segundo toque mientras se abre la cámara no debe abrir otra.
+  if (!holo || session || entering) return;
+  entering = true;
+  closeLaunchSheet();
   // iPhone exige pedir el permiso de sensores dentro del toque, antes de cualquier espera.
   const motion = requestMotionPermission();
   renderer.setAnimationLoop(null);
@@ -359,28 +399,131 @@ async function enterInteractive(useXR) {
   lastSurface = null;
   setHint('');
   $('#xr-ahead').hidden = true;
+  quality.reset();
 
-  if (useXR) {
-    xrRoot.classList.add('xr--webxr');
-    try {
-      session = await startXR(ctx);
-      ctx.onSurface(false);
-    } catch (e) {
-      xrRoot.classList.remove('xr--webxr');
-      session = null;
+  try {
+    if (useXR && !item) {
+      xrRoot.classList.add('xr--webxr');
+      try {
+        session = await startXR(ctx, { scale: quality.slow ? 0.6 : 0.85 });
+        ctx.onSurface(false);
+      } catch (e) {
+        xrRoot.classList.remove('xr--webxr');
+        session = null;
+      }
     }
-  }
-  if (!session) {
-    await motion;
-    try {
-      session = await startWindow(ctx, { video, useCamera: true });
-    } catch (e) {
-      session = await startWindow(ctx, { video, useCamera: false });
+    // Los permisos van de a uno: primero sensores (iPhone), después la cámara.
+    if (!session) await motion;
+    if (!session && item) {
+      const bg = createBackground(item, { host: $('#xr-bg'), scene, onChange: syncBackground });
+      bg.ready.catch(() => { if (bgCtl === bg) toast('No se pudo cargar el video'); });
+      bgCtl = bg;
+      background = item;
+      session = await startWindow(ctx, { video, bg });
     }
+    if (!session) {
+      try {
+        session = await startWindow(ctx, { video, useCamera: true });
+      } catch (e) {
+        session = await startWindow(ctx, { video, useCamera: false });
+      }
+    }
+  } finally {
+    entering = false;
   }
   $('#xr-recenter').setAttribute('aria-label', session.mode === 'xr' ? 'Mover el tótem' : 'Recentrar');
+  syncBackground();
   updateLive();
   wake();
+}
+
+// ------------------------------------------------------------------ galería 360
+
+function syncBackground() {
+  const b = $('#xr-360');
+  b.hidden = !GALLERY.length;
+  b.setAttribute('aria-pressed', String(!!background));
+  const sound = $('#xr-sound');
+  sound.hidden = !bgCtl;
+  if (bgCtl) sound.setAttribute('aria-pressed', String(!bgCtl.muted));
+}
+
+// Cambia el fondo sin salir: cierra la sesión actual y abre la nueva.
+function switchBackground(item) {
+  closeSheet();
+  if (!session || item === background) return;
+  pendingSwitch = { item };
+  session.end({ silent: true });
+}
+
+function camThumb() {
+  const el = h('span', { class: 'sheet__thumb sheet__thumb--cam' });
+  el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+  return el;
+}
+
+// Filas de la galería: primero los videos, después los puntos que aún no tienen.
+function galleryList(inside) {
+  const rows = GALLERY.map((g) => {
+    const i = POINT_INDEX[g.punto];
+    const p = POINTS[i];
+    return h('li', null, h('button', { class: 'sheet__row' + (g === background ? ' is-current' : ''), type: 'button', onclick: () => pickVideo(g) },
+      h('img', { class: 'sheet__thumb', src: thumbnail(g.video) || (p ? asset(p.artista.foto) : null), alt: '' }),
+      h('span', { class: 'sheet__row-num', text: p ? pad(i + 1) : '360' }),
+      h('span', { class: 'sheet__row-text' }, h('strong', { text: p ? p.artista.nombre : g.titulo || '360' }), p && h('span', { text: p.lugar })),
+    ));
+  });
+  POINTS.forEach((p, i) => {
+    if (GALLERY.some((g) => g.punto === p.id)) return;
+    rows.push(h('li', null, h('button', { class: 'sheet__row', type: 'button', disabled: true },
+      p.artista.foto ? h('img', { class: 'sheet__thumb', src: asset(p.artista.foto), alt: '' }) : h('span', { class: 'sheet__thumb sheet__thumb--empty', text: pad(i + 1) }),
+      h('span', { class: 'sheet__row-num', text: pad(i + 1) }),
+      h('span', { class: 'sheet__row-text' }, h('strong', { text: p.artista.nombre }), h('span', { text: p.lugar })),
+      h('span', { class: 'sheet__row-tag sheet__row-tag--soft', text: 'Próximamente' }),
+    )));
+  });
+  return h('ol', { class: 'sheet__list' },
+    inside && h('li', null, h('button', { class: 'sheet__row' + (!background ? ' is-current' : ''), type: 'button', onclick: () => switchBackground(null) },
+      camThumb(),
+      h('span', { class: 'sheet__row-num' }),
+      h('span', { class: 'sheet__row-text' }, h('strong', { text: 'Tu cámara' })),
+    )),
+    rows);
+}
+
+function pickVideo(item) {
+  if (session) switchBackground(item);
+  else enterInteractive(false, item);
+}
+
+function openGallery() {
+  sheet.replaceChildren(
+    h('button', { class: 'sheet__close', type: 'button', 'aria-label': 'Cerrar', text: '×', onclick: closeSheet }),
+    galleryList(true),
+  );
+  sheet.dataset.kind = 'gallery';
+  sheet.hidden = false;
+}
+
+// En el lanzador (y en computador) la galería se abre sobre el tótem girando.
+const launchSheet = $('#launch-sheet');
+function openLaunchSheet() {
+  if (!holo) return;
+  launchSheet.replaceChildren(
+    h('button', { class: 'sheet__close', type: 'button', 'aria-label': 'Cerrar', text: '×', onclick: closeLaunchSheet }),
+    galleryList(false),
+  );
+  launchSheet.hidden = false;
+}
+function closeLaunchSheet() {
+  launchSheet.hidden = true;
+  launchSheet.replaceChildren();
+}
+
+// Artista "en vivo": en un video de la galería, el de ese punto.
+function liveNow() {
+  if (background) return background.punto in POINT_INDEX ? POINT_INDEX[background.punto] : -1;
+  return liveIndex(Date.now());
 }
 
 // ------------------------------------------------------------------ fichas
@@ -404,7 +547,7 @@ function openArtist(i) {
       h('div', null,
         h('p', { class: 'sheet__kicker' }, h('strong', { text: pad(i + 1) }), p.hora ? ' · ' + p.hora : ''),
         h('h2', { class: 'sheet__name', text: a.nombre }),
-        liveIndex(Date.now()) === i && h('p', { class: 'sheet__live', text: 'En vivo' }),
+        !background && liveIndex(Date.now()) === i && h('p', { class: 'sheet__live', text: 'En vivo' }),
         a.genero && h('p', { class: 'sheet__genre', text: a.genero }),
         h('p', { class: 'sheet__place', text: p.lugar }),
       ),
@@ -422,7 +565,7 @@ function openArtist(i) {
 }
 
 function openLineup() {
-  const live = liveIndex(Date.now());
+  const live = background ? -1 : liveIndex(Date.now());
   sheet.replaceChildren(
     h('button', { class: 'sheet__close', type: 'button', 'aria-label': 'Cerrar', text: '×', onclick: closeSheet }),
     h('ol', { class: 'sheet__list' }, POINTS.map((p, i) => h('li', null,
@@ -441,7 +584,7 @@ function openLineup() {
 // ------------------------------------------------------------------ en vivo
 
 function updateLive() {
-  const k = liveIndex(Date.now());
+  const k = liveNow();
   const box = $('#xr-live');
   box.hidden = k < 0;
   if (holo) holo.setLive(k);
@@ -458,6 +601,15 @@ function updateLive() {
 function bindUI() {
   $('#enter').addEventListener('click', enter);
   $('#more').addEventListener('click', () => enterInteractive(false));
+  $('#open-360').addEventListener('click', openLaunchSheet);
+  $('#desktop-360').addEventListener('click', openLaunchSheet);
+  $('#xr-360').addEventListener('click', () => (sheet.hidden || sheet.dataset.kind !== 'gallery' ? openGallery() : closeSheet()));
+  $('#xr-sound').addEventListener('click', () => {
+    if (!bgCtl) return;
+    if (bgCtl.muted) bgCtl.unmute();
+    else bgCtl.mute();
+    syncBackground();
+  });
   $('#mic').addEventListener('click', toggleMic);
   $('#xr-mic').addEventListener('click', toggleMic);
   $('#xr-exit').addEventListener('click', () => { if (session) session.end(); });
@@ -471,7 +623,7 @@ function bindUI() {
   document.querySelectorAll('[data-react]').forEach((b) => {
     b.innerHTML = icon(b.dataset.react);
     b.addEventListener('click', () => {
-      holo.react(b.dataset.react, liveIndex(Date.now()));
+      holo.react(b.dataset.react, liveNow());
       b.classList.remove('is-pop');
       void b.offsetWidth;
       b.classList.add('is-pop');
@@ -484,12 +636,18 @@ function bindUI() {
     if (e.target.closest('button, a, .xr__sheet')) e.preventDefault();
   });
   // Al minimizar o volver: soltar/retomar micrófono y la vista previa del lanzador.
+  // El micrófono se retoma recién cuando la cámara ya volvió (nunca dos cosas a la vez).
   document.addEventListener('visibilitychange', () => {
+    quality.reset();
     if (document.visibilityState === 'hidden') {
       pulse.suspend();
       if (!session) renderer.setAnimationLoop(null);
     } else {
-      pulse.resume().then(syncMicButtons);
+      setTimeout(() => {
+        (session && session.resumed ? session.resumed : Promise.resolve())
+          .then(() => pulse.resume())
+          .then(syncMicButtons);
+      }, 0);
       if (!session && holo) renderer.setAnimationLoop(previewLoop);
     }
   });
@@ -504,8 +662,11 @@ async function boot() {
   setInterval(renderLauncher, 1000);
   setInterval(updateLive, 1000);
   route = await chooseRoute();
-  // La música solo aplica a los modos interactivos (no a los visores del sistema).
-  $('#mic').hidden = !(route === 'xr' || route === 'window');
+  // (En Chrome sin WebXR el celular no tiene ARCore: no hay a dónde mandarlo.)
+  if (route === 'window' && IS_ANDROID && !IS_CHROME) note = 'Para anclarlo al piso, ábrelo en Chrome';
+  // La música solo aplica a los modos interactivos (no al visor del iPhone).
+  $('#mic').hidden = route === 'quicklook';
+  $('#open-360').hidden = !GALLERY.length;
   try {
     holo = await createHologram({ config: C, geo: GEO });
     startPreview();
@@ -514,6 +675,7 @@ async function boot() {
     console.error(e);
   }
   renderLauncher();
+  if (PARAMS.has('galeria') && GALLERY.length) openLaunchSheet();
 }
 
 // Acceso para depurar desde la consola del navegador.
@@ -522,7 +684,9 @@ window.IrrumpeAR = {
   get holo() { return holo; },
   get session() { return session; },
   get route() { return route; },
-  openArtist, openLineup, closeSheet, liveIndex, enterInteractive,
+  get quality() { return quality; },
+  get background() { return bgCtl; },
+  openArtist, openLineup, openGallery, closeSheet, liveIndex, enterInteractive, switchBackground,
 };
 
 boot();

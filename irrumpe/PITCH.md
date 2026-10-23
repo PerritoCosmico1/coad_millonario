@@ -24,28 +24,31 @@ Si se necesita solo el código (para otro diseño), la misma página descarga el
 
 ## 3. Qué verá cada persona
 
-Un solo botón, **Entrar**; la página elige sola lo mejor para cada celular, sin redirigir a otro navegador:
+Un solo botón, **Entrar**; la página elige sola lo mejor para cada celular, sin abrir otras apps ni otros navegadores:
 
 | Celular | Qué pasa |
 |---|---|
 | Android con **Chrome** | AR anclada e interactiva: apunta al piso, toca, y el tótem queda fijo; puede acercarse, rodearlo, tocar artistas, reaccionar y activar la música. |
-| Android con **Firefox, Samsung Internet** u otro | Se abre el visor AR de Google (Scene Viewer) con el tótem animado anclado al piso. Al volver, "Ver artistas" abre la versión interactiva. |
-| **iPhone** | Se abre la AR del iPhone (Quick Look) con el tótem animado anclado al piso. Al volver, "Ver artistas". |
-| Computador | Muestra un QR para abrirlo en el celular. |
+| Android con **Firefox, Samsung Internet** u otro | El tótem sobre la cámara, interactivo (sigue los giros del celular, no los pasos). Una línea discreta avisa que para anclarlo hay que abrirlo en Chrome. |
+| **iPhone** | Se abre la AR del iPhone (Quick Look) con el tótem animado anclado al piso, sin pedir permisos. Al volver, "Ver artistas". |
+| Computador | Muestra un QR para abrirlo en el celular, y "Galería 360". |
 
-Las fichas, reacciones y música en AR anclada son exclusivas de los navegadores con WebXR (Chrome y otros Chromium en Android): Firefox y Safari no lo implementan. En esos casos se usa el visor AR del propio sistema, que sí ancla el tótem.
+La AR anclada en la web solo existe en Chrome (WebXR); Firefox no la implementa. Como el QR se abre en el navegador predeterminado de cada uno, conviene decirlo al cierre: **"si tienes Android, ábrelo en Chrome"**.
+
+El botón **360** (junto a Entrar) abre la galería: el tótem sobre la grabación 360 de una intervención. Funciona en cualquier celular, así que es un buen plan B para quien no tenga Chrome.
 
 ## 4. Ensayo (con al menos dos días de margen)
 
 - En **la sala real**, con su luz y su Wi-Fi o datos móviles.
 - Con al menos **un iPhone, un Samsung** (dejando que abra Samsung Internet), **un Android con Chrome y uno con Firefox**.
+- Probar también la **Galería 360** en esos celulares (ver la nota sobre YouTube en `ar/README.md`).
 - Cronometrar: desde escanear hasta ver el tótem, idealmente menos de 30 s.
 - **Luz**: la AR necesita ver el piso. Si la sala queda a oscuras para el video, pedir que suban las luces cuando aparezca el QR. Si igual no detecta el piso, a los 5 segundos aparece **Colocar al frente**.
 - **Música**: con el ícono de ondas activado (junto a Entrar, antes de entrar), el tótem late con lo que suena en la sala, incluida la música del video. Que el audio de la sala esté fuerte en ese momento.
 
 ## 5. Cierre sugerido
 
-En pantalla o dicho en vivo, 5 segundos: **"Escaneen el código, toquen Entrar y apunten al piso."** Y quien quiera que el tótem baile: "activen Música".
+En pantalla o dicho en vivo, 5 segundos: **"Escaneen el código, toquen Entrar y apunten al piso"** (en Android, con Chrome). Y quien quiera que el tótem baile: "activen Música".
 
 ## 6. Plan B
 
@@ -57,5 +60,6 @@ En pantalla o dicho en vivo, 5 segundos: **"Escaneen el código, toquen Entrar y
 
 - [ ] `ar.prototipo: true` en `js/config.js` (la AR está abierta siempre y simula el show).
 - [ ] Redes de los artistas cargadas en `js/config.js` (si no, aparecen como "Redes por anunciar").
-- [ ] Si cambian fotos, artistas o puntos: regenerar `assets/irrumpe.usdz` y `assets/irrumpe.glb` con `tools/export-3d.html` (instrucciones en esa página) y volver a publicar.
-- [ ] Revisar en un iPhone y en un Android con Firefox que "Entrar" abra el visor AR del sistema.
+- [ ] Si cambian fotos, artistas o puntos: regenerar `assets/irrumpe.usdz` con `tools/export-3d.html` (instrucciones en esa página) y volver a publicar.
+- [ ] Revisar en un iPhone que "Entrar" abra el visor AR del sistema.
+- [ ] Videos de la galería en `galeria` de `js/config.js` (la "Prueba 360" se puede quitar cuando estén los reales).

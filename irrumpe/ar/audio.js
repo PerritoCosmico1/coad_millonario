@@ -5,6 +5,13 @@
  * ganancia sola. Sin micrófono simula un pulso a 118 BPM, para que el
  * prototipo se vea vivo en cualquier parte.
  */
+function micGranted() {
+  if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve(false);
+  return navigator.permissions.query({ name: 'microphone' })
+    .then((st) => st.state === 'granted')
+    .catch(() => false);
+}
+
 export const pulse = {
   stream: null,
   ctx: null,
@@ -23,7 +30,8 @@ export const pulse = {
     });
     const AC = window.AudioContext || window.webkitAudioContext;
     this.ctx = new AC();
-    if (this.ctx.state === 'suspended') await this.ctx.resume().catch(() => {});
+    // Sin un toque reciente resume() puede quedar esperando: no se lo espera más de 300 ms.
+    if (this.ctx.state === 'suspended') await Promise.race([this.ctx.resume().catch(() => {}), new Promise((r) => setTimeout(r, 300))]);
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 512;
     this.analyser.smoothingTimeConstant = 0.6;
@@ -36,7 +44,9 @@ export const pulse = {
     return true;
   },
 
-  // Al ocultarse la página se suelta el micrófono; al volver se reabre (una sola vez).
+  // Al ocultarse la página se suelta el micrófono. Al volver se reabre solo si
+  // el permiso ya está dado (así nunca aparece un aviso de golpe); si no, queda
+  // apagado hasta que se toque el botón.
   wasOn: false,
   busy: null,
   suspend() {
@@ -45,11 +55,11 @@ export const pulse = {
     this.disableMic();
   },
   resume() {
-    if (!this.wasOn || this.analyser || this.busy) return Promise.resolve();
-    this.busy = this.enableMic()
-      .then(() => { this.wasOn = false; })
+    if (!this.wasOn || this.analyser || this.busy) return this.busy || Promise.resolve();
+    this.busy = micGranted()
+      .then((ok) => (ok ? this.enableMic() : null))
       .catch(() => {})
-      .finally(() => { this.busy = null; });
+      .finally(() => { this.wasOn = false; this.busy = null; });
     return this.busy;
   },
 

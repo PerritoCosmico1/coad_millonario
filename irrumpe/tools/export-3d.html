@@ -15,9 +15,9 @@
 </head>
 <body>
   <h1>Tótem para AR nativa</h1>
-  <p>Genera los dos modelos del tótem animado que usan los visores de AR del sistema:<br>
-     <code>assets/irrumpe.usdz</code> (iPhone, AR Quick Look) y <code>assets/irrumpe.glb</code> (Android sin WebXR, Scene Viewer).<br>
-     Vuelve a generarlos si cambian artistas, fotos o puntos en <code>js/config.js</code>, y reemplaza los archivos.</p>
+  <p>Genera el modelo del tótem animado que usa el visor de AR del iPhone:<br>
+     <code>assets/irrumpe.usdz</code> (AR Quick Look).<br>
+     Vuelve a generarlo si cambian artistas, fotos o puntos en <code>js/config.js</code>, y reemplaza el archivo.</p>
   <p>Hay que abrir esta página desde un servidor local (por ejemplo <code>npx serve irrumpe</code>), no con doble clic.</p>
   <button id="go" type="button">Generar y descargar</button>
   <p id="log"></p>
@@ -27,7 +27,6 @@
   <script type="module">
     import * as THREE from '../vendor/three.min.js';
     import { USDZExporter } from './usdz-exporter.js';
-    import { GLTFExporter } from './gltf-exporter.js';
     import { createHologram, COLORS } from '../ar/hologram.js';
 
     const log = (t) => { document.querySelector('#log').textContent += t + '\n'; };
@@ -196,12 +195,10 @@
       return { scene, clip, tracks };
     }
 
-    async function build(format) {
+    async function build() {
       const { scene, clip, tracks } = await buildScene();
-      const data = format === 'glb'
-        ? await new GLTFExporter().parseAsync(scene, { binary: true, animations: [clip], maxTextureSize: 1024 })
-        : await new USDZExporter().parseAsync(scene, { quickLookCompatible: true, maxTextureSize: 1024, animations: [clip], animationFrameRate: 30 });
-      log(format + ': ' + (data.byteLength / 1024 / 1024).toFixed(2) + ' MB, ' + tracks.length + ' animaciones, loop de ' + T.toFixed(2) + ' s');
+      const data = await new USDZExporter().parseAsync(scene, { quickLookCompatible: true, maxTextureSize: 1024, animations: [clip], animationFrameRate: 30 });
+      log('usdz: ' + (data.byteLength / 1024 / 1024).toFixed(2) + ' MB, ' + tracks.length + ' animaciones, loop de ' + T.toFixed(2) + ' s');
       return data;
     }
 
@@ -215,14 +212,13 @@
     document.querySelector('#go').addEventListener('click', async () => {
       log('generando…');
       try {
-        download(await build('usdz'), 'irrumpe.usdz', 'model/vnd.usdz+zip');
-        download(await build('glb'), 'irrumpe.glb', 'model/gltf-binary');
+        download(await build(), 'irrumpe.usdz', 'model/vnd.usdz+zip');
       } catch (e) { log('error: ' + e.message); console.error(e); }
     });
 
     // Para automatizar desde un navegador sin interfaz.
-    window.buildModel = async (format) => {
-      const data = new Uint8Array(await build(format));
+    window.buildModel = async () => {
+      const data = new Uint8Array(await build());
       let s = '';
       for (let i = 0; i < data.length; i += 0x8000) s += String.fromCharCode(...data.subarray(i, i + 0x8000));
       return btoa(s);
