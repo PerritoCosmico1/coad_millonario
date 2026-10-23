@@ -15,13 +15,14 @@
  * intervención (en vivo o grabada), en cualquier celular o computador.
  *
  * Todo el contenido sale de js/config.js. `?preview` deja entrar a la AR desde
- * computador (para probar o proyectar) y `?galeria` abre directo la galería.
+ * computador (para probar o proyectar), `?galeria` abre directo la galería y
+ * `?video=<link>` agrega un video de prueba arriba de ella (probar-360.html).
  */
 import * as THREE from '../vendor/three.min.js';
 import { createHologram, REACTIONS } from './hologram.js';
 import { xrSupported, startXR, startWindow, requestMotionPermission } from './sessions.js';
 import { pulse } from './audio.js';
-import { createBackground, thumbnail } from './video360.js';
+import { createBackground, thumbnail, youtubeId, youtubeError, watchUrl } from './video360.js';
 
 const C = window.IRRUMPE_CONFIG;
 const GEO = window.IRRUMPE_GEO;
@@ -32,8 +33,15 @@ const PARAMS = new URLSearchParams(location.search);
 const PREVIEW = PARAMS.has('preview');
 const USDZ = '../assets/irrumpe.usdz';
 // Galería 360: solo las entradas con video; los puntos sin video salen como "Próximamente".
-const GALLERY = (C.galeria || []).filter((g) => g && g.video);
+const TRY_VIDEO = PARAMS.get('video');
+const GALLERY = [
+  ...(TRY_VIDEO ? [{ titulo: 'Prueba', video: TRY_VIDEO }] : []),
+  ...(C.galeria || []).filter((g) => g && g.video),
+];
+const HAS_GALLERY = GALLERY.length > 0 || POINTS.length > 0;
 const POINT_INDEX = Object.fromEntries(POINTS.map((p, i) => [p.id, i]));
+// Videos que no se pudieron reproducir aquí (link → motivo).
+const failed = new Map();
 
 const $ = (sel) => document.querySelector(sel);
 const pad = (n) => String(n).padStart(2, '0');
@@ -74,6 +82,23 @@ const SOCIAL_LABELS = {
   instagram: 'Instagram', spotify: 'Spotify', youtube: 'YouTube', soundcloud: 'SoundCloud',
   tiktok: 'TikTok', bandcamp: 'Bandcamp', web: 'Web',
 };
+// Sin el link real, buscar al artista en la plataforma (provisorio, `redesProvisorias`).
+const SOCIAL_SEARCH = {
+  instagram: (q) => 'https://www.instagram.com/explore/search/keyword/?q=' + q,
+  spotify: (q) => 'https://open.spotify.com/search/' + q,
+  youtube: (q) => 'https://www.youtube.com/results?search_query=' + q,
+};
+
+// [red, link] para los botones de seguir: Instagram, Spotify y YouTube siempre
+// (con el link real o la búsqueda) y después las otras redes que tengan link.
+function socialLinks(a) {
+  const redes = a.redes || {};
+  const q = encodeURIComponent(a.nombre);
+  const provisional = C.redesProvisorias !== false;
+  return [...Object.keys(SOCIAL_SEARCH), ...Object.keys(redes).filter((k) => !SOCIAL_SEARCH[k])]
+    .map((k) => [k, redes[k] || (provisional && SOCIAL_SEARCH[k] ? SOCIAL_SEARCH[k](q) : '')])
+    .filter(([, url]) => url);
+}
 
 function h(tag, attrs, ...children) {
   const el = document.createElement(tag);
@@ -226,7 +251,7 @@ function renderDesktop() {
   if (IS_MOBILE || PREVIEW) return;
   $('#actions').hidden = true;
   $('#desktop').hidden = false;
-  $('#desktop-360').hidden = !GALLERY.length;
+  $('#desktop-360').hidden = !HAS_GALLERY;
   if (typeof window.qrcode !== 'function') return;
   const qr = window.qrcode(0, 'M');
   qr.addData(location.href.split('?')[0]);
@@ -359,6 +384,7 @@ const ctx = {
     session = null;
     bgCtl = null;
     background = null;
+    $('#xr-yt').hidden = true;
     clearTimeout(idleTimer);
     closeSheet();
     xrRoot.classList.remove('xr--webxr', 'is-idle');
@@ -415,8 +441,10 @@ async function enterInteractive(useXR, item = null) {
     // Los permisos van de a uno: primero sensores (iPhone), después la cámara.
     if (!session) await motion;
     if (!session && item) {
-      const bg = createBackground(item, { host: $('#xr-bg'), scene, onChange: syncBackground });
-      bg.ready.catch(() => { if (bgCtl === bg) toast('No se pudo cargar el video'); });
+      const bg = createBackground(item, {
+        host: $('#xr-bg'), scene, onChange: syncBackground, onError: (code) => videoFailed(item, code),
+      });
+      bg.ready.catch((e) => { if (bgCtl === bg && !failed.has(item.video)) toast(e.message); });
       bgCtl = bg;
       background = item;
       session = await startWindow(ctx, { video, bg });
@@ -441,11 +469,25 @@ async function enterInteractive(useXR, item = null) {
 
 function syncBackground() {
   const b = $('#xr-360');
-  b.hidden = !GALLERY.length;
+  b.hidden = !HAS_GALLERY;
   b.setAttribute('aria-pressed', String(!!background));
   const sound = $('#xr-sound');
   sound.hidden = !bgCtl;
   if (bgCtl) sound.setAttribute('aria-pressed', String(!bgCtl.muted));
+}
+
+// El video no se puede ver aquí: se quita el aviso de YouTube (que no se puede
+// tocar), queda el tótem y un botón para verlo en YouTube (la app también es 360).
+function videoFailed(item, code) {
+  const text = code === -1 ? 'No se pudo cargar el video' : youtubeError(code);
+  failed.set(item.video, text);
+  if (background !== item) return;
+  $('#xr-bg').hidden = true;
+  $('#xr-sound').hidden = true;
+  toast(text);
+  const yt = $('#xr-yt');
+  yt.href = watchUrl(item.video);
+  yt.hidden = !youtubeId(item.video);
 }
 
 // Cambia el fondo sin salir: cierra la sesión actual y abre la nueva.
@@ -467,10 +509,16 @@ function galleryList(inside) {
   const rows = GALLERY.map((g) => {
     const i = POINT_INDEX[g.punto];
     const p = POINTS[i];
-    return h('li', null, h('button', { class: 'sheet__row' + (g === background ? ' is-current' : ''), type: 'button', onclick: () => pickVideo(g) },
+    // Un video de YouTube que no se puede ver aquí se abre en YouTube.
+    const blocked = failed.has(g.video);
+    const onclick = blocked
+      ? () => { if (youtubeId(g.video)) window.open(watchUrl(g.video), '_blank', 'noopener'); }
+      : () => pickVideo(g);
+    return h('li', null, h('button', { class: 'sheet__row' + (g === background ? ' is-current' : ''), type: 'button', onclick },
       h('img', { class: 'sheet__thumb', src: thumbnail(g.video) || (p ? asset(p.artista.foto) : null), alt: '' }),
       h('span', { class: 'sheet__row-num', text: p ? pad(i + 1) : '360' }),
       h('span', { class: 'sheet__row-text' }, h('strong', { text: p ? p.artista.nombre : g.titulo || '360' }), p && h('span', { text: p.lugar })),
+      blocked && h('span', { class: 'sheet__row-tag sheet__row-tag--soft', text: youtubeId(g.video) ? 'YouTube ↗' : 'No disponible' }),
     ));
   });
   POINTS.forEach((p, i) => {
@@ -538,7 +586,7 @@ function openArtist(i) {
   const p = POINTS[i];
   const a = p.artista;
   const mus = a.musica || {};
-  const links = Object.entries(a.redes || {}).filter(([, url]) => url);
+  const links = socialLinks(a);
   const maps = 'https://www.google.com/maps/search/?api=1&query=' + p.lat + ',' + p.lng;
   sheet.replaceChildren(...[
     h('button', { class: 'sheet__close', type: 'button', 'aria-label': 'Cerrar', text: '×', onclick: closeSheet }),
@@ -666,7 +714,7 @@ async function boot() {
   if (route === 'window' && IS_ANDROID && !IS_CHROME) note = 'Para anclarlo al piso, ábrelo en Chrome';
   // La música solo aplica a los modos interactivos (no al visor del iPhone).
   $('#mic').hidden = route === 'quicklook';
-  $('#open-360').hidden = !GALLERY.length;
+  $('#open-360').hidden = !HAS_GALLERY;
   try {
     holo = await createHologram({ config: C, geo: GEO });
     startPreview();
@@ -675,7 +723,7 @@ async function boot() {
     console.error(e);
   }
   renderLauncher();
-  if (PARAMS.has('galeria') && GALLERY.length) openLaunchSheet();
+  if ((PARAMS.has('galeria') || TRY_VIDEO) && HAS_GALLERY) openLaunchSheet();
 }
 
 // Acceso para depurar desde la consola del navegador.

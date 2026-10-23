@@ -6,7 +6,7 @@ Experiencia de realidad aumentada de IRRUMPE para celulares. Es un **prototipo**
 
 Un tótem holográfico: el mapa de puntos de Concepción en un disco con los cuatro puntos rojos. Desde cada punto sube un rayo de luz hasta la tarjeta de su artista (número, foto, nombre y lugar), con el logo e IRRUMPE arriba.
 
-- **Tocar una tarjeta** abre la ficha del artista: foto a color, punto, y —si están cargados— género, bio, redes, tema destacado. Siempre, "Cómo llegar".
+- **Tocar una tarjeta** abre la ficha del artista: foto a color, punto, botones para seguirlo (Instagram, Spotify, YouTube) y "Cómo llegar"; también género, bio y tema destacado si están cargados. Mientras falte el link real de una red, su botón busca el nombre del artista en esa plataforma (provisorio; `redesProvisorias` en `config.js`).
 - **En vivo** (línea inferior): quién está tocando ahora. En el tótem lleva la insignia "EN VIVO" y sus ondas son más fuertes. En el evento real sale de la `hora` de cada punto; en el prototipo rota entre los artistas cada `ar.segundosPorSet` segundos, para mostrar la idea.
 - **Íconos inferiores**: line-up, reacciones (corazón, chispa, rayo, que suben desde el punto en vivo) y música.
 - **Música**: con el micrófono, las ondas, rayos y partículas siguen la música que suena en el lugar. Sin micrófono laten a un pulso de demostración.
@@ -52,13 +52,27 @@ galeria: [
 ],
 ```
 
-Los puntos sin video aparecen como "Próximamente". En el prototipo hay una entrada de prueba ("Prueba 360").
+Los puntos sin video aparecen como "Próximamente".
 
 **YouTube** (en vivo o grabado): la transmisión 360 de YouTube queda guardada sola en el canal al terminar, así que el mismo link sirve durante y después del evento. Un video de YouTube no se puede usar dentro del 3D (viene de otro dominio), así que el reproductor oficial va a pantalla completa detrás del tótem y en cada cuadro se le indica hacia dónde mirar (`setSphericalProperties`), con el mismo giro que la cámara virtual. Parte con sonido si el navegador lo permite; si no, en silencio, y el ícono de parlante lo activa.
 
 **Archivo propio** (`.mp4` 360): se dibuja en una esfera alrededor de la cámara; calza exacto con el tótem, pero hay que alojarlo (en el mismo sitio, o en otro servidor con CORS).
 
-⚠ **Probar YouTube en el celular antes de contar con él.** La conexión con YouTube no se pudo probar desde el entorno de desarrollo (se probó con un reproductor simulado). La ayuda de YouTube garantiza el 360 en navegadores de computador y en su app; en el navegador del celular el reproductor incrustado podría mostrarlo plano. Si pasa, el archivo propio funciona en cualquier celular. Si el fondo gira al revés que el tótem, avisar: es un signo en `video360.js`.
+### Videos de YouTube bloqueados: probarlos antes
+
+Algunos videos **no se pueden ver fuera de YouTube**: su dueño desactivó la opción, o un titular de derechos (típicamente de la **música**, vía Content ID) lo bloquea en otros sitios. YouTube solo lo dice al intentar reproducirlo incrustado, y puede variar según el país o el aparato. Además, en el navegador del celular algunos videos 360 podrían verse planos.
+
+Por eso, **antes de agregar un video, abrir `probar-360.html` en el celular** (en el sitio publicado) y pegar el link. Lo carga igual que la galería y responde:
+
+- si se puede ver fuera de YouTube (y si no, por qué),
+- si es 360 o plano,
+- y da la línea lista para copiar a `config.js`, más un botón **Probar con el tótem** (abre `ar/?video=<link>`, sin tocar `config.js`).
+
+Si en la galería un video falla igual, la app quita el aviso de YouTube, deja el tótem y muestra **Ver en YouTube ↗** (la app de YouTube también lo muestra en 360).
+
+**Ojo con las transmisiones del evento:** tendrán la música de los artistas. Si sus canciones están en distribuidoras con Content ID, YouTube podría reclamar la transmisión y bloquearla fuera de YouTube (o silenciarla). Antes del evento conviene pedir a los artistas que agreguen el canal de La Única Compañía a la **lista de canales permitidos** de su distribuidora, y hacer una transmisión de prueba con su música. Para la galería posterior, lo más seguro es el **archivo propio** (`.mp4` exportado de la cámara 360), que no depende de YouTube.
+
+Si el fondo gira al revés que el tótem, avisar: es un signo en `video360.js`.
 
 ### Cómo grabar y subir el video
 
@@ -75,7 +89,7 @@ Para las visuales con música: tocar el ícono de ondas junto a **Entrar** antes
 
 ## Editar el contenido
 
-Todo sale de `../js/config.js`: artistas, fotos, redes (`artista.redes`), tema (`artista.musica`), puntos y horarios. Lo que esté vacío no se muestra.
+Todo sale de `../js/config.js`: artistas, fotos, redes (`artista.redes`), tema (`artista.musica`), puntos, horarios y videos de la galería (`galeria`). Lo que esté vacío no se muestra (salvo las redes, que mientras tanto buscan al artista).
 
 En `ar` de `config.js`:
 - `prototipo: true` — abierta siempre y show simulado. Para el evento real, `false`: se abre en `activaDesde` (o al inicio del evento) y usa las horas reales.

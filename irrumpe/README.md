@@ -7,11 +7,11 @@ Es un sitio estático: HTML, CSS y JS planos, sin build ni dependencias que inst
 ## Qué hay en la página
 
 - **Mapa estilizado de Concepción**: la costa, la bahía, el río Biobío y las lagunas dibujados como una grilla de puntos (datos reales de OpenStreetMap). En escritorio el cursor funciona como linterna y revela el terreno.
-- **Cuatro puntos rojos** (Parque Ecuador, Plaza de la Independencia, Plaza Bicentenario y UdeC) que tiemblan y emiten ondas. Al pasar el mouse (o tocar en celular) muestran: lugar, foto y nombre del artista, y un link "Cómo llegar"; también hora, género, bio, un tema y redes cuando estén cargados. Con un clic la tarjeta queda fija; si el artista tiene un link de Spotify o YouTube en `musica.embed`, en ese momento se carga el reproductor.
+- **Cuatro puntos rojos** (Parque Ecuador, Plaza de la Independencia, Plaza Bicentenario y UdeC) que tiemblan y emiten ondas. Al pasar el mouse (o tocar en celular) muestran: lugar, foto y nombre del artista, "Cómo llegar" y links para seguirlo (Instagram, Spotify, YouTube; mientras falte el link real, buscan su nombre); también hora, género, bio y un tema cuando estén cargados. Con un clic la tarjeta queda fija; si el artista tiene un link de Spotify o YouTube en `musica.embed`, en ese momento se carga el reproductor.
 - **Los cuatro puntos siempre están a la vista**: la tarjeta nunca tapa un punto. En escritorio se ubica al costado del grupo de puntos (y si no cabe, el mapa se desliza para hacerle lugar). En celular es una hoja inferior compacta: la cuenta regresiva se achica y el mapa se reencuadra arriba de la hoja. Nada de la página necesita scroll, ni en celular horizontal.
 - **Cuenta regresiva** grande hasta el inicio, con el nombre y logo de La Única Compañía. Durante el evento cambia a "EN VIVO" y al terminar a "YA IRRUMPIÓ".
 - **AR** (prototipo funcional): botón arriba a la derecha. En celular va directo a `ar/`; en computador muestra un QR. Un tótem holográfico de Concepción con los cuatro puntos y las tarjetas de los artistas, anclado al mundo; al tocar una tarjeta se ven su foto y sus redes. Ver [`ar/README.md`](ar/README.md).
-- **Galería 360**: el mismo tótem sobre la transmisión 360 de cada intervención (en vivo por YouTube o grabada), para quien no pudo ir. Se abre con el botón 360 de la AR o, en computador, desde el QR ("Galería 360"). Los videos se cargan en `galeria` de `js/config.js`.
+- **Galería 360**: el mismo tótem sobre la transmisión 360 de cada intervención (en vivo por YouTube o grabada), para quien no pudo ir. Se abre con el botón 360 de la AR o, en computador, desde el QR ("Galería 360"). Los videos se cargan en `galeria` de `js/config.js`, después de probarlos en el celular con `probar-360.html`.
 
 ## Editar el contenido
 
@@ -60,6 +60,7 @@ js/app.js               mapa, puntos, tarjeta, cuenta regresiva, panel AR
 js/concepcion-geo.js    costa y agua (generado)
 ar/                     experiencia AR (prototipo)
 qr.html                 genera el QR y la placa final para el video del pitch
+probar-360.html         prueba si un video de YouTube sirve para la galería 360 (abrir en el celular)
 PITCH.md                plan y checklist para el pitch
 _headers                cabeceras para Netlify (tipo del modelo de iPhone, caché)
 assets/                 logo, favicon, íconos, imagen para compartir, fotos, irrumpe.usdz (AR del iPhone)

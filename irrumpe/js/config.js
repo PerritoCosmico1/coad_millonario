@@ -51,12 +51,21 @@ window.IRRUMPE_CONFIG = {
    *         artista y el lugar. Sin punto, se usa `titulo`.
    * inicio: opcional, segundo en que parte el video.
    *
+   * ⚠ Antes de agregar un video de YouTube, probarlo en el celular con
+   * probar-360.html: algunos no se pueden ver fuera de YouTube (por ejemplo,
+   * si tienen música con derechos) y otros no son 360.
+   *
    * Los puntos que todavía no tienen video aparecen como "Próximamente".
    */
   galeria: [
-    { titulo: 'Prueba 360', video: 'https://youtu.be/Kt7motaEzfo' },
-    // { punto: 'parque-ecuador', video: 'https://youtu.be/...' },
+    // { titulo: 'Prueba 360', video: 'https://youtu.be/XXXXXXXXXXX' },
+    // { punto: 'parque-ecuador', video: 'assets/360/azga.mp4' },
   ],
+
+  // Botones para seguir a los artistas (Instagram, Spotify, YouTube). Mientras
+  // falte el link real de una red en `artista.redes`, el botón busca el nombre
+  // del artista en esa plataforma (provisorio). false = solo los links reales.
+  redesProvisorias: true,
 
   /*
    * Los puntos del mapa, en orden (01, 02, ...). Puede haber más o menos de cuatro.
@@ -64,7 +73,8 @@ window.IRRUMPE_CONFIG = {
    * hora:           opcional, p. ej. '17:30'. Vacío = no se muestra.
    * artista.foto:   imagen en assets/artistas/ (cuadrada o vertical).
    * artista.genero / artista.bio: textos cortos; vacíos = no se muestran.
-   * artista.redes:  links completos (https://...). Vacíos = no aparecen.
+   * artista.redes:  links completos (https://...). Vacíos = búsqueda provisoria
+   *                 (ver `redesProvisorias`) o, si está en false, no aparecen.
    * artista.musica: `titulo` + `url` muestran un tema destacado.
    *                 `embed` (opcional) es un link de Spotify o YouTube que se
    *                 incrusta como reproductor cuando la tarjeta queda fija.

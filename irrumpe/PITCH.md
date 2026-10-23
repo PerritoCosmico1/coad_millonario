@@ -59,7 +59,7 @@ En pantalla o dicho en vivo, 5 segundos: **"Escaneen el código, toquen Entrar y
 ## 7. Checklist del contenido
 
 - [ ] `ar.prototipo: true` en `js/config.js` (la AR está abierta siempre y simula el show).
-- [ ] Redes de los artistas cargadas en `js/config.js` (si no, aparecen como "Redes por anunciar").
+- [ ] Redes de los artistas cargadas en `js/config.js` (mientras falten, los botones buscan el nombre del artista en Instagram, Spotify y YouTube).
 - [ ] Si cambian fotos, artistas o puntos: regenerar `assets/irrumpe.usdz` con `tools/export-3d.html` (instrucciones en esa página) y volver a publicar.
 - [ ] Revisar en un iPhone que "Entrar" abra el visor AR del sistema.
-- [ ] Videos de la galería en `galeria` de `js/config.js` (la "Prueba 360" se puede quitar cuando estén los reales).
+- [ ] Videos de la galería en `galeria` de `js/config.js`, cada uno probado antes en el celular con `probar-360.html` (que se pueda ver fuera de YouTube y sea 360). Para el pitch, lo más seguro es un `.mp4` 360 propio en `assets/360/`.

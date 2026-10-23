@@ -26,6 +26,21 @@ export function youtubeId(url) {
   return m ? m[1] : null;
 }
 
+// Errores del reproductor de YouTube (onError) → texto corto.
+// 101 y 150: el dueño, o un titular de derechos (por ejemplo de la música), no
+// permite verlo fuera de YouTube. Se sabe recién al cargarlo incrustado.
+export function youtubeError(code) {
+  if (code === 101 || code === 150 || code === 152 || code === 153) return 'Este video no se puede ver fuera de YouTube';
+  if (code === 100) return 'Video no encontrado o privado';
+  if (code === 2) return 'Link de YouTube no válido';
+  return 'No se pudo reproducir el video';
+}
+
+export const watchUrl = (url) => {
+  const id = youtubeId(url);
+  return id ? 'https://www.youtube.com/watch?v=' + id : url;
+};
+
 export const thumbnail = (url) => {
   const id = youtubeId(url);
   return id ? 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg' : '';
@@ -49,7 +64,7 @@ function loadYouTubeAPI() {
   return api;
 }
 
-function youtube360(host, id, { start = 0, onChange }) {
+function youtube360(host, id, { start = 0, onChange, onError }) {
   let player = null;
   let alive = true;
   let muted = false;
@@ -87,7 +102,12 @@ function youtube360(host, id, { start = 0, onChange }) {
           }, 2500);
           resolve();
         },
-        onError(e) { clearTimeout(timer); reject(new Error('YouTube: error ' + e.data)); },
+        // Puede llegar antes o después de onReady (p. ej. bloqueo por derechos de la música).
+        onError(e) {
+          clearTimeout(timer);
+          reject(new Error(youtubeError(e.data)));
+          if (alive && onError) onError(e.data);
+        },
       },
     });
   }));
@@ -125,7 +145,7 @@ function youtube360(host, id, { start = 0, onChange }) {
   };
 }
 
-function file360(scene, url, { start = 0, onChange }) {
+function file360(scene, url, { start = 0, onChange, onError }) {
   const video = document.createElement('video');
   video.crossOrigin = 'anonymous';
   video.playsInline = true;
@@ -146,7 +166,10 @@ function file360(scene, url, { start = 0, onChange }) {
 
   const ready = new Promise((resolve, reject) => {
     video.addEventListener('loadeddata', resolve, { once: true });
-    video.addEventListener('error', () => reject(new Error('No se pudo cargar el video')), { once: true });
+    video.addEventListener('error', () => {
+      reject(new Error('No se pudo cargar el video'));
+      if (alive && onError) onError(-1);
+    }, { once: true });
   });
   ready.catch(() => {});
   // Con sonido si se puede; si no, en silencio (siempre se permite).
@@ -182,8 +205,9 @@ function file360(scene, url, { start = 0, onChange }) {
 }
 
 // item: { video: link de YouTube o .mp4, inicio?: segundos }.
-export function createBackground(item, { host, scene, onChange }) {
+// onError(código): el video no se puede reproducir aquí (código de YouTube, o -1).
+export function createBackground(item, { host, scene, onChange, onError }) {
   const id = youtubeId(item.video);
-  const opts = { start: item.inicio || 0, onChange };
+  const opts = { start: item.inicio || 0, onChange, onError };
   return id ? youtube360(host, id, opts) : file360(scene, item.video, opts);
 }

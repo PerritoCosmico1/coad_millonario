@@ -237,6 +237,7 @@
   text-transform: uppercase;
   cursor: pointer;
 }
+a.xr__pill { color: var(--ink); text-decoration: none; }
 .xr__live {
   display: flex;
   align-items: baseline;
@@ -302,6 +303,7 @@
 }
 .sheet__close {
   position: absolute;
+  z-index: 1; /* sobre las filas atenuadas (opacity crea su propia capa) */
   top: 6px;
   right: 6px;
   width: 44px;

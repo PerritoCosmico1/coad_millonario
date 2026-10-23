@@ -528,6 +528,23 @@
     instagram: 'Instagram', spotify: 'Spotify', youtube: 'YouTube', soundcloud: 'SoundCloud',
     tiktok: 'TikTok', bandcamp: 'Bandcamp', web: 'Web',
   };
+  // Sin el link real, buscar al artista en la plataforma (provisorio, `redesProvisorias`).
+  const SOCIAL_SEARCH = {
+    instagram: (q) => 'https://www.instagram.com/explore/search/keyword/?q=' + q,
+    spotify: (q) => 'https://open.spotify.com/search/' + q,
+    youtube: (q) => 'https://www.youtube.com/results?search_query=' + q,
+  };
+
+  // [red, link] para seguir al artista: Instagram, Spotify y YouTube siempre
+  // (con el link real o la búsqueda) y después las otras redes que tengan link.
+  function socialLinks(a) {
+    const redes = a.redes || {};
+    const q = encodeURIComponent(a.nombre);
+    const provisional = C.redesProvisorias !== false;
+    return [...Object.keys(SOCIAL_SEARCH), ...Object.keys(redes).filter((k) => !SOCIAL_SEARCH[k])]
+      .map((k) => [k, redes[k] || (provisional && SOCIAL_SEARCH[k] ? SOCIAL_SEARCH[k](q) : '')])
+      .filter(([, url]) => url);
+  }
 
   // Spotify / YouTube / SoundCloud → URL de reproductor incrustable.
   function embedFor(url) {
@@ -700,8 +717,7 @@
         style: embed.height ? 'height:' + embed.height + 'px' : 'aspect-ratio:16/9',
       }));
 
-      const links = Object.entries(a.redes || {})
-        .filter(([, url]) => url)
+      const links = socialLinks(a)
         .map(([k, url]) => h('a', { href: url, target: '_blank', rel: 'noopener', text: SOCIAL_LABELS[k] || k }));
       const maps = 'https://www.google.com/maps/search/?api=1&query=' + p.lat + ',' + p.lng;
 
@@ -789,7 +805,7 @@
       });
       // Galería 360 (también se puede ver en computador, arrastrando para mirar).
       const g360 = $('#ar-360');
-      g360.hidden = !(C.galeria || []).some((g) => g && g.video);
+      g360.hidden = !POINTS.length && !(C.galeria || []).some((g) => g && g.video);
       g360.href = this.url + (this.url.includes('?') ? '&' : '?') + 'galeria';
       $('#ar-close').addEventListener('click', () => this.dialog.close());
       // Clic en el fondo oscuro cierra.
