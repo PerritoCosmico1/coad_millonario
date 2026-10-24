@@ -40,8 +40,10 @@ const GALLERY = [
 ];
 const HAS_GALLERY = GALLERY.length > 0 || POINTS.length > 0;
 const POINT_INDEX = Object.fromEntries(POINTS.map((p, i) => [p.id, i]));
-// Videos que no se pudieron reproducir aquí (link → motivo).
+// Videos que no se pudieron reproducir aquí (link → motivo), y archivos
+// propios que todavía no están en el sitio (salen como "Próximamente").
 const failed = new Map();
+const missing = new Set();
 
 const $ = (sel) => document.querySelector(sel);
 const pad = (n) => String(n).padStart(2, '0');
@@ -115,6 +117,9 @@ function h(tag, attrs, ...children) {
 
 const icon = (kind) => '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="' + REACTIONS[kind] + '"/></svg>';
 const asset = (p) => (p ? '../' + p : '');
+// Video de la galería: un link de YouTube o absoluto queda igual; una ruta del
+// sitio (assets/360/…, como las fotos en config.js) se resuelve desde la raíz.
+const videoSrc = (v) => (youtubeId(v) || /^([a-z]+:|\/)/i.test(v) ? v : asset(v));
 
 function eventDate() {
   const parts = new Intl.DateTimeFormat('es-CL', {
@@ -441,7 +446,7 @@ async function enterInteractive(useXR, item = null) {
     // Los permisos van de a uno: primero sensores (iPhone), después la cámara.
     if (!session) await motion;
     if (!session && item) {
-      const bg = createBackground(item, {
+      const bg = createBackground({ ...item, video: videoSrc(item.video) }, {
         host: $('#xr-bg'), scene, onChange: syncBackground, onError: (code) => videoFailed(item, code),
       });
       bg.ready.catch((e) => { if (bgCtl === bg && !failed.has(item.video)) toast(e.message); });
@@ -510,15 +515,15 @@ function galleryList(inside) {
     const i = POINT_INDEX[g.punto];
     const p = POINTS[i];
     // Un video de YouTube que no se puede ver aquí se abre en YouTube.
-    const blocked = failed.has(g.video);
-    const onclick = blocked
-      ? () => { if (youtubeId(g.video)) window.open(watchUrl(g.video), '_blank', 'noopener'); }
-      : () => pickVideo(g);
-    return h('li', null, h('button', { class: 'sheet__row' + (g === background ? ' is-current' : ''), type: 'button', onclick },
+    const yt = !!youtubeId(g.video);
+    const blocked = failed.has(g.video) || missing.has(g.video);
+    const onclick = blocked ? () => window.open(watchUrl(g.video), '_blank', 'noopener') : () => pickVideo(g);
+    const tag = missing.has(g.video) ? 'Próximamente' : yt ? 'YouTube ↗' : 'No disponible';
+    return h('li', null, h('button', { class: 'sheet__row' + (g === background ? ' is-current' : ''), type: 'button', onclick, disabled: blocked && !yt },
       h('img', { class: 'sheet__thumb', src: thumbnail(g.video) || (p ? asset(p.artista.foto) : null), alt: '' }),
       h('span', { class: 'sheet__row-num', text: p ? pad(i + 1) : '360' }),
       h('span', { class: 'sheet__row-text' }, h('strong', { text: p ? p.artista.nombre : g.titulo || '360' }), p && h('span', { text: p.lugar })),
-      blocked && h('span', { class: 'sheet__row-tag sheet__row-tag--soft', text: youtubeId(g.video) ? 'YouTube ↗' : 'No disponible' }),
+      blocked && h('span', { class: 'sheet__row-tag sheet__row-tag--soft', text: tag }),
     ));
   });
   POINTS.forEach((p, i) => {
@@ -704,6 +709,7 @@ function bindUI() {
 async function boot() {
   document.querySelectorAll('[data-event-name]').forEach((el) => { el.textContent = C.evento.nombre || 'IRRUMPE'; });
   bindUI();
+  checkFiles();
   syncMicButtons();
   renderDesktop();
   renderLauncher();
@@ -724,6 +730,16 @@ async function boot() {
   }
   renderLauncher();
   if ((PARAMS.has('galeria') || TRY_VIDEO) && HAS_GALLERY) openLaunchSheet();
+}
+
+// Los archivos propios de la galería que aún no se subieron no se ofrecen.
+function checkFiles() {
+  GALLERY.forEach((g) => {
+    if (youtubeId(g.video) || /^blob:/.test(g.video)) return;
+    fetch(videoSrc(g.video), { method: 'HEAD' })
+      .then((r) => { if (!r.ok) missing.add(g.video); })
+      .catch(() => {});
+  });
 }
 
 // Acceso para depurar desde la consola del navegador.

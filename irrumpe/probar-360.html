@@ -34,6 +34,10 @@
     .verdict[data-s='ok'] { border-color: #5bd17a; }
     .verdict[data-s='bad'] { border-color: var(--red); }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .tool h2 { margin: 40px 0 6px; padding-top: 24px; border-top: 1px solid var(--line); font: 800 16px var(--font-display); font-stretch: 125%; letter-spacing: 0.2em; text-transform: uppercase; }
+    .tool input[type=file] { width: 100%; margin-bottom: 16px; padding: 12px; border: 1px dashed var(--line); background: #0d0d0d; color: var(--ink-2); font: 12px var(--font-mono); }
+    .preview { display: block; width: 100%; max-height: 360px; margin-bottom: 16px; background: #000; border: 1px solid var(--line); }
+    .checks [data-s='meh'] .mark { color: #e0b341; }
     .snippet { display: block; padding: 10px; background: #0d0d0d; border: 1px solid var(--line); font-size: 11px; overflow-x: auto; white-space: pre; user-select: all; }
   </style>
 </head>
@@ -58,13 +62,29 @@
       <button id="copy" type="button">Copiar para config.js</button>
     </div>
     <code class="snippet" id="snippet" hidden></code>
+
+    <h2>Probar un archivo</h2>
+    <p>Para un .mp4 360 propio (como <code>assets/360/prototipo.mp4</code>). Elige el archivo: no se sube a ningún lado, se revisa en este aparato.
+       Hazlo también en el celular, desde Archivos o la galería.</p>
+    <input id="file" type="file" accept="video/*">
+    <video class="preview" id="preview" playsinline muted controls loop hidden></video>
+    <p class="verdict" id="f-verdict" hidden></p>
+    <ul class="checks" id="f-checks" hidden>
+      <li id="f-play"><span class="mark"></span><b>Reproduce aquí</b><span class="text"></span></li>
+      <li id="f-ratio"><span class="mark"></span><b>Formato 360</b><span class="text"></span></li>
+      <li id="f-size"><span class="mark"></span><b>Resolución</b><span class="text"></span></li>
+      <li id="f-weight"><span class="mark"></span><b>Peso</b><span class="text"></span></li>
+    </ul>
+    <div class="actions" id="f-actions" hidden>
+      <button id="f-try" type="button">Probar con el tótem</button>
+    </div>
   </main>
 
   <script>
     (function () {
       'use strict';
       const $ = (s) => document.querySelector(s);
-      const MARK = { ok: '✓', bad: '✗', wait: '…' };
+      const MARK = { ok: '✓', bad: '✗', wait: '…', meh: '~' };
       let player = null;
       let timer = 0;
       let state = {};
@@ -195,6 +215,62 @@
         const text = $('#snippet').textContent;
         if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => { $('#copy').textContent = 'Copiado'; }).catch(() => {});
       });
+      // ---------------------------------------------------------- archivo propio
+      let fileUrl = null;
+      $('#file').addEventListener('change', () => {
+        const f = $('#file').files[0];
+        if (!f) return;
+        if (fileUrl) URL.revokeObjectURL(fileUrl);
+        fileUrl = URL.createObjectURL(f);
+        const video = $('#preview');
+        const res = { play: null, ratio: null, size: null, weight: null };
+        $('#f-checks').hidden = false;
+        $('#f-actions').hidden = true;
+        $('#f-verdict').hidden = true;
+        ['#f-play', '#f-ratio', '#f-size'].forEach((id) => check(id, 'wait', 'Revisando…'));
+        const mb = f.size / 1048576;
+        res.weight = mb > 80 ? 'bad' : mb > 40 ? 'meh' : 'ok';
+        check('#f-weight', res.weight, mb.toFixed(mb < 10 ? 1 : 0) + ' MB' + (mb > 80 ? ': pesado para datos móviles; achicarlo (ver assets/360/LEEME.md).' : mb > 40 ? ': algo pesado; con datos móviles tardará en cargar.' : ''));
+
+        const done = () => {
+          const bad = Object.values(res).includes('bad');
+          const v = $('#f-verdict');
+          v.hidden = false;
+          v.dataset.s = bad ? 'bad' : 'ok';
+          v.textContent = bad ? 'Conviene corregirlo antes de usarlo (ver los puntos con ✗ y assets/360/LEEME.md).'
+            : 'Sirve para la galería. Si en la vista previa se ven dos círculos, todavía no está unido: exportarlo como "video 360" desde la app de la cámara.';
+          $('#f-actions').hidden = res.play !== 'ok';
+        };
+        video.onloadedmetadata = () => {
+          const w = video.videoWidth, h = video.videoHeight, r = w / h;
+          res.ratio = Math.abs(r - 2) < 0.06 ? 'ok' : Math.abs(r - 16 / 9) < 0.06 ? 'meh' : 'bad';
+          check('#f-ratio', res.ratio, res.ratio === 'ok' ? 'Sí, 2:1 (equirectangular).'
+            : res.ratio === 'meh' ? '16:9: sirve solo si es equirectangular (algunas cámaras lo exportan así).'
+              : 'No parece 360 (proporción ' + r.toFixed(2) + ':1; debería ser 2:1).');
+          res.size = w > 4096 ? 'bad' : w < 1920 ? 'meh' : 'ok';
+          check('#f-size', res.size, w + '×' + h + ' · ' + Math.round(video.duration) + ' s'
+            + (w > 4096 ? ': demasiado para muchos celulares; exportar a 2880×1440 o 3840×1920.' : w < 1920 ? ': baja, se verá borroso.' : ''));
+        };
+        video.onloadeddata = () => {
+          res.play = 'ok';
+          check('#f-play', 'ok', 'Sí.');
+          done();
+        };
+        video.onerror = () => {
+          res.play = 'bad';
+          check('#f-play', 'bad', 'No: este navegador no puede reproducirlo. Exportarlo en H.264 (no H.265/HEVC) y a 2880×1440.');
+          if (res.ratio == null) { check('#f-ratio', 'wait', '—'); check('#f-size', 'wait', '—'); }
+          done();
+        };
+        video.hidden = false;
+        video.src = fileUrl;
+        video.play().catch(() => {});
+      });
+      // Abre la AR en otra pestaña con este archivo de fondo (el archivo sigue en este aparato).
+      $('#f-try').addEventListener('click', () => {
+        if (fileUrl) window.open('ar/?video=' + encodeURIComponent(fileUrl), '_blank');
+      });
+
       const v = new URLSearchParams(location.search).get('v');
       if (v) { $('#url').value = v; test(v); }
     })();

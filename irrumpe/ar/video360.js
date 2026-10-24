@@ -152,7 +152,7 @@ function file360(scene, url, { start = 0, onChange, onError }) {
   video.loop = true;
   video.preload = 'auto';
   video.src = url;
-  if (start) video.currentTime = start;
+  video.addEventListener('loadedmetadata', () => { if (start) video.currentTime = start; }, { once: true });
   const tex = new THREE.VideoTexture(video);
   tex.colorSpace = THREE.SRGBColorSpace;
   const sphere = new THREE.Mesh(
@@ -163,22 +163,43 @@ function file360(scene, url, { start = 0, onChange, onError }) {
   sphere.userData.role = 'video360';
   scene.add(sphere);
   let alive = true;
+  let blobUrl = null;
 
-  const ready = new Promise((resolve, reject) => {
-    video.addEventListener('loadeddata', resolve, { once: true });
-    video.addEventListener('error', () => {
-      reject(new Error('No se pudo cargar el video'));
-      if (alive && onError) onError(-1);
-    }, { once: true });
-  });
-  ready.catch(() => {});
   // Con sonido si se puede; si no, en silencio (siempre se permite).
-  video.play().catch(() => {
+  const play = () => video.play().catch(() => {
     if (!alive) return;
     video.muted = true;
     video.play().catch(() => {});
     if (onChange) onChange();
   });
+
+  const ready = new Promise((resolve, reject) => {
+    video.addEventListener('loadeddata', resolve, { once: true });
+    const fail = () => {
+      reject(new Error('No se pudo cargar el video'));
+      if (alive && onError) onError(-1);
+    };
+    // Si el servidor no entrega el video por partes (algunos hostings, y Safari
+    // lo exige), se descarga entero una vez y se reproduce desde la memoria.
+    video.addEventListener('error', async () => {
+      if (!alive) return;
+      if (blobUrl || url.startsWith('blob:')) { fail(); return; }
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(res.status);
+        const blob = await res.blob();
+        if (!alive) return;
+        blobUrl = URL.createObjectURL(blob);
+        video.addEventListener('error', fail, { once: true });
+        video.src = blobUrl;
+        play();
+      } catch (e) {
+        fail();
+      }
+    }, { once: true });
+  });
+  ready.catch(() => {});
+  play();
 
   return {
     kind: 'file',
@@ -196,6 +217,7 @@ function file360(scene, url, { start = 0, onChange, onError }) {
       video.pause();
       video.removeAttribute('src');
       video.load();
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
       scene.remove(sphere);
       sphere.geometry.dispose();
       sphere.material.dispose();

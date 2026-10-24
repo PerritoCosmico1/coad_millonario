@@ -58,8 +58,11 @@ window.IRRUMPE_CONFIG = {
    * Los puntos que todavía no tienen video aparecen como "Próximamente".
    */
   galeria: [
-    // { titulo: 'Prueba 360', video: 'https://youtu.be/XXXXXXXXXXX' },
-    // { punto: 'parque-ecuador', video: 'assets/360/azga.mp4' },
+    // Video de prueba para el pitch: copiar el archivo a assets/360/prototipo.mp4
+    // (ver assets/360/LEEME.md). Mientras no esté, sale como "Próximamente".
+    { titulo: 'Prueba 360', video: 'assets/360/prototipo.mp4' },
+    // { punto: 'parque-ecuador', video: 'https://youtu.be/XXXXXXXXXXX' },
+    // { punto: 'udec', video: 'assets/360/antipatriarka.mp4', inicio: 30 },
   ],
 
   // Botones para seguir a los artistas (Instagram, Spotify, YouTube). Mientras

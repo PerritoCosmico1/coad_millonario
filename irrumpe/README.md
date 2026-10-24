@@ -60,10 +60,11 @@ js/app.js               mapa, puntos, tarjeta, cuenta regresiva, panel AR
 js/concepcion-geo.js    costa y agua (generado)
 ar/                     experiencia AR (prototipo)
 qr.html                 genera el QR y la placa final para el video del pitch
-probar-360.html         prueba si un video de YouTube sirve para la galería 360 (abrir en el celular)
+probar-360.html         prueba si un video (YouTube o .mp4 propio) sirve para la galería 360 (abrir en el celular)
 PITCH.md                plan y checklist para el pitch
 _headers                cabeceras para Netlify (tipo del modelo de iPhone, caché)
 assets/                 logo, favicon, íconos, imagen para compartir, fotos, irrumpe.usdz (AR del iPhone)
+assets/360/             videos 360 propios de la galería (prototipo.mp4; ver LEEME.md)
 vendor/qrcode.js        generador de QR (MIT, Kazuhiko Arase)
 vendor/three.min.js     three.js 0.186.1 minificado (MIT), para la AR
 tools/build-geo.py      genera js/concepcion-geo.js

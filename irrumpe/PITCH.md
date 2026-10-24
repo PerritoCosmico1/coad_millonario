@@ -41,7 +41,7 @@ El botón **360** (junto a Entrar) abre la galería: el tótem sobre la grabaci�
 
 - En **la sala real**, con su luz y su Wi-Fi o datos móviles.
 - Con al menos **un iPhone, un Samsung** (dejando que abra Samsung Internet), **un Android con Chrome y uno con Firefox**.
-- Probar también la **Galería 360** en esos celulares (ver la nota sobre YouTube en `ar/README.md`).
+- Probar también la **Galería 360** ("Prueba 360") en esos celulares, con datos móviles: medir cuánto tarda en empezar el video.
 - Cronometrar: desde escanear hasta ver el tótem, idealmente menos de 30 s.
 - **Luz**: la AR necesita ver el piso. Si la sala queda a oscuras para el video, pedir que suban las luces cuando aparezca el QR. Si igual no detecta el piso, a los 5 segundos aparece **Colocar al frente**.
 - **Música**: con el ícono de ondas activado (junto a Entrar, antes de entrar), el tótem late con lo que suena en la sala, incluida la música del video. Que el audio de la sala esté fuerte en ese momento.
@@ -62,4 +62,5 @@ En pantalla o dicho en vivo, 5 segundos: **"Escaneen el código, toquen Entrar y
 - [ ] Redes de los artistas cargadas en `js/config.js` (mientras falten, los botones buscan el nombre del artista en Instagram, Spotify y YouTube).
 - [ ] Si cambian fotos, artistas o puntos: regenerar `assets/irrumpe.usdz` con `tools/export-3d.html` (instrucciones en esa página) y volver a publicar.
 - [ ] Revisar en un iPhone que "Entrar" abra el visor AR del sistema.
-- [ ] Videos de la galería en `galeria` de `js/config.js`, cada uno probado antes en el celular con `probar-360.html` (que se pueda ver fuera de YouTube y sea 360). Para el pitch, lo más seguro es un `.mp4` 360 propio en `assets/360/`.
+- [ ] `prototipo.mp4` copiado en `assets/360/` (ver `assets/360/LEEME.md`) y revisado en el celular con `probar-360.html` → "Probar un archivo". La "Prueba 360" de la galería lo usa.
+- [ ] Si se agregan videos de YouTube, probarlos antes en el celular con `probar-360.html` (que se puedan ver fuera de YouTube y sean 360).

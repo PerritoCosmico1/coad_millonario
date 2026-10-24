@@ -52,11 +52,11 @@ galeria: [
 ],
 ```
 
-Los puntos sin video aparecen como "Próximamente".
+Los puntos sin video aparecen como "Próximamente". `config.js` ya trae la entrada "Prueba 360" apuntando a `assets/360/prototipo.mp4`.
 
 **YouTube** (en vivo o grabado): la transmisión 360 de YouTube queda guardada sola en el canal al terminar, así que el mismo link sirve durante y después del evento. Un video de YouTube no se puede usar dentro del 3D (viene de otro dominio), así que el reproductor oficial va a pantalla completa detrás del tótem y en cada cuadro se le indica hacia dónde mirar (`setSphericalProperties`), con el mismo giro que la cámara virtual. Parte con sonido si el navegador lo permite; si no, en silencio, y el ícono de parlante lo activa.
 
-**Archivo propio** (`.mp4` 360): se dibuja en una esfera alrededor de la cámara; calza exacto con el tótem, pero hay que alojarlo (en el mismo sitio, o en otro servidor con CORS).
+**Archivo propio** (`.mp4` 360, **lo recomendado para el pitch**): se dibuja en una esfera alrededor de la cámara, calza exacto con el tótem y no depende de YouTube ni de bloqueos por derechos. Va en `assets/360/` (la ruta se escribe como las fotos: `assets/360/prototipo.mp4`) o en otro servidor con CORS (link completo). Si el hosting no entrega el video por partes, la app lo descarga entero y lo reproduce igual. Mientras el archivo no esté subido, su fila sale como "Próximamente". Formato y cómo achicarlo: [`assets/360/LEEME.md`](../assets/360/LEEME.md); para revisarlo antes, `probar-360.html` → "Probar un archivo".
 
 ### Videos de YouTube bloqueados: probarlos antes
 
@@ -79,7 +79,8 @@ Si el fondo gira al revés que el tótem, avisar: es un signo en `video360.js`.
 - **Horizontal, equirectangular 2:1** (no vertical): es lo que entrega cualquier cámara 360 y lo que entiende YouTube. Quien lo ve elige hacia dónde mirar, así que la orientación del teléfono no importa.
 - La cámara a la altura de los ojos (~1,6 m) y con el lente frontal hacia el escenario: ese es el "frente" que se ve al entrar.
 - **YouTube en vivo 360**: activar "Video 360°" al crear la transmisión y enviar en 4K (3840×2160) o 1440p. **Subido después**: 3840×1920 o 5760×2880, con los metadatos 360 que pone la app de la cámara al exportar (si no, YouTube lo muestra plano).
-- **Archivo propio**: 2880×1440 o 3840×1920, H.264, 30 fps, unos 10–20 Mbps. Resoluciones mayores (5.7K) muchos celulares no las decodifican.
+- **Archivo propio**: 2880×1440 (3840×1920 como máximo), H.264, 30 fps, "optimizado para web". Resoluciones mayores (5.7K) y H.265/HEVC muchos celulares no los reproducen. Para la demo, un tramo corto (20–60 s, menos de ~40 MB).
+- **Las intervenciones completas** (varios GB cada una) no conviene subirlas a Netlify: mejor un almacenamiento para archivos grandes como Cloudflare R2 (sin costo por transferencia) o Bunny, con CORS, y el link completo en `video`.
 
 ## Probarla en el celular
 
