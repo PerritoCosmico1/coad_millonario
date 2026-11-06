@@ -176,6 +176,9 @@ body::after {
 .pin.is-active .pin__core { transform: scale(1.5); animation: none; }
 .pin.is-active .pin__ring { animation-play-state: paused; opacity: 0; }
 .pin.is-active .pin__cross { opacity: 1; }
+/* Varios artistas en un mismo lugar: el número solo aparece al elegir uno. */
+.pin--grouped .pin__tag { opacity: 0; }
+.pin--grouped.is-active .pin__tag { opacity: 1; }
 .pin.is-active .pin__tag,
 .pin:hover .pin__tag { color: var(--ink); }
 

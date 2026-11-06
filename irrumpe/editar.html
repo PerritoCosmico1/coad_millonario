@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#070707">
+  <title>Editar evento — IRRUMPE</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { min-height: 100vh; overflow: auto; }
+    .ed { width: min(640px, 100%); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) var(--gutter) 120px; }
+    .ed h1 { margin: 0; font: 800 22px var(--font-display); font-stretch: 125%; letter-spacing: 0.16em; text-transform: uppercase; }
+    .ed__sub { margin: 6px 0 18px; color: var(--ink-2); font-size: 11px; line-height: 1.6; }
+    .ed select, .ed input[type=text], .ed input[type=url] {
+      width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid var(--line); background: #0d0d0d; color: var(--ink);
+      font: 13px var(--font-mono); border-radius: 0;
+    }
+    .ed label { display: block; margin: 10px 0 4px; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 14px;
+      border: 1px solid var(--line); background: none; color: var(--ink); text-decoration: none; cursor: pointer;
+      font: 10px var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .btn--red { border-color: var(--red); background: rgba(241, 27, 26, 0.14); }
+    .btn--solid { border-color: var(--red); background: var(--red); color: #fff; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .box { margin: 18px 0; padding: 14px; border: 1px solid var(--line); }
+    .box h2 { margin: 0 0 8px; font-size: 10px; font-weight: 400; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-2); }
+    .coords { font-size: 11px; color: var(--ink-3); }
+    .coords a { color: var(--ink-2); }
+    .art { position: relative; margin: 14px 0; padding: 14px; border: 1px solid var(--line); border-top: 2px solid var(--red); }
+    .art__head { display: grid; grid-template-columns: 84px 1fr; gap: 12px; align-items: start; }
+    .art__photo { position: relative; width: 84px; aspect-ratio: 4 / 5; border: 1px dashed var(--line); background: #111 center / cover no-repeat; cursor: pointer; display: grid; place-items: center; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); text-align: center; }
+    .art__photo.has-photo { border-style: solid; color: transparent; }
+    .art__photo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .art__num { position: absolute; top: 10px; right: 12px; font-size: 11px; color: var(--red); }
+    .art__live { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--ink-2); }
+    .art__live input { accent-color: var(--red); width: 18px; height: 18px; }
+    .grid3 { display: grid; grid-template-columns: 1fr; gap: 0 10px; }
+    @media (min-width: 560px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
+    .bar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; gap: 8px; justify-content: center; align-items: center;
+      padding: 12px var(--gutter) max(12px, env(safe-area-inset-bottom)); background: #0b0b0b; border-top: 1px solid var(--line);
+    }
+    .bar .btn { flex: 1; max-width: 220px; }
+    .status { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); min-width: 6em; text-align: center; }
+    .small { font-size: 10px; color: var(--ink-3); line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <main class="ed">
+    <h1 id="title">Editar evento</h1>
+    <p class="ed__sub">Los cambios se guardan solo en este celular y se ven al abrir la AR o la página desde aquí. Para dejarlos fijos para todos, descarga el respaldo y pásalo a quien mantiene el sitio.</p>
+
+    <label for="event">Evento</label>
+    <select id="event"></select>
+
+    <section class="box" id="venue" hidden>
+      <h2>Lugar</h2>
+      <p class="coords" id="venue-coords"></p>
+      <div class="row">
+        <button class="btn btn--red" id="venue-here" type="button">Usar mi ubicación (todos)</button>
+      </div>
+      <p class="small">Todos los artistas tocan en el mismo lugar: con esto queda exacto en el mapa del tótem.</p>
+    </section>
+
+    <section class="box">
+      <h2>En vivo</h2>
+      <label class="art__live"><input type="radio" name="live" value="" id="live-auto"> Automático (rota cada cierto tiempo)</label>
+      <p class="small">O marca abajo quién está tocando ahora.</p>
+    </section>
+
+    <div id="artists"></div>
+    <button class="btn" id="add" type="button">+ Agregar artista</button>
+
+    <section class="box">
+      <h2>Respaldo</h2>
+      <div class="row">
+        <button class="btn" id="download" type="button">Descargar respaldo</button>
+        <button class="btn" id="reset" type="button">Volver al original</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bar">
+    <a class="btn btn--solid" id="open-ar" href="ar/">Abrir AR</a>
+    <span class="status" id="status"></span>
+    <a class="btn" id="open-site" href="./">Ver página</a>
+  </nav>
+
+  <script src="js/config.js"></script>
+  <script src="js/eventos.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const C = window.IRRUMPE_CONFIG;
+      const $ = (s, root) => (root || document).querySelector(s);
+      const pad = (n) => String(n).padStart(2, '0');
+      const MAIN = ['instagram', 'spotify', 'youtube'];
+      // Copia de trabajo: lo que se ve hoy en este celular (evento + cambios guardados).
+      const puntos = JSON.parse(JSON.stringify(C.puntos || []));
+      let envivo = C.envivo || '';
+
+      $('#title').textContent = 'Editar ' + (C.evento.nombre || 'evento');
+      $('#open-ar').href = C.withEvent('ar/');
+      $('#open-site').href = C.withEvent('./');
+
+      // Selector de evento: el principal (config.js) y los de js/eventos.js.
+      const sel = $('#event');
+      const opts = [['', 'IRRUMPE (principal)'], ...Object.entries(window.IRRUMPE_EVENTOS).map(([id, e]) => [id, e.evento && e.evento.nombre ? e.evento.nombre : id])];
+      opts.forEach(([id, name]) => sel.append(new Option(name, id, false, (C.id || '') === id)));
+      sel.addEventListener('change', () => {
+        const u = new URL(location.href);
+        if (sel.value) u.searchParams.set('evento', sel.value); else u.searchParams.delete('evento');
+        location.href = u.href;
+      });
+
+      // ---------------------------------------------------------- guardar
+      let saveTimer = 0;
+      function status(t) { $('#status').textContent = t; }
+      function save() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          try {
+            localStorage.setItem(C.localKey, JSON.stringify({ puntos, envivo, guardado: new Date().toISOString() }));
+            status('Guardado');
+          } catch (e) {
+            status('Sin espacio');
+            alert('No se pudo guardar: el celular no tiene espacio para tantas fotos. Usa fotos más chicas o quita alguna.');
+          }
+        }, 250);
+        status('…');
+      }
+
+      // ---------------------------------------------------------- utilidades
+      const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'artista';
+      function socialUrl(k, v) {
+        v = v.trim();
+        if (!v) return '';
+        if (/^https?:\/\//i.test(v)) return v;
+        const h = v.replace(/^@/, '');
+        if (k === 'instagram') return 'https://www.instagram.com/' + h + '/';
+        if (k === 'youtube') return 'https://www.youtube.com/@' + h;
+        if (k === 'spotify') return 'https://open.spotify.com/search/' + encodeURIComponent(v);
+        return v;
+      }
+      function where(cb, btn) {
+        if (!navigator.geolocation) { alert('Este navegador no da la ubicación.'); return; }
+        const label = btn.textContent;
+        btn.textContent = 'Buscando…';
+        navigator.geolocation.getCurrentPosition((pos) => {
+          btn.textContent = label;
+          cb(+pos.coords.latitude.toFixed(5), +pos.coords.longitude.toFixed(5), Math.round(pos.coords.accuracy));
+        }, (err) => {
+          btn.textContent = label;
+          alert(err.code === 1 ? 'Sin permiso de ubicación. Actívalo para este sitio en el navegador.' : 'No se pudo obtener la ubicación. Intenta de nuevo (mejor cerca de una ventana o afuera).');
+        }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+      }
+      const mapLink = (p) => 'https://www.google.com/maps/search/?api=1&query=' + p.lat + ',' + p.lng;
+
+      // Foto: se achica a 720 px y JPEG, para que quepan varias en el celular.
+      function readPhoto(file) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            const k = Math.min(1, 720 / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * k);
+            c.height = Math.round(img.height * k);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
+            resolve(c.toDataURL('image/jpeg', 0.8));
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagen')); };
+          img.src = url;
+        });
+      }
+
+      // ---------------------------------------------------------- lugar común
+      const sameVenue = puntos.length > 1 && puntos.every((p) => Math.abs(p.lat - puntos[0].lat) < 1e-4 && Math.abs(p.lng - puntos[0].lng) < 1e-4);
+      function renderVenue() {
+        $('#venue').hidden = !sameVenue;
+        if (!sameVenue) return;
+        const p = puntos[0];
+        $('#venue-coords').innerHTML = '';
+        $('#venue-coords').append(document.createTextNode((p.lugar || '') + ' · ' + p.lat + ', ' + p.lng + ' · '), Object.assign(document.createElement('a'), { href: mapLink(p), target: '_blank', rel: 'noopener', textContent: 'ver en el mapa ↗' }));
+      }
+      $('#venue-here').addEventListener('click', (e) => where((lat, lng, acc) => {
+        puntos.forEach((p) => { p.lat = lat; p.lng = lng; });
+        renderVenue();
+        render();
+        save();
+        if (acc > 100) alert('Ubicación aproximada (±' + acc + ' m). Si puedes, intenta de nuevo cerca de una ventana o afuera.');
+      }, e.currentTarget));
+
+      // ---------------------------------------------------------- artistas
+      $('#live-auto').checked = !envivo;
+      $('#live-auto').addEventListener('change', () => { envivo = ''; save(); });
+
+      function field(labelText, value, onInput, placeholder) {
+        const wrap = document.createElement('div');
+        const id = 'f' + Math.random().toString(36).slice(2, 8);
+        const l = Object.assign(document.createElement('label'), { htmlFor: id, textContent: labelText });
+        const i = Object.assign(document.createElement('input'), { id, type: 'text', value: value || '', placeholder: placeholder || '' });
+        i.autocomplete = 'off';
+        i.addEventListener('input', () => { onInput(i.value); save(); });
+        wrap.append(l, i);
+        return wrap;
+      }
+
+      function render() {
+        const box = $('#artists');
+        box.replaceChildren();
+        puntos.forEach((p, i) => {
+          const a = p.artista;
+          a.redes = a.redes || {};
+          const el = document.createElement('section');
+          el.className = 'art';
+          el.append(Object.assign(document.createElement('span'), { className: 'art__num', textContent: pad(i + 1) }));
+
+          const photo = document.createElement('label');
+          photo.className = 'art__photo' + (a.foto ? ' has-photo' : '');
+          photo.textContent = 'Foto';
+          if (a.foto) photo.style.backgroundImage = 'url("' + a.foto.replace(/"/g, '%22') + '")';
+          const file = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*' });
+          file.setAttribute('aria-label', 'Foto de ' + a.nombre);
+          file.addEventListener('change', async () => {
+            const f = file.files[0];
+            if (!f) return;
+            try {
+              a.foto = await readPhoto(f);
+              save();
+              render();
+            } catch (e) { alert('No se pudo leer esa imagen.'); }
+          });
+          photo.append(file);
+
+          const main = document.createElement('div');
+          main.append(
+            field('Nombre', a.nombre, (v) => { a.nombre = v; }),
+            field('Género (opcional)', a.genero, (v) => { a.genero = v; }, 'p. ej. post-punk'),
+          );
+          const head = document.createElement('div');
+          head.className = 'art__head';
+          head.append(photo, main);
+          el.append(head);
+
+          const socials = document.createElement('div');
+          socials.className = 'grid3';
+          MAIN.forEach((k) => {
+            const label = { instagram: 'Instagram', spotify: 'Spotify', youtube: 'YouTube' }[k];
+            socials.append(field(label, a.redes[k] || '', (v) => { a.redes[k] = socialUrl(k, v); }, k === 'instagram' ? '@usuario' : 'link'));
+          });
+          el.append(socials);
+
+          if (!sameVenue) {
+            el.append(field('Lugar', p.lugar, (v) => { p.lugar = v; }));
+            const coords = document.createElement('p');
+            coords.className = 'coords';
+            coords.textContent = p.lat + ', ' + p.lng;
+            const here = Object.assign(document.createElement('button'), { className: 'btn', type: 'button', textContent: 'Usar mi ubicación' });
+            here.addEventListener('click', () => where((lat, lng) => { p.lat = lat; p.lng = lng; coords.textContent = lat + ', ' + lng; save(); }, here));
+            const r = document.createElement('div');
+            r.className = 'row';
+            r.append(here, coords);
+            el.append(r);
+          }
+
+          const live = document.createElement('label');
+          live.className = 'art__live';
+          const radio = Object.assign(document.createElement('input'), { type: 'radio', name: 'live', value: p.id, checked: envivo === p.id });
+          radio.addEventListener('change', () => { envivo = p.id; save(); });
+          live.append(radio, document.createTextNode(' En vivo ahora'));
+
+          const actions = document.createElement('div');
+          actions.className = 'row';
+          actions.style.justifyContent = 'space-between';
+          const del = Object.assign(document.createElement('button'), { className: 'btn', type: 'button', textContent: 'Quitar' });
+          del.addEventListener('click', () => {
+            if (!confirm('¿Quitar a ' + (a.nombre || 'este artista') + '?')) return;
+            puntos.splice(i, 1);
+            if (envivo === p.id) envivo = '';
+            save();
+            render();
+          });
+          const clear = Object.assign(document.createElement('button'), { className: 'btn', type: 'button', textContent: 'Quitar foto', hidden: !a.foto });
+          clear.addEventListener('click', () => { a.foto = ''; save(); render(); });
+          actions.append(live, clear, del);
+          el.append(actions);
+          box.append(el);
+        });
+      }
+
+      $('#add').addEventListener('click', () => {
+        const base = puntos[0] || { lugar: '', direccion: '', lat: -36.827, lng: -73.050 };
+        let id = 'artista-' + (puntos.length + 1);
+        while (puntos.some((p) => p.id === id)) id += 'b';
+        puntos.push({
+          id, lugar: base.lugar, direccion: base.direccion, lat: base.lat, lng: base.lng, hora: '',
+          artista: { nombre: 'Nuevo artista', genero: '', bio: '', foto: '', musica: {}, redes: {} },
+        });
+        save();
+        render();
+        const last = $('#artists').lastElementChild;
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+      // ---------------------------------------------------------- respaldo
+      $('#download').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify({ evento: C.id || 'irrumpe', puntos, envivo }, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'evento-' + (C.id || 'irrumpe') + '.json';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      });
+      $('#reset').addEventListener('click', () => {
+        if (!confirm('¿Borrar los cambios de este celular y volver al evento original?')) return;
+        try { localStorage.removeItem(C.localKey); } catch (e) { /* nada guardado */ }
+        location.reload();
+      });
+
+      // Los id de los artistas nuevos siguen su nombre (para "en vivo" y los links).
+      document.addEventListener('change', () => {
+        puntos.forEach((p) => {
+          if (!/^artista-\d+b*$/.test(p.id) || !p.artista.nombre || p.artista.nombre === 'Nuevo artista') return;
+          let id = slug(p.artista.nombre);
+          while (puntos.some((q) => q !== p && q.id === id)) id += '-2';
+          if (envivo === p.id) envivo = id;
+          p.id = id;
+          save();
+        });
+      });
+
+      renderVenue();
+      render();
+      status(C.local ? 'Con cambios' : '');
+    })();
+  </script>
+</body>
+</html>

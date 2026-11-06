@@ -11,6 +11,14 @@
   const C = window.IRRUMPE_CONFIG;
   const GEO = window.IRRUMPE_GEO;
   const POINTS = C.puntos || [];
+  // Puntos en el mismo lugar (un festival): grupo y posición dentro del grupo,
+  // para repartirlos en un anillo alrededor del lugar en vez de apilarlos.
+  const SAME_PLACE = POINTS.map((p, i) => {
+    const group = POINTS.map((q, j) => j).filter((j) => Math.abs(POINTS[j].lat - p.lat) < 1e-4 && Math.abs(POINTS[j].lng - p.lng) < 1e-4);
+    return { n: group.length, k: group.indexOf(i) };
+  });
+  // Si varios comparten lugar, el índice nombra a los artistas (no seis veces el mismo lugar).
+  const SHARED_PLACES = SAME_PLACE.some((g) => g.n > 1);
 
   const $ = (sel) => document.querySelector(sel);
   const pad = (n) => String(n).padStart(2, '0');
@@ -192,6 +200,7 @@
         h('span', { class: 'pin__cross' }),
         h('span', { class: 'pin__core' }),
         h('span', { class: 'pin__tag', text: pad(i + 1) }));
+        if (SAME_PLACE[i].n > 1) el.classList.add('pin--grouped');
         this.layer.append(el);
         this.pins.push({ el, x: 0, y: 0 });
       });
@@ -387,6 +396,13 @@
     placeOverlay(checkLabels) {
       POINTS.forEach((pt, i) => {
         const p = this.project(pt.lat, pt.lng);
+        const g = SAME_PLACE[i];
+        if (g.n > 1) {
+          // Radio suficiente para que cada pin (44 px de toque) no tape al vecino.
+          const a = (g.k / g.n) * Math.PI * 2 - Math.PI / 2, r = Math.max(24, (g.n * 46) / (2 * Math.PI));
+          p.x += Math.cos(a) * r;
+          p.y += Math.sin(a) * r;
+        }
         const pin = this.pins[i];
         pin.x = p.x;
         pin.y = p.y;
@@ -758,7 +774,7 @@
       const pin = map.pins[i].el;
       const item = h('button', { class: 'index__item', type: 'button' },
         h('span', { class: 'index__num', text: pad(i + 1) }),
-        h('span', { class: 'index__name', text: p.lugar }),
+        h('span', { class: 'index__name', text: SHARED_PLACES ? p.artista.nombre : p.lugar }),
         h('span', { class: 'index__time', text: p.hora || '' }));
       list.append(h('li', null, item));
 
@@ -794,7 +810,7 @@
   const ar = {
     init() {
       this.dialog = $('#ar-dialog');
-      this.url = new URL((C.ar && C.ar.url) || 'ar/', location.href).href;
+      this.url = C.withEvent(new URL((C.ar && C.ar.url) || 'ar/', location.href).href);
       const link = $('#ar-open');
       link.href = this.url;
       // En celular el enlace lleva directo a la AR; en computador se muestra un QR.

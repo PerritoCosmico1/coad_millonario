@@ -14,7 +14,7 @@ const KM_PER_DEG_LAT = 110.574;
 const kmPerDegLng = (lat) => 111.32 * Math.cos((lat * Math.PI) / 180);
 
 const DISC_RADIUS = 0.55; // m
-const MAP_RADIUS_KM = 1.75; // cuánto de la ciudad entra en el disco
+const MAP_RADIUS_KM = 1.75; // cuánto de la ciudad entra en el disco, como mínimo (crece si los puntos están más lejos)
 const CARD_W = 0.28;
 const CARD_H = CARD_W * (704 / 512);
 const CARD_GAP = 0.31;
@@ -112,14 +112,15 @@ function chaikin(ring, passes) {
 }
 
 // Disco: tierra como grilla de puntos, agua vacía, borde rojo con marcas.
-function mapTexture(geo, center, points, toDisc) {
+// labels: [{ x, z, text, ring }] en metros del disco; ring > 0 = varios puntos en un lugar.
+function mapTexture(geo, center, radiusKm, labels) {
   const S = 1024, R = S / 2;
   const c = canvas(S, S);
   const ctx = c.getContext('2d');
   const kx = kmPerDegLng(center.lat);
   const px = (lng, lat) => [
-    R + ((lng - center.lng) * kx / MAP_RADIUS_KM) * R,
-    R - ((lat - center.lat) * KM_PER_DEG_LAT / MAP_RADIUS_KM) * R,
+    R + ((lng - center.lng) * kx / radiusKm) * R,
+    R - ((lat - center.lat) * KM_PER_DEG_LAT / radiusKm) * R,
   ];
   const path = (rings) => {
     const p = new Path2D();
@@ -174,13 +175,15 @@ function mapTexture(geo, center, points, toDisc) {
     ctx.restore();
   }
 
-  // Números junto a cada punto.
+  // Número junto a cada punto; si varios comparten lugar, el nombre del lugar bajo el anillo.
   setFont(ctx, '500 26px "JetBrains Mono", monospace');
   ctx.fillStyle = COLORS.red;
-  points.forEach((p, i) => {
-    const d = toDisc(p);
-    const x = R + (d.x / DISC_RADIUS) * R, y = R + (d.z / DISC_RADIUS) * R;
-    ctx.fillText(pad(i + 1), x + 18, y + 9);
+  labels.forEach((l) => {
+    const x = R + (l.x / DISC_RADIUS) * R, y = R + (l.z / DISC_RADIUS) * R;
+    if (!l.ring) { ctx.fillText(l.text, x + 18, y + 9); return; }
+    setFont(ctx, '500 22px "JetBrains Mono", monospace');
+    spacedText(ctx, l.text, x, y + (l.ring / DISC_RADIUS) * R + 44, 3, 'center');
+    setFont(ctx, '500 26px "JetBrains Mono", monospace');
   });
   ctx.restore();
 
@@ -223,11 +226,37 @@ function cardTexture(point, index, img) {
   spacedText(ctx, pad(index + 1), 28, 48, 3);
 
   drawDuotone(ctx, img, 28, 70, W - 56, W - 56);
+  // Sin foto: las iniciales del artista sobre una grilla de puntos.
+  if (!img) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(236, 233, 226, 0.08)';
+    for (let y = 86; y < 70 + W - 56; y += 16) for (let x = 44; x < W - 28; x += 16) ctx.fillRect(x, y, 3, 3);
+    const initials = point.artista.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+    ctx.fillStyle = COLORS.red;
+    ctx.textAlign = 'center';
+    const s = fitFont(ctx, initials, 'Archivo, sans-serif', 800, 220, W - 140, 'expanded');
+    ctx.fillText(initials, W / 2, 70 + (W - 56) / 2 + s * 0.36);
+    ctx.restore();
+  }
 
   const name = point.artista.nombre.toUpperCase();
   ctx.fillStyle = COLORS.ink;
-  fitFont(ctx, name, 'Archivo, sans-serif', 800, 64, W - 56, 'expanded');
-  ctx.fillText(name, 28, 616);
+  const size = fitFont(ctx, name, 'Archivo, sans-serif', 800, 64, W - 56, 'expanded');
+  const words = name.split(/\s+/);
+  if (size < 44 && words.length > 1) {
+    // Nombre largo: dos líneas, cortadas donde queden más parejas.
+    let cut = 1;
+    for (let k = 2; k < words.length; k++) {
+      const d = (j) => Math.abs(words.slice(0, j).join(' ').length - words.slice(j).join(' ').length);
+      if (d(k) < d(cut)) cut = k;
+    }
+    const l1 = words.slice(0, cut).join(' '), l2 = words.slice(cut).join(' ');
+    const s2 = fitFont(ctx, l1.length >= l2.length ? l1 : l2, 'Archivo, sans-serif', 800, 46, W - 56, 'expanded');
+    ctx.fillText(l1, 28, 616 - s2 - 2);
+    ctx.fillText(l2, 28, 616);
+  } else {
+    ctx.fillText(name, 28, 616);
+  }
 
   setFont(ctx, '400 19px "JetBrains Mono", monospace');
   ctx.fillStyle = 'rgba(236, 233, 226, 0.6)';
@@ -242,8 +271,16 @@ function titleTexture(config, logo) {
   ctx.textAlign = 'center';
   if (logo) ctx.drawImage(logo, W / 2 - 34, 20, 68, 68);
   ctx.fillStyle = COLORS.ink;
-  setFont(ctx, '800 110px Archivo, sans-serif', 'expanded');
-  spacedText(ctx, (config.evento.nombre || 'IRRUMPE').toUpperCase(), W / 2, 220, 26, 'center');
+  // Se achica hasta caber (nombres de evento más largos que IRRUMPE).
+  const title = (config.evento.nombre || 'IRRUMPE').toUpperCase();
+  let size = 110;
+  const width = () => [...title].reduce((w, ch) => w + ctx.measureText(ch).width, 0) + size * 0.24 * (title.length - 1);
+  setFont(ctx, '800 ' + size + 'px Archivo, sans-serif', 'expanded');
+  while (size > 40 && width() > W - 60) {
+    size -= 4;
+    setFont(ctx, '800 ' + size + 'px Archivo, sans-serif', 'expanded');
+  }
+  spacedText(ctx, title, W / 2, 220, size * 0.24, 'center');
   return texture(c);
 }
 
@@ -288,9 +325,31 @@ export async function createHologram({ config, geo }) {
     lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
   };
   const kx = kmPerDegLng(center.lat);
+  // El disco abarca todos los puntos, con margen.
+  const farKm = Math.max(0, ...points.map((p) => Math.hypot((p.lng - center.lng) * kx, (p.lat - center.lat) * KM_PER_DEG_LAT)));
+  const mapKm = Math.max(MAP_RADIUS_KM, farKm * 1.3);
   const toDisc = (p) => ({
-    x: ((p.lng - center.lng) * kx / MAP_RADIUS_KM) * DISC_RADIUS,
-    z: -((p.lat - center.lat) * KM_PER_DEG_LAT / MAP_RADIUS_KM) * DISC_RADIUS,
+    x: ((p.lng - center.lng) * kx / mapKm) * DISC_RADIUS,
+    z: -((p.lat - center.lat) * KM_PER_DEG_LAT / mapKm) * DISC_RADIUS,
+  });
+  // Varios artistas en el mismo lugar (un festival): sus puntos se reparten en
+  // un anillo chico alrededor del lugar, para que cada rayo salga de su punto.
+  const spots = points.map(toDisc);
+  const clusters = [];
+  spots.forEach((d, i) => {
+    const g = clusters.find((c) => Math.hypot(spots[c[0]].x - d.x, spots[c[0]].z - d.z) < 0.03);
+    if (g) g.push(i); else clusters.push([i]);
+  });
+  const pinAt = spots.map((d) => ({ x: d.x, z: d.z }));
+  const labels = clusters.map((g) => {
+    const c0 = spots[g[0]];
+    if (g.length < 2) return { x: c0.x, z: c0.z, text: pad(g[0] + 1) };
+    const ring = 0.028 + 0.004 * g.length;
+    g.forEach((i, k) => {
+      const a = (k / g.length) * Math.PI * 2 - Math.PI / 2;
+      pinAt[i] = { x: c0.x + Math.cos(a) * ring, z: c0.z + Math.sin(a) * ring };
+    });
+    return { x: c0.x, z: c0.z, text: (points[g[0]].lugar || '').toUpperCase(), ring };
   });
 
   // Las fuentes tienen que estar cargadas antes de dibujar en canvas.
@@ -304,9 +363,11 @@ export async function createHologram({ config, geo }) {
       new Promise((r) => setTimeout(r, 2500)),
     ]);
   }
+  // Rutas del sitio desde ar/; las fotos cargadas en editar.html ya vienen como data:.
+  const rel = (p) => (!p ? null : /^([a-z]+:|\/)/i.test(p) ? p : '../' + p);
   const [logo, ...photos] = await Promise.all([
-    loadImage(config.compania.logo ? '../' + config.compania.logo : null),
-    ...points.map((p) => loadImage(p.artista.foto ? '../' + p.artista.foto : null)),
+    loadImage(rel(config.compania.logo)),
+    ...points.map((p) => loadImage(rel(p.artista.foto))),
   ]);
 
   const group = new THREE.Group();
@@ -321,7 +382,7 @@ export async function createHologram({ config, geo }) {
   // Disco con el mapa.
   const disc = new THREE.Mesh(
     new THREE.CircleGeometry(DISC_RADIUS, 96),
-    new THREE.MeshBasicMaterial({ map: mapTexture(geo, center, points, toDisc), transparent: true, depthWrite: false, side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: mapTexture(geo, center, mapKm, labels), transparent: true, depthWrite: false, side: THREE.DoubleSide }),
   );
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = 0.003;
@@ -341,13 +402,18 @@ export async function createHologram({ config, geo }) {
   // para que los rayos no se crucen.
   const order = points.map((p, i) => i).sort((a, b) => points[a].lng - points[b].lng);
   const slot = new Map(order.map((idx, k) => [idx, k]));
+  // Con más de cuatro artistas, dos filas (la de atrás más alta) para que no
+  // quede una hilera demasiado ancha para la pantalla.
+  const rows = points.length > 4 ? 2 : 1;
+  const LIFT = CARD_H + 0.05;
+  const liftMax = (rows - 1) * LIFT;
 
   const ringGeo = new THREE.RingGeometry(0.9, 1, 48);
   const pins = [];
   const cards = [];
   const cardGeo = new THREE.PlaneGeometry(CARD_W, CARD_H);
   points.forEach((p, i) => {
-    const d = toDisc(p);
+    const d = pinAt[i];
     const pin = new THREE.Group();
     pin.position.set(d.x, 0.006, d.z);
     pin.userData = { role: 'pin', index: i };
@@ -364,10 +430,14 @@ export async function createHologram({ config, geo }) {
     group.add(pin);
 
     const k = slot.get(i);
+    const row = rows === 2 ? k % 2 : 0;
+    const inRow = rows === 2 ? Math.floor(k / 2) : k;
+    const count = rows === 2 ? (row === 0 ? Math.ceil(points.length / 2) : Math.floor(points.length / 2)) : points.length;
+    const off = inRow - (count - 1) / 2;
     const card = new THREE.Mesh(cardGeo, new THREE.MeshBasicMaterial({
       map: cardTexture(p, i, photos[i]), transparent: true, side: THREE.DoubleSide,
     }));
-    card.position.set((k - (points.length - 1) / 2) * CARD_GAP, 1, -0.32 - Math.abs(k - (points.length - 1) / 2) * 0.06);
+    card.position.set(off * CARD_GAP, 1, -0.32 - Math.abs(off) * 0.06 - row * 0.12);
     card.userData = { role: 'card', index: i };
     card.renderOrder = LAYER.cards;
     group.add(card);
@@ -382,7 +452,7 @@ export async function createHologram({ config, geo }) {
     group.add(beam);
 
     pins.push({ group: pin, core, rings });
-    cards.push({ mesh: card, beam, base: card.position.clone(), index: i });
+    cards.push({ mesh: card, beam, base: card.position.clone(), index: i, lift: row * LIFT });
   });
 
   // Título flotante.
@@ -451,11 +521,11 @@ export async function createHologram({ config, geo }) {
     // Alto de las tarjetas sobre el disco (se ajusta a la altura de los ojos).
     setHeight(h) {
       height = Math.max(0.35, Math.min(1.6, h));
-      dust.scale.y = (height + 0.4) / 1.4;
-      title.position.set(0, height + CARD_H / 2 + 0.16, -0.44);
+      dust.scale.y = (height + liftMax + 0.4) / 1.4;
+      title.position.set(0, height + liftMax + CARD_H / 2 + 0.16, -0.44 - (rows - 1) * 0.12);
       cards.forEach((c) => {
-        c.base.y = height;
-        c.mesh.position.y = height;
+        c.base.y = height + c.lift;
+        c.mesh.position.y = c.base.y;
       });
     },
 
@@ -514,7 +584,7 @@ export async function createHologram({ config, geo }) {
       });
 
       title.rotation.y = Math.atan2(tmp.x - title.position.x, tmp.z - title.position.z);
-      title.position.y = height + CARD_H / 2 + 0.16 + Math.sin(sec * 0.6) * 0.01;
+      title.position.y = height + liftMax + CARD_H / 2 + 0.16 + Math.sin(sec * 0.6) * 0.01;
 
       badge.visible = live >= 0;
       if (live >= 0) {
@@ -525,7 +595,7 @@ export async function createHologram({ config, geo }) {
 
       // Partículas.
       const arr = dustGeo.attributes.position.array;
-      const top = height + 0.4;
+      const top = height + liftMax + 0.4;
       for (let n = 0; n < N; n++) {
         arr[n * 3 + 1] += (0.072 + level * 0.36) * dt;
         if (arr[n * 3 + 1] > top) arr[n * 3 + 1] = 0;

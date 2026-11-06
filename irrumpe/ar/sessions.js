@@ -176,8 +176,8 @@ export async function startXR(ctx, { scale = 1 } = {}) {
         reticle.visible = !!pose;
         if (pose) reticle.matrix.fromArray(pose.transform.matrix);
         ctx.onSurface(!!pose);
-        // Sala oscura o sin textura: ofrecer ponerlo al frente igual.
-        if (!pose && !offeredAhead && performance.now() - searchingSince > 5000) {
+        // Sala oscura o sin textura: ofrecer ponerlo al frente igual (o sin anclar).
+        if (!pose && !offeredAhead && performance.now() - searchingSince > 2500) {
           offeredAhead = true;
           ctx.onNoSurface();
         }

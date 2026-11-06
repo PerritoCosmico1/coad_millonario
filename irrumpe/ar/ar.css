@@ -182,6 +182,14 @@
   cursor: pointer;
 }
 .xr__top-right { display: flex; gap: 8px; }
+.xr__icon .xr__fill { fill: var(--red); stroke: none; }
+.xr__pills { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.xr__pill--soft { border-color: rgba(236, 233, 226, 0.4); background: rgba(0, 0, 0, 0.35); }
+/* Modo grabación: solo el tótem (y las fichas si se tocan). Se sale manteniendo presionado. */
+.xr.is-rec .xr__top,
+.xr.is-rec .xr__live,
+.xr.is-rec .xr__actions { opacity: 0 !important; pointer-events: none; }
+.xr.is-rec .xr__dock { background: none; }
 .xr__icon--360 { font-size: 10px; letter-spacing: 0.04em; }
 .xr__icon--360[aria-pressed='true'] { color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
 #xr-sound[aria-pressed='true'] .xr__sound-off,

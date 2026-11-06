@@ -58,6 +58,7 @@
   </main>
 
   <script src="js/config.js"></script>
+  <script src="js/eventos.js"></script>
   <script src="vendor/qrcode.js"></script>
   <script>
     (function () {
@@ -66,7 +67,7 @@
       const INK = '#ece9e2', RED = '#f11b1a', BG = '#070707';
       const $ = (s) => document.querySelector(s);
       const base = location.href.replace(/qr\.html.*$/, '');
-      $('#url').value = base + (C.ar && C.ar.url ? C.ar.url : 'ar/');
+      $('#url').value = C.withEvent(base + (C.ar && C.ar.url ? C.ar.url : 'ar/'));
 
       function make() {
         const qr = window.qrcode(0, $('#ecc').value);

@@ -63,7 +63,8 @@ const IS_ANDROID = /Android/i.test(UA);
 // Chrome propiamente tal (no Samsung Internet, Edge, Opera ni otros basados en Chromium).
 const IS_CHROME = /Chrome\/\d/.test(UA) && !/SamsungBrowser|EdgA|OPR|YaBrowser|UCBrowser|; wv\)/.test(UA);
 // AR Quick Look: Safari (y otros navegadores) en iPhone/iPad.
-const QUICKLOOK = (() => {
+// Solo si el evento tiene su modelo para el iPhone (assets/irrumpe.usdz es el de IRRUMPE).
+const QUICKLOOK = AR.modeloIphone !== false && (() => {
   const a = document.createElement('a');
   return !!(a.relList && a.relList.supports && a.relList.supports('ar'));
 })();
@@ -116,10 +117,11 @@ function h(tag, attrs, ...children) {
 }
 
 const icon = (kind) => '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="' + REACTIONS[kind] + '"/></svg>';
-const asset = (p) => (p ? '../' + p : '');
+// Rutas del sitio (assets/…) desde ar/; las fotos cargadas en editar.html ya son data:.
+const asset = (p) => (!p ? '' : /^([a-z]+:|\/)/i.test(p) ? p : '../' + p);
 // Video de la galería: un link de YouTube o absoluto queda igual; una ruta del
 // sitio (assets/360/…, como las fotos en config.js) se resuelve desde la raíz.
-const videoSrc = (v) => (youtubeId(v) || /^([a-z]+:|\/)/i.test(v) ? v : asset(v));
+const videoSrc = (v) => (youtubeId(v) ? v : asset(v));
 
 function eventDate() {
   const parts = new Intl.DateTimeFormat('es-CL', {
@@ -136,6 +138,9 @@ function eventDate() {
 function liveIndex(now) {
   const n = POINTS.length;
   if (!n) return -1;
+  // Marcado a mano en editar.html (quién está tocando de verdad).
+  const manual = C.envivo ? POINTS.findIndex((p) => p.id === C.envivo) : -1;
+  if (manual >= 0) return manual;
   if (PROTO) return Math.floor(now / ((AR.segundosPorSet || 120) * 1000)) % n;
   if (now < START || now >= END) return -1;
   const day = C.evento.inicio.slice(0, 10);
@@ -259,7 +264,7 @@ function renderDesktop() {
   $('#desktop-360').hidden = !HAS_GALLERY;
   if (typeof window.qrcode !== 'function') return;
   const qr = window.qrcode(0, 'M');
-  qr.addData(location.href.split('?')[0]);
+  qr.addData(C.withEvent(location.href.split('?')[0]));
   qr.make();
   const n = qr.getModuleCount();
   let d = '';
@@ -369,11 +374,11 @@ const ctx = {
     setHint(found ? 'Toca para colocar' : 'Apunta al suelo');
   },
   onNoSurface() {
-    $('#xr-ahead').hidden = false;
+    $('#xr-nosurface').hidden = false;
   },
   onPlaced() {
     lastSurface = null;
-    $('#xr-ahead').hidden = true;
+    $('#xr-nosurface').hidden = true;
     setHint('');
     pinchHint();
     if (navigator.vibrate) navigator.vibrate(30);
@@ -393,14 +398,15 @@ const ctx = {
     clearTimeout(idleTimer);
     closeSheet();
     xrRoot.classList.remove('xr--webxr', 'is-idle');
-    // Cambio de fondo: se entra de inmediato con el nuevo, sin pasar por el lanzador.
+    // Cambio de fondo (o paso a "Sin anclar"): se entra de inmediato, sin pasar por el lanzador.
     if (pendingSwitch) {
-      const { item } = pendingSwitch;
+      const { item, free } = pendingSwitch;
       pendingSwitch = null;
-      enterInteractive(route === 'xr' && !item, item);
+      enterInteractive(route === 'xr' && !item && !free, item);
       return;
     }
     xrRoot.hidden = true;
+    xrRoot.classList.remove('is-rec');
     document.body.classList.remove('is-xr');
     $('#launch').hidden = false;
     startPreview();
@@ -429,7 +435,7 @@ async function enterInteractive(useXR, item = null) {
   video.after(canvas); // el 3D va sobre el video de la cámara y debajo de la interfaz
   lastSurface = null;
   setHint('');
-  $('#xr-ahead').hidden = true;
+  $('#xr-nosurface').hidden = true;
   quality.reset();
 
   try {
@@ -668,6 +674,32 @@ function bindUI() {
   $('#xr-exit').addEventListener('click', () => { if (session) session.end(); });
   $('#xr-recenter').addEventListener('click', () => { if (session) session.recenter(); });
   $('#xr-ahead').addEventListener('click', () => { if (session && session.placeAhead) session.placeAhead(); });
+  // Muy oscuro: la AR anclada no ve el piso o el tótem salta. El modo con
+  // giroscopio no necesita luz (sigue los giros, no los pasos).
+  $('#xr-free').addEventListener('click', () => {
+    if (!session) return;
+    pendingSwitch = { item: null, free: true };
+    session.end({ silent: true });
+  });
+  // Modo grabación: sin botones en pantalla. Se vuelve manteniendo presionado.
+  $('#xr-rec').addEventListener('click', () => {
+    xrRoot.classList.add('is-rec');
+    closeSheet();
+    toast('Mantén presionado para volver');
+  });
+  let press = null;
+  xrRoot.addEventListener('pointerdown', (e) => {
+    clearTimeout(press && press.timer);
+    if (!xrRoot.classList.contains('is-rec') || !e.isPrimary) { press = null; return; }
+    press = { x: e.clientX, y: e.clientY, timer: setTimeout(() => { xrRoot.classList.remove('is-rec'); wake(); }, 700) };
+  });
+  const cancelPress = (e) => {
+    if (!press) return;
+    if (e.type === 'pointermove' && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 12) return;
+    clearTimeout(press.timer);
+    press = null;
+  };
+  ['pointermove', 'pointerup', 'pointercancel'].forEach((t) => xrRoot.addEventListener(t, cancelPress));
   $('#xr-lineup').addEventListener('click', () => (sheet.hidden || sheet.dataset.kind !== 'lineup' ? openLineup() : closeSheet()));
   $('#xr-live').addEventListener('click', () => {
     const i = Number($('#xr-live').dataset.index);
@@ -708,6 +740,7 @@ function bindUI() {
 
 async function boot() {
   document.querySelectorAll('[data-event-name]').forEach((el) => { el.textContent = C.evento.nombre || 'IRRUMPE'; });
+  $('.launch__back').href = C.withEvent('../');
   bindUI();
   checkFiles();
   syncMicButtons();

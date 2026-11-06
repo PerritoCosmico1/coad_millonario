@@ -57,6 +57,9 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
         <div class="xr__top-right">
+          <button class="xr__icon" id="xr-rec" type="button" aria-label="Modo grabación: esconder la interfaz">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" class="xr__fill"/></svg>
+          </button>
           <button class="xr__icon" id="xr-sound" type="button" aria-pressed="true" aria-label="Sonido del video" hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="xr__sound-on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="xr__sound-off" d="M16 9l6 6M22 9l-6 6"/></svg>
           </button>
@@ -71,7 +74,10 @@
 
       <div class="xr__dock" id="xr-dock">
         <p class="xr__hint" id="xr-hint" hidden></p>
-        <button class="xr__pill" id="xr-ahead" type="button" hidden>Colocar al frente</button>
+        <div class="xr__pills" id="xr-nosurface" hidden>
+          <button class="xr__pill" id="xr-ahead" type="button">Colocar al frente</button>
+          <button class="xr__pill xr__pill--soft" id="xr-free" type="button">Sin anclar</button>
+        </div>
         <a class="xr__pill" id="xr-yt" target="_blank" rel="noopener" hidden>Ver en YouTube ↗</a>
         <button class="xr__live" id="xr-live" type="button">
           <span class="xr__live-dot" aria-hidden="true"></span>
@@ -96,6 +102,7 @@
   </div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/eventos.js"></script>
   <script src="../js/concepcion-geo.js"></script>
   <script src="../vendor/qrcode.js"></script>
   <script type="module" src="ar.js"></script>

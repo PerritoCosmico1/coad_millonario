@@ -55,11 +55,14 @@ Los datos de origen son simplificados; la página los suaviza al dibujarlos. Las
 ```text
 index.html              estructura de la página
 styles.css              estilos (tokens de color/tipografía al inicio)
-js/config.js            ← contenido editable
+js/config.js            ← contenido editable (evento principal: IRRUMPE)
+js/eventos.js           otros eventos (?evento=balmafest) y los cambios hechos con editar.html
 js/app.js               mapa, puntos, tarjeta, cuenta regresiva, panel AR
 js/concepcion-geo.js    costa y agua (generado)
 ar/                     experiencia AR (prototipo)
 qr.html                 genera el QR y la placa final para el video del pitch
+editar.html             editor rápido en el celular: ubicación, fotos, redes, en vivo (ver EVENTOS.md)
+EVENTOS.md              cómo abrir otro evento, el editor y la guía para grabar en terreno
 probar-360.html         prueba si un video (YouTube o .mp4 propio) sirve para la galería 360 (abrir en el celular)
 PITCH.md                plan y checklist para el pitch
 _headers                cabeceras para Netlify (tipo del modelo de iPhone, caché)

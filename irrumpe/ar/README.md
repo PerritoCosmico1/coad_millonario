@@ -11,7 +11,8 @@ Un tótem holográfico: el mapa de puntos de Concepción en un disco con los cua
 - **Íconos inferiores**: line-up, reacciones (corazón, chispa, rayo, que suben desde el punto en vivo) y música.
 - **Música**: con el micrófono, las ondas, rayos y partículas siguen la música que suena en el lugar. Sin micrófono laten a un pulso de demostración.
 - **Pellizcar** con dos dedos cambia el tamaño del tótem.
-- La interfaz es mínima y se atenúa sola tras unos segundos sin tocarla.
+- La interfaz es mínima y se atenúa sola tras unos segundos sin tocarla. **Modo grabación** (◉) la esconde del todo; se vuelve manteniendo presionado.
+- **Otros eventos**: `?evento=<id>` (ver `../EVENTOS.md`). Con más de cuatro artistas las tarjetas van en dos filas; si comparten lugar (un festival), sus puntos se reparten en un anillo alrededor de él. El mapa del disco se amplía solo si los puntos están lejos. Sin foto, la tarjeta muestra las iniciales.
 
 ## Un solo botón: el modo se elige solo
 
@@ -22,6 +23,8 @@ El lanzador muestra el tótem y un botón, **Entrar**. La página no abre otras 
 | **Chrome** en Android con ARCore, p. ej. Galaxy S24 FE | **AR anclada e interactiva** (WebXR): se apunta al suelo o a una mesa y al tocar se apoya el tótem; ARCore lo mantiene fijo en ese punto. En una mesa cercana se achica solo. Si no detecta superficie (sala oscura), a los 5 s aparece "Colocar al frente". Fichas, reacciones y música. |
 | **iPhone** (Safari y otros) | **AR Quick Look** del sistema: el tótem animado (`assets/irrumpe.usdz`) anclado al piso, sin pedir permisos. Al volver aparece "Ver artistas" (modo de abajo, con fichas, reacciones y música). |
 | **Otros navegadores** (Firefox, Samsung Internet...) | **Cámara + giroscopio**: interactivo, sigue los giros del celular pero no los pasos. En Android aparece una sola línea: "Para anclarlo al piso, ábrelo en Chrome". |
+
+Si no encuentra el piso en 2–3 s (sala oscura) aparecen **Colocar al frente** y **Sin anclar** (pasa a cámara + giroscopio, que no necesita luz).
 
 Solo Chrome implementa la AR anclada en la web (WebXR); Firefox no la tiene. Si se niega la cámara, el tótem se muestra sobre fondo oscuro.
 
