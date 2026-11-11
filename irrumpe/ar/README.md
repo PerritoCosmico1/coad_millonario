@@ -12,7 +12,7 @@ Un tótem holográfico: el mapa de puntos de Concepción en un disco con los cua
 - **Música**: con el micrófono, las ondas, rayos y partículas siguen la música que suena en el lugar. Sin micrófono laten a un pulso de demostración.
 - **Pellizcar** con dos dedos cambia el tamaño del tótem.
 - La interfaz es mínima y se atenúa sola tras unos segundos sin tocarla. **Modo grabación** (◉) la esconde del todo; se vuelve manteniendo presionado.
-- **Otros eventos**: `?evento=<id>` (ver `../EVENTOS.md`). Con más de cuatro artistas las tarjetas van en dos filas; si comparten lugar (un festival), sus puntos se reparten en un anillo alrededor de él. El mapa del disco se amplía solo si los puntos están lejos. Sin foto, la tarjeta muestra las iniciales.
+- Con más de cuatro artistas las tarjetas van en dos filas; si varios comparten lugar, sus puntos se reparten en un anillo alrededor de él. El mapa del disco se amplía solo si los puntos están lejos. Sin foto, la tarjeta muestra las iniciales.
 
 ## Un solo botón: el modo se elige solo
 

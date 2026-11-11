@@ -363,7 +363,7 @@ export async function createHologram({ config, geo }) {
       new Promise((r) => setTimeout(r, 2500)),
     ]);
   }
-  // Rutas del sitio desde ar/; las fotos cargadas en editar.html ya vienen como data:.
+  // Rutas del sitio desde ar/; los links completos y las imágenes data: quedan igual.
   const rel = (p) => (!p ? null : /^([a-z]+:|\/)/i.test(p) ? p : '../' + p);
   const [logo, ...photos] = await Promise.all([
     loadImage(rel(config.compania.logo)),

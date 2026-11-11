@@ -810,7 +810,7 @@
   const ar = {
     init() {
       this.dialog = $('#ar-dialog');
-      this.url = C.withEvent(new URL((C.ar && C.ar.url) || 'ar/', location.href).href);
+      this.url = new URL((C.ar && C.ar.url) || 'ar/', location.href).href;
       const link = $('#ar-open');
       link.href = this.url;
       // En celular el enlace lleva directo a la AR; en computador se muestra un QR.

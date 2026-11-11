@@ -117,7 +117,7 @@ function h(tag, attrs, ...children) {
 }
 
 const icon = (kind) => '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="' + REACTIONS[kind] + '"/></svg>';
-// Rutas del sitio (assets/…) desde ar/; las fotos cargadas en editar.html ya son data:.
+// Rutas del sitio (assets/…) desde ar/; los links completos y las imágenes data: quedan igual.
 const asset = (p) => (!p ? '' : /^([a-z]+:|\/)/i.test(p) ? p : '../' + p);
 // Video de la galería: un link de YouTube o absoluto queda igual; una ruta del
 // sitio (assets/360/…, como las fotos en config.js) se resuelve desde la raíz.
@@ -138,9 +138,6 @@ function eventDate() {
 function liveIndex(now) {
   const n = POINTS.length;
   if (!n) return -1;
-  // Marcado a mano en editar.html (quién está tocando de verdad).
-  const manual = C.envivo ? POINTS.findIndex((p) => p.id === C.envivo) : -1;
-  if (manual >= 0) return manual;
   if (PROTO) return Math.floor(now / ((AR.segundosPorSet || 120) * 1000)) % n;
   if (now < START || now >= END) return -1;
   const day = C.evento.inicio.slice(0, 10);
@@ -264,7 +261,7 @@ function renderDesktop() {
   $('#desktop-360').hidden = !HAS_GALLERY;
   if (typeof window.qrcode !== 'function') return;
   const qr = window.qrcode(0, 'M');
-  qr.addData(C.withEvent(location.href.split('?')[0]));
+  qr.addData(location.href.split('?')[0]);
   qr.make();
   const n = qr.getModuleCount();
   let d = '';
@@ -740,7 +737,6 @@ function bindUI() {
 
 async function boot() {
   document.querySelectorAll('[data-event-name]').forEach((el) => { el.textContent = C.evento.nombre || 'IRRUMPE'; });
-  $('.launch__back').href = C.withEvent('../');
   bindUI();
   checkFiles();
   syncMicButtons();
