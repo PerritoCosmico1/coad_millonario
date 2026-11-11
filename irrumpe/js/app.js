@@ -109,7 +109,9 @@
 
     tick() {
       const now = Date.now();
-      const state = now >= END ? 'ended' : now >= START ? 'live' : 'soon';
+      // Si el director marcó a alguien, el evento está en vivo aunque el horario diga otra cosa.
+      const forced = !!(vivo.state && vivo.state.vivo);
+      const state = forced ? 'live' : now >= END ? 'ended' : now >= START ? 'live' : 'soon';
       if (state !== this.state) {
         this.state = state;
         const live = $('#live-state');
@@ -851,6 +853,86 @@
 
   // ------------------------------------------------------------------ arranque
 
+  // ------------------------------------------------------------------ en vivo (director, js/vivo.js)
+
+  const REACTION_PATHS = {
+    corazon: 'M50 84C12 58 6 34 22 22C34 12 46 18 50 30C54 18 66 12 78 22C94 34 88 58 50 84Z',
+    chispa: 'M50 6Q56 44 94 50Q56 56 50 94Q44 56 6 50Q44 44 50 6Z',
+    rayo: 'M58 4L20 56L46 56L38 96L80 40L54 40Z',
+  };
+  const vivo = {
+    state: null,
+    online: 0,
+    floating: 0,
+    lastAviso: 0,
+    timer: 0,
+
+    init() {
+      const V = window.IrrumpeVivo;
+      if (!V || !V.enabled) return;
+      V.connect({
+        onState: (s) => {
+          this.state = s;
+          countdown.tick();
+          this.render();
+          const a = s.aviso;
+          if (a && a.texto && a.t > this.lastAviso && Date.now() - a.t < 10 * 60e3) {
+            this.lastAviso = a.t;
+            this.aviso(String(a.texto).slice(0, 140));
+          }
+        },
+        onReaction: (r) => this.float(r),
+        onPresence: (n) => { this.online = n; this.render(); },
+      });
+    },
+
+    // Quién toca según el director (−1 si nadie o si no ha marcado a nadie).
+    live() {
+      const d = this.state;
+      return d && d.vivo ? POINTS.findIndex((p) => p.id === d.vivo) : -1;
+    },
+
+    render() {
+      const k = this.live();
+      map.pins.forEach((pin, i) => pin.el.classList.toggle('pin--live', i === k));
+      const el = $('#live-now');
+      const parts = [];
+      if (k >= 0) parts.push(POINTS[k].artista.nombre, POINTS[k].lugar);
+      if (this.online && countdown.state === 'live') parts.push(this.online + ' en línea');
+      const text = parts.join(' · ');
+      if (el.textContent === text) return;
+      const wasHidden = el.hidden;
+      el.textContent = text;
+      el.hidden = !text;
+      if (wasHidden !== el.hidden && map.ready) map.layout();
+    },
+
+    aviso(text) {
+      const el = $('#site-aviso');
+      clearTimeout(this.timer);
+      el.textContent = text;
+      el.hidden = false;
+      this.timer = setTimeout(() => { el.hidden = true; }, 8000);
+    },
+
+    // Las reacciones del público suben desde el punto en vivo (o desde el que corresponda).
+    float({ r, p }) {
+      if (this.floating > 14 || reducedMotion.matches || document.visibilityState !== 'visible' || !map.ready) return;
+      const k = p >= 0 && p < POINTS.length ? p : Math.max(0, this.live());
+      const pin = map.pins[k];
+      if (!pin || !REACTION_PATHS[r]) return;
+      const el = document.createElement('span');
+      el.className = 'float-react float-react--' + r;
+      el.style.left = pin.x + (Math.random() - 0.5) * 24 + 'px';
+      el.style.top = pin.y + 'px';
+      el.style.setProperty('--dx', (Math.random() - 0.5) * 50 + 'px');
+      el.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="' + REACTION_PATHS[r] + '"/></svg>';
+      map.layer.append(el);
+      this.floating++;
+      el.addEventListener('animationend', () => { el.remove(); this.floating--; });
+    },
+  };
+
   function start() {
     fillBrand();
     countdown.init();
@@ -860,6 +942,7 @@
     map.layout(); // el índice ya existe y ocupa su lugar en celular
     bindPointer();
     ar.init();
+    vivo.init();
 
     let t = 0;
     window.addEventListener('resize', () => {

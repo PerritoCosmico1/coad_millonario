@@ -22,6 +22,12 @@ const CARD_GAP = 0.31;
 export const COLORS = { ink: '#ece9e2', red: '#f11b1a', bg: '#0b0b0b' };
 const pad = (n) => String(n).padStart(2, '0');
 
+// "@usuario" a partir del link de Instagram de un perfil (no de una búsqueda o publicación).
+export function instagramHandle(url) {
+  const m = /instagram\.com\/([A-Za-z0-9._]{1,30})\/?(?:[?#].*)?$/i.exec(url || '');
+  return m && !/^(explore|p|reel|reels|stories|accounts)$/i.test(m[1]) ? '@' + m[1] : '';
+}
+
 // ------------------------------------------------------------------ utilidades de canvas
 
 function canvas(w, h) {
@@ -224,6 +230,12 @@ function cardTexture(point, index, img) {
   setFont(ctx, '500 22px "JetBrains Mono", monospace');
   ctx.fillStyle = COLORS.red;
   spacedText(ctx, pad(index + 1), 28, 48, 3);
+  // Lugar arriba a la derecha; abajo queda el @ de Instagram (o el género).
+  setFont(ctx, '400 17px "JetBrains Mono", monospace');
+  ctx.fillStyle = 'rgba(236, 233, 226, 0.55)';
+  let place = point.lugar.toUpperCase();
+  while (place.length > 4 && ctx.measureText(place).width + place.length * 1.5 > W - 120) place = place.slice(0, -2) + '…';
+  spacedText(ctx, place, W - 28, 47, 1.5, 'right');
 
   drawDuotone(ctx, img, 28, 70, W - 56, W - 56);
   // Sin foto: las iniciales del artista sobre una grilla de puntos.
@@ -258,9 +270,16 @@ function cardTexture(point, index, img) {
     ctx.fillText(name, 28, 616);
   }
 
-  setFont(ctx, '400 19px "JetBrains Mono", monospace');
-  ctx.fillStyle = 'rgba(236, 233, 226, 0.6)';
-  spacedText(ctx, point.lugar.toUpperCase(), 28, 662, 2);
+  const handle = instagramHandle((point.artista.redes || {}).instagram);
+  if (handle) {
+    setFont(ctx, '500 24px "JetBrains Mono", monospace');
+    ctx.fillStyle = COLORS.red;
+    spacedText(ctx, handle, 28, 664, 1);
+  } else if (point.artista.genero) {
+    setFont(ctx, '400 19px "JetBrains Mono", monospace');
+    ctx.fillStyle = 'rgba(236, 233, 226, 0.6)';
+    spacedText(ctx, point.artista.genero.toUpperCase(), 28, 662, 2);
+  }
   return texture(c);
 }
 
@@ -512,6 +531,12 @@ export async function createHologram({ config, geo }) {
   let selected = -1;
   let live = -1;
   let lastT = 0;
+  // Transformación "en vivo": el artista que toca pasa al centro, más grande, y
+  // el resto se achica detrás. focusMix anima entre 0 (todos) y 1 (uno).
+  let focus = -1;
+  let focusIdx = -1;
+  let focusMix = 0;
+  cards.forEach((c) => { c.sel = 1; });
   const tmp = new THREE.Vector3();
 
   const api = {
@@ -531,15 +556,22 @@ export async function createHologram({ config, geo }) {
 
     select(i) { selected = i; },
     setLive(i) { live = i; },
+    // Muestra solo al artista i (−1 = todos). Mientras hay una ficha abierta se ven todos.
+    setFocus(i) {
+      focus = i >= 0 && i < cards.length ? i : -1;
+      if (focus >= 0) focusIdx = focus;
+    },
 
-    react(kind, from) {
+    // remote: reacción de otra persona (más chica y tenue que las propias).
+    react(kind, from, remote) {
       const mat = reactionMats[kind] || reactionMats.corazon;
       const s = new THREE.Sprite(mat.clone());
-      const src = from != null && from >= 0 ? pins[from].group.position : new THREE.Vector3((Math.random() - 0.5) * 0.5, 0, (Math.random() - 0.5) * 0.4);
-      s.position.set(src.x + (Math.random() - 0.5) * 0.08, 0.05, src.z + (Math.random() - 0.5) * 0.08);
-      s.scale.setScalar(0.07 + Math.random() * 0.04);
+      const src = from != null && from >= 0 && pins[from] ? pins[from].group.position : new THREE.Vector3((Math.random() - 0.5) * 0.5, 0, (Math.random() - 0.5) * 0.4);
+      const spread = remote ? 0.22 : 0.08;
+      s.position.set(src.x + (Math.random() - 0.5) * spread, 0.05, src.z + (Math.random() - 0.5) * spread);
+      s.scale.setScalar(remote ? 0.04 + Math.random() * 0.025 : 0.07 + Math.random() * 0.04);
       s.renderOrder = LAYER.reactions;
-      s.userData = { t0: performance.now(), dx: (Math.random() - 0.5) * 0.2, spin: (Math.random() - 0.5) * 2 };
+      s.userData = { t0: performance.now(), dx: (Math.random() - 0.5) * 0.2, spin: (Math.random() - 0.5) * 2, dim: remote ? 0.65 : 1 };
       group.add(s);
       floating.push(s);
     },
@@ -565,15 +597,28 @@ export async function createHologram({ config, geo }) {
       camera.getWorldPosition(tmp);
       group.worldToLocal(tmp);
 
+      const want = focus >= 0 && selected < 0 ? 1 : 0;
+      focusMix += (want - focusMix) * Math.min(1, dt * 3.2);
+      const f = focusMix < 0.001 ? 0 : focusMix;
       cards.forEach((c, k) => {
         const m = c.mesh;
         const sel = c.index === selected;
-        m.position.y = c.base.y + Math.sin(sec * 0.9 + k) * 0.012;
+        const isF = c.index === focusIdx;
+        // Posición: la normal, o la "transformada" (el que toca al centro y adelante).
+        const fx = isF ? 0 : c.base.x * 1.25;
+        const fy = isF ? height + liftMax * 0.5 + 0.06 : height - 0.22 + c.lift * 0.35;
+        const fz = isF ? -0.18 : c.base.z - 0.18;
+        m.position.set(
+          c.base.x + (fx - c.base.x) * f,
+          c.base.y + (fy - c.base.y) * f + Math.sin(sec * 0.9 + k) * 0.012,
+          c.base.z + (fz - c.base.z) * f,
+        );
         // Mirar a la cámara solo en el eje vertical.
         m.rotation.y = Math.atan2(tmp.x - m.position.x, tmp.z - m.position.z);
-        const target = sel ? 1.12 : 1;
-        m.scale.setScalar(m.scale.x + (target - m.scale.x) * 0.15);
-        m.material.opacity = selected >= 0 && !sel ? 0.55 : 1;
+        c.sel += ((sel ? 1.12 : 1) - c.sel) * 0.15;
+        m.scale.setScalar(c.sel * (1 + ((isF ? 1.5 : 0.62) - 1) * f));
+        const op = selected >= 0 && !sel ? 0.55 : 1;
+        m.material.opacity = op + ((isF ? 1 : 0.42) - op) * f;
         // Rayo: del punto a la base de la tarjeta.
         const a = pins[c.index].group.position;
         const arr = c.beam.geometry.attributes.position.array;
@@ -584,7 +629,7 @@ export async function createHologram({ config, geo }) {
       });
 
       title.rotation.y = Math.atan2(tmp.x - title.position.x, tmp.z - title.position.z);
-      title.position.y = height + liftMax + CARD_H / 2 + 0.16 + Math.sin(sec * 0.6) * 0.01;
+      title.position.y = height + liftMax + CARD_H / 2 + 0.16 + f * 0.3 + Math.sin(sec * 0.6) * 0.01;
 
       badge.visible = live >= 0;
       if (live >= 0) {
@@ -617,7 +662,7 @@ export async function createHologram({ config, geo }) {
         s.position.y = 0.05 + life * (height + 0.2);
         s.position.x += s.userData.dx * 0.004 * Math.sin(life * 9);
         s.material.rotation = life * s.userData.spin;
-        s.material.opacity = life < 0.15 ? life / 0.15 : 1 - (life - 0.15) / 0.85;
+        s.material.opacity = (life < 0.15 ? life / 0.15 : 1 - (life - 0.15) / 0.85) * (s.userData.dim || 1);
       }
     },
   };

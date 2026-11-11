@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#070707">
+  <title>Director — IRRUMPE</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { min-height: 100vh; overflow: auto; }
+    .dir { width: min(640px, 100%); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) var(--gutter) 48px; }
+    .dir__top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .dir h1 { margin: 0; font: 800 20px var(--font-display); font-stretch: 125%; letter-spacing: 0.18em; text-transform: uppercase; }
+    .status { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2); white-space: nowrap; }
+    .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+    .status.is-on::before { background: #5bd17a; box-shadow: 0 0 8px #5bd17a; }
+    .box { margin: 18px 0; padding: 14px; border: 1px solid var(--line); }
+    .box h2 { margin: 0 0 10px; font-size: 10px; font-weight: 400; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-2); }
+    .small { margin: 8px 0 0; font-size: 11px; line-height: 1.6; color: var(--ink-3); }
+    .ok { color: #5bd17a; }
+    .warn { color: var(--red); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 14px;
+      border: 1px solid var(--line); background: none; color: var(--ink); text-decoration: none; cursor: pointer;
+      font: 10px var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .btn--red { border-color: var(--red); background: rgba(241, 27, 26, 0.14); }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .live { display: grid; gap: 8px; }
+    .live button {
+      display: grid; grid-template-columns: 2.2em 1fr auto; gap: 10px; align-items: center; width: 100%; padding: 14px 12px;
+      border: 1px solid var(--line); background: #0d0d0d; color: var(--ink); text-align: left; cursor: pointer; font: 12px var(--font-mono);
+    }
+    .live button strong { display: block; font: 800 18px var(--font-display); font-stretch: 112%; text-transform: uppercase; }
+    .live button span.place { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+    .live button .num { color: var(--red); }
+    .live button.is-on { border-color: var(--red); background: rgba(241, 27, 26, 0.18); }
+    .live button.is-on::after { content: 'EN VIVO'; padding: 4px 7px; background: var(--red); font-size: 9px; letter-spacing: 0.2em; }
+    .live .alt { grid-template-columns: 1fr auto; padding: 12px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+    .live .alt.is-on::after { content: 'ACTIVO'; }
+    textarea { width: 100%; min-height: 72px; padding: 12px; border: 1px solid var(--line); background: #0d0d0d; color: var(--ink); font: 13px var(--font-mono); resize: vertical; }
+    label.check { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 11px; color: var(--ink-2); }
+    label.check input { accent-color: var(--red); width: 18px; height: 18px; }
+    .log { margin: 0; padding: 0; list-style: none; font-size: 11px; color: var(--ink-3); line-height: 1.8; }
+    code.key { display: block; padding: 10px; background: #0d0d0d; border: 1px solid var(--line); font-size: 10px; word-break: break-all; user-select: all; }
+  </style>
+</head>
+<body>
+  <main class="dir">
+    <div class="dir__top">
+      <h1>Director</h1>
+      <span class="status" id="status">Sin conexión</span>
+    </div>
+    <p class="small" id="online"></p>
+
+    <section class="box" id="key-box">
+      <h2>Llave</h2>
+      <p class="small" id="key-state"></p>
+      <div class="row" id="key-actions">
+        <label class="btn btn--red">Importar llave <input id="key-file" type="file" accept=".json,application/json" hidden></label>
+        <button class="btn" id="key-new" type="button">Crear llave nueva</button>
+        <button class="btn" id="key-forget" type="button" hidden>Quitar de este aparato</button>
+      </div>
+      <div id="key-new-info" hidden>
+        <p class="small">Llave nueva guardada en este aparato y descargada. Para que el público la acepte, pega esto en <code>vivo.clave</code> de <code>js/config.js</code> (o en el panel) y vuelve a publicar el sitio:</p>
+        <code class="key" id="key-public"></code>
+      </div>
+    </section>
+
+    <section class="box" id="control" hidden>
+      <h2>Quién toca ahora</h2>
+      <div class="live" id="live"></div>
+      <label class="check"><input type="checkbox" id="auto-aviso" checked> Avisar al público al cambiar</label>
+    </section>
+
+    <section class="box" id="aviso-box" hidden>
+      <h2>Aviso al público</h2>
+      <textarea id="aviso" maxlength="140" placeholder="p. ej. Surdo empieza en 10 minutos en Plaza de la Independencia"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn btn--red" id="send" type="button">Enviar a todos</button>
+      </div>
+      <p class="small">Aparece unos segundos en la AR y en la página de todos los conectados.</p>
+    </section>
+
+    <section class="box">
+      <h2>Registro</h2>
+      <ul class="log" id="log"></ul>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/vivo.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const C = window.IRRUMPE_CONFIG;
+      const V = window.IrrumpeVivo;
+      const $ = (s) => document.querySelector(s);
+      const pad = (n) => String(n).padStart(2, '0');
+      const POINTS = C.puntos || [];
+      const KEY = 'irrumpe:director:llave';
+      let key = null;
+      let dir = null;
+      // Estado actual: vivo = id del artista, '' = nadie, null = según el horario.
+      let state = { vivo: null, aviso: null };
+      let republish = 0;
+
+      function log(text) {
+        const li = document.createElement('li');
+        li.textContent = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' · ' + text;
+        $('#log').prepend(li);
+        while ($('#log').children.length > 30) $('#log').lastChild.remove();
+      }
+
+      try { key = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { key = null; }
+
+      function renderKey() {
+        const st = $('#key-state');
+        $('#key-forget').hidden = !key;
+        if (!V.enabled) { st.innerHTML = '<span class="warn">Falta configurar <code>vivo</code> en config.js.</span>'; return; }
+        if (!key) { st.textContent = 'Este aparato no tiene la llave del director. Importa el archivo irrumpe-llave-director.json, o crea una nueva.'; return; }
+        st.innerHTML = V.matches(key.publica || key)
+          ? '<span class="ok">✓ Llave cargada y coincide con la del sitio.</span>'
+          : '<span class="warn">⚠ La llave no coincide con la de config.js: el público ignorará estos cambios hasta que el sitio tenga su llave pública.</span>';
+      }
+
+      function renderLive() {
+        const box = $('#live');
+        box.replaceChildren();
+        POINTS.forEach((p, i) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = state.vivo === p.id ? 'is-on' : '';
+          b.innerHTML = '<span class="num">' + pad(i + 1) + '</span><span><strong></strong><span class="place"></span></span>';
+          b.querySelector('strong').textContent = p.artista.nombre;
+          b.querySelector('.place').textContent = p.lugar;
+          b.addEventListener('click', () => setLive(p.id));
+          box.append(b);
+        });
+        [['', 'Nadie tocando (entre sets)'], [null, 'Automático (según el horario)']].forEach(([v, label]) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'alt' + (state.vivo === v ? ' is-on' : '');
+          b.textContent = label;
+          b.addEventListener('click', () => setLive(v));
+          box.append(b);
+        });
+      }
+
+      async function publish(next) {
+        if (!dir) return;
+        state = Object.assign({}, state, next);
+        const sent = await dir.publish(state);
+        state.t = sent.t;
+        renderLive();
+      }
+
+      async function setLive(v) {
+        const p = POINTS.find((x) => x.id === v);
+        const aviso = p && $('#auto-aviso').checked ? { texto: 'Ahora: ' + p.artista.nombre + ' en ' + p.lugar, t: Date.now() } : state.aviso;
+        await publish({ vivo: v, aviso });
+        log(p ? 'En vivo: ' + p.artista.nombre : v === '' ? 'Nadie tocando' : 'Automático (horario)');
+      }
+
+      $('#send').addEventListener('click', async () => {
+        const texto = $('#aviso').value.trim();
+        if (!texto) return;
+        await publish({ aviso: { texto, t: Date.now() } });
+        log('Aviso: ' + texto);
+        $('#aviso').value = '';
+      });
+
+      function start() {
+        if (dir) dir.stop();
+        clearInterval(republish);
+        $('#control').hidden = $('#aviso-box').hidden = !key || !V.enabled;
+        if (!key || !V.enabled) return;
+        dir = V.director(key.privada || key, {
+          // Al abrir, se retoma el último estado publicado con esta llave.
+          onState: (s) => {
+            if (typeof s.vivo !== 'undefined' && (state.t || 0) < s.t) {
+              state = { vivo: s.vivo, aviso: s.aviso || null, t: s.t };
+              renderLive();
+            }
+          },
+          onPresence: (n) => { $('#online').textContent = n ? n + ' conectados (aprox.)' : ''; },
+          onStatus: (on) => {
+            $('#status').textContent = on ? 'Conectado' : 'Sin conexión';
+            $('#status').classList.toggle('is-on', on);
+            log(on ? 'Conectado' : 'Se perdió la conexión; reintentando…');
+          },
+        });
+        // Cada 30 s se vuelve a publicar: quien entra tarde lo recibe aunque
+        // alguien haya intentado pisar el mensaje guardado en el broker.
+        republish = setInterval(() => { if (dir && dir.connected && state.t) dir.publish(state).then((d) => { state.t = d.t; }); }, 30000);
+        renderLive();
+      }
+
+      $('#key-file').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        try {
+          const data = JSON.parse(await f.text());
+          const priv = data.privada || data;
+          if (!priv.d || priv.kty !== 'EC') throw new Error('no es una llave');
+          key = { privada: priv, publica: V.publicOf(priv) };
+          localStorage.setItem(KEY, JSON.stringify(key));
+          log('Llave importada');
+          renderKey();
+          start();
+        } catch (err) { alert('Ese archivo no es una llave de director.'); }
+      });
+      $('#key-new').addEventListener('click', async () => {
+        if (key && !confirm('Ya hay una llave en este aparato. ¿Reemplazarla por una nueva?')) return;
+        const k = await V.generateKeys();
+        key = k;
+        localStorage.setItem(KEY, JSON.stringify(key));
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify({ tipo: 'irrumpe-llave-director', canal: (C.vivo || {}).canal, privada: k.privada, publica: k.publica }, null, 2)], { type: 'application/json' }));
+        a.download = 'irrumpe-llave-director.json';
+        a.click();
+        $('#key-public').textContent = 'clave: ' + JSON.stringify(k.publica) + ',';
+        $('#key-new-info').hidden = false;
+        log('Llave nueva creada');
+        renderKey();
+        start();
+      });
+      $('#key-forget').addEventListener('click', () => {
+        if (!confirm('¿Quitar la llave de este aparato? Para volver a dirigir habrá que importarla de nuevo.')) return;
+        localStorage.removeItem(KEY);
+        key = null;
+        if (dir) dir.stop();
+        dir = null;
+        renderKey();
+        start();
+      });
+
+      // Que la pantalla no se apague mientras se dirige.
+      async function keepAwake() {
+        try { if (navigator.wakeLock && document.visibilityState === 'visible') await navigator.wakeLock.request('screen'); } catch (e) { /* no disponible */ }
+      }
+      document.addEventListener('visibilitychange', keepAwake);
+      keepAwake();
+
+      renderKey();
+      start();
+    })();
+  </script>
+</body>
+</html>

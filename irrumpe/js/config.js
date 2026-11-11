@@ -65,6 +65,23 @@ window.IRRUMPE_CONFIG = {
     // { punto: 'udec', video: 'assets/360/antipatriarka.mp4', inicio: 30 },
   ],
 
+  /*
+   * En vivo, en tiempo real (ver js/vivo.js y director.html): quién toca
+   * ahora, avisos al público, reacciones compartidas y cuántos hay conectados.
+   *
+   * canal:   nombre del canal compartido. Cambiarlo deja a todos en uno nuevo.
+   * clave:   llave pública del director. Solo quien tenga la llave privada
+   *          que le corresponde (el archivo irrumpe-llave-director.json, que
+   *          NO va en el sitio) puede cambiar quién toca o mandar avisos.
+   *          Una llave nueva se crea en director.html.
+   * brokers: servidores públicos de mensajes (MQTT por WebSocket), en orden.
+   */
+  vivo: {
+    canal: 'luc-irrumpe-cb20cb7461',
+    clave: { kty: 'EC', crv: 'P-256', x: 'oYG3fb4r6o6YYL73I-TiNCIoxgPpKVDiT6MX4ELggcM', y: '9GzKKz4holUfdhPPmDTKCJixN7DdzCvAMJ9w6kKWkzk' },
+    brokers: ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'],
+  },
+
   // Botones para seguir a los artistas (Instagram, Spotify, YouTube). Mientras
   // falte el link real de una red en `artista.redes`, el botón busca el nombre
   // del artista en esa plataforma (provisorio). false = solo los links reales.

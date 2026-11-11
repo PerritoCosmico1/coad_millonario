@@ -179,6 +179,9 @@ body::after {
 /* Varios artistas en un mismo lugar: el número solo aparece al elegir uno. */
 .pin--grouped .pin__tag { opacity: 0; }
 .pin--grouped.is-active .pin__tag { opacity: 1; }
+/* El que está en vivo (marcado por el director): más grande y brillante. */
+.pin--live .pin__core { transform: scale(1.6); box-shadow: 0 0 0 4px rgba(241, 27, 26, 0.25), 0 0 26px 8px rgba(241, 27, 26, 0.75); }
+.pin--live .pin__tag { color: var(--ink); }
 .pin.is-active .pin__tag,
 .pin:hover .pin__tag { color: var(--ink); }
 
@@ -697,4 +700,49 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .pin__ring { opacity: 0.4; transform: scale(2.6); }
+}
+
+/* ---------------------------------------------------------------- en vivo */
+
+.hero__now {
+  margin: 6px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.site-aviso {
+  position: fixed;
+  left: 50%;
+  top: max(72px, calc(env(safe-area-inset-top) + 64px));
+  z-index: 95;
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 32px));
+  margin: 0;
+  padding: 12px 14px 12px 16px;
+  border-left: 3px solid var(--red);
+  background: rgba(7, 7, 7, 0.92);
+  font-size: 12px;
+  line-height: 1.5;
+  pointer-events: none;
+  animation: card-in 0.3s var(--ease);
+}
+.site-aviso::before { content: 'AVISO'; display: block; margin-bottom: 4px; font-size: 9px; letter-spacing: 0.26em; color: var(--red); }
+
+/* Reacciones del público que suben desde un punto del mapa. */
+.float-react {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  pointer-events: none;
+  animation: float-up 2.6s ease-out forwards;
+}
+.float-react svg { width: 100%; height: 100%; fill: var(--red); filter: drop-shadow(0 0 4px rgba(241, 27, 26, 0.7)); }
+.float-react--chispa svg { fill: var(--ink); }
+@keyframes float-up {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx, 0), -120px) scale(1); }
 }

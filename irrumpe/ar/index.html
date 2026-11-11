@@ -19,6 +19,7 @@
   <link rel="modulepreload" href="sessions.js">
   <link rel="modulepreload" href="audio.js">
   <link rel="modulepreload" href="video360.js">
+  <link rel="modulepreload" href="faros.js">
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="ar.css">
 </head>
@@ -28,7 +29,9 @@
   <div class="launch" id="launch">
     <div class="launch__stage" id="preview" aria-hidden="true"></div>
     <a class="launch__back" href="../">← <span data-event-name>IRRUMPE</span></a>
+    <p class="aviso aviso--launch" id="launch-aviso" role="status" hidden></p>
     <div class="launch__bottom">
+      <p class="launch__live" id="launch-live" hidden></p>
       <p class="launch__msg" id="msg" hidden></p>
       <div class="launch__row" id="actions">
         <button class="launch__enter" id="enter" type="button" disabled>Entrar</button>
@@ -57,6 +60,9 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
         <div class="xr__top-right">
+          <button class="xr__icon" id="xr-faros" type="button" aria-pressed="false" aria-label="Faros: hacia dónde quedan los puntos">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V8M12 21V3M18 21V10"/><path d="M3 21h18"/></svg>
+          </button>
           <button class="xr__icon" id="xr-rec" type="button" aria-label="Modo grabación: esconder la interfaz">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" class="xr__fill"/></svg>
           </button>
@@ -71,6 +77,7 @@
       </header>
 
       <p class="xr__toast" id="xr-toast" role="status" hidden></p>
+      <p class="aviso" id="xr-aviso" role="status" hidden></p>
 
       <div class="xr__dock" id="xr-dock">
         <p class="xr__hint" id="xr-hint" hidden></p>
@@ -83,6 +90,7 @@
           <span class="xr__live-dot" aria-hidden="true"></span>
           <span class="xr__live-name" id="xr-live-name"></span>
           <span class="xr__live-place" id="xr-live-place"></span>
+          <span class="xr__live-online" id="xr-online" hidden></span>
         </button>
         <div class="xr__actions">
           <button class="xr__btn" id="xr-lineup" type="button" aria-label="Artistas">
@@ -91,6 +99,9 @@
           <button class="xr__btn xr__btn--react" data-react="corazon" type="button" aria-label="Enviar corazón"></button>
           <button class="xr__btn xr__btn--react" data-react="chispa" type="button" aria-label="Enviar chispa"></button>
           <button class="xr__btn xr__btn--react" data-react="rayo" type="button" aria-label="Enviar rayo"></button>
+          <button class="xr__btn" id="xr-photo" type="button" aria-label="Sacar una foto con el tótem" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          </button>
           <button class="xr__btn" id="xr-mic" type="button" aria-pressed="false" aria-label="Visuales con la música">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
           </button>
@@ -102,6 +113,7 @@
   </div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/vivo.js"></script>
   <script src="../js/concepcion-geo.js"></script>
   <script src="../vendor/qrcode.js"></script>
   <script type="module" src="ar.js"></script>

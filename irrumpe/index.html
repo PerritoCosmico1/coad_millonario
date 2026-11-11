@@ -44,6 +44,7 @@
         <div class="countdown__unit"><span class="countdown__num" data-unit="s">00</span><span class="countdown__label">seg</span></div>
       </div>
       <p class="hero__live" id="live-state" hidden></p>
+      <p class="hero__now" id="live-now" hidden></p>
       <p class="hero__date" id="event-date"></p>
     </section>
 
@@ -68,6 +69,9 @@
   <!-- Tarjeta de información del punto activo (flotante en escritorio, hoja inferior en celular) -->
   <aside class="card" id="card" aria-live="polite" hidden></aside>
 
+  <!-- Aviso del director (en vivo), unos segundos arriba de todo -->
+  <p class="site-aviso" id="site-aviso" role="status" hidden></p>
+
   <!-- Computador: QR para abrir la AR en el celular -->
   <dialog class="ar" id="ar-dialog" aria-label="Abrir la AR en el celular">
     <div class="ar__inner">
@@ -81,6 +85,7 @@
   <noscript><p class="noscript">IRRUMPE necesita JavaScript para mostrar el mapa.</p></noscript>
 
   <script src="js/config.js"></script>
+  <script src="js/vivo.js"></script>
   <script src="js/concepcion-geo.js"></script>
   <script src="vendor/qrcode.js"></script>
   <script src="js/app.js"></script>

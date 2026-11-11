@@ -254,7 +254,7 @@ const zee = new THREE.Vector3(0, 0, 1);
 const euler = new THREE.Euler();
 const q0 = new THREE.Quaternion();
 const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -90° en X
-function orientationQuaternion(out, e) {
+export function orientationQuaternion(out, e) {
   const d = Math.PI / 180;
   const screenAngle = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * d;
   euler.set(e.beta * d, e.alpha * d, -e.gamma * d, 'YXZ');
@@ -354,7 +354,8 @@ export async function startWindow(ctx, { video, useCamera, bg }) {
   window.addEventListener('pagehide', suspend);
   window.addEventListener('pageshow', resume);
 
-  const camera = new THREE.PerspectiveCamera(62, 1, 0.01, 50);
+  // Lejano hasta 400 m: los faros (ar/faros.js) están a 70 m.
+  const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 400);
   const resize = () => {
     const w = window.innerWidth, h = window.innerHeight;
     renderer.setSize(w, h, false);
@@ -484,6 +485,29 @@ export async function startWindow(ctx, { video, useCamera, bg }) {
       ctx.onEnd({ unexpected: false, silent });
     },
     recenter: place,
+    // Foto: la cámara (o el fondo oscuro) + el 3D, a más resolución que en pantalla.
+    // El fondo 360 de YouTube no se puede capturar (viene de otro dominio).
+    snapshot() {
+      const ratio = renderer.getPixelRatio();
+      renderer.setPixelRatio(Math.min(2.5, Math.max(2, ratio)));
+      const w = canvas.width, h = canvas.height;
+      const out = document.createElement('canvas');
+      out.width = w;
+      out.height = h;
+      const g = out.getContext('2d');
+      g.fillStyle = '#050505';
+      g.fillRect(0, 0, w, h);
+      if (stream && video.videoWidth) {
+        // Igual que object-fit: cover.
+        const k = Math.max(w / video.videoWidth, h / video.videoHeight);
+        const vw = video.videoWidth * k, vh = video.videoHeight * k;
+        g.drawImage(video, (w - vw) / 2, (h - vh) / 2, vw, vh);
+      }
+      renderer.render(scene, camera);
+      g.drawImage(canvas, 0, 0, w, h);
+      renderer.setPixelRatio(ratio);
+      return out;
+    },
   };
 }
 

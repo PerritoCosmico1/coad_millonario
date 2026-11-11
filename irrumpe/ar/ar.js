@@ -14,12 +14,19 @@
  * El botón 360 abre la galería: el mismo tótem sobre la transmisión 360 de una
  * intervención (en vivo o grabada), en cualquier celular o computador.
  *
+ * En vivo (js/vivo.js): quién toca lo marca el director desde director.html y
+ * cambia en todos los celulares a la vez; el tótem se transforma para mostrar
+ * a ese artista. Los avisos del director aparecen arriba, las reacciones de
+ * todos suben por el tótem y se ve cuántos hay conectados. Los faros (botón de
+ * tres haces) apuntan con GPS y brújula hacia cada punto de la ciudad.
+ *
  * Todo el contenido sale de js/config.js. `?preview` deja entrar a la AR desde
  * computador (para probar o proyectar), `?galeria` abre directo la galería y
  * `?video=<link>` agrega un video de prueba arriba de ella (probar-360.html).
  */
 import * as THREE from '../vendor/three.min.js';
-import { createHologram, REACTIONS } from './hologram.js';
+import { createHologram, REACTIONS, instagramHandle } from './hologram.js';
+import { createFaros } from './faros.js';
 import { xrSupported, startXR, startWindow, requestMotionPermission } from './sessions.js';
 import { pulse } from './audio.js';
 import { createBackground, thumbnail, youtubeId, youtubeError, watchUrl } from './video360.js';
@@ -133,12 +140,23 @@ function eventDate() {
 
 // ------------------------------------------------------------------ quién está tocando
 
-// En el evento real se usa `hora` de cada punto (o partes iguales si no hay).
-// En el prototipo cada artista queda "en vivo" `segundosPorSet` segundos, en loop.
+// Quién toca: lo que marque el director (un artista, o nadie); si dejó el
+// modo automático, sale de la `hora` de cada punto (o partes iguales si no
+// hay). En el prototipo cada artista toca `segundosPorSet` segundos, con una
+// pausa corta entre sets (así se ve el tótem transformarse y volver).
+const VIVO = window.IrrumpeVivo;
+const vivo = { state: null, online: 0, conn: null };
+const SET_GAP = 15000;
+
 function liveIndex(now) {
   const n = POINTS.length;
   if (!n) return -1;
-  if (PROTO) return Math.floor(now / ((AR.segundosPorSet || 120) * 1000)) % n;
+  const d = vivo.state;
+  if (d && d.vivo != null) return d.vivo in POINT_INDEX ? POINT_INDEX[d.vivo] : -1;
+  if (PROTO) {
+    const set = (AR.segundosPorSet || 120) * 1000;
+    return now % (set + SET_GAP) < set ? Math.floor(now / (set + SET_GAP)) % n : -1;
+  }
   if (now < START || now >= END) return -1;
   const day = C.evento.inicio.slice(0, 10);
   const offset = C.evento.inicio.slice(19) || '';
@@ -212,7 +230,7 @@ function previewLoop(t) {
   const dist = previewCam.aspect < 0.9 ? 5.2 : 3.1;
   previewCam.position.set(Math.sin(a) * dist, 1.5, Math.cos(a) * dist);
   previewCam.lookAt(0, previewCam.aspect < 0.9 ? 0.75 : 0.6, 0);
-  holo.setLive(liveIndex(Date.now()));
+  syncLive(liveIndex(Date.now()));
   holo.update(t, previewCam, pulse.sample(t));
   renderer.render(scene, previewCam);
 }
@@ -359,7 +377,9 @@ const ctx = {
   overlayRoot: xrRoot,
   onTick(t) { quality.tick(t); },
   onFrame(t, camera) {
-    holo.update(t, camera, pulse.sample(t));
+    const level = pulse.sample(t);
+    holo.update(t, camera, level);
+    if (faros) faros.update(t, camera, level);
   },
   onTap(i) {
     if (i >= 0) openArtist(i);
@@ -397,11 +417,12 @@ const ctx = {
     xrRoot.classList.remove('xr--webxr', 'is-idle');
     // Cambio de fondo (o paso a "Sin anclar"): se entra de inmediato, sin pasar por el lanzador.
     if (pendingSwitch) {
-      const { item, free } = pendingSwitch;
+      const { item, free, thenFaros } = pendingSwitch;
       pendingSwitch = null;
-      enterInteractive(route === 'xr' && !item && !free, item);
+      enterInteractive(route === 'xr' && !item && !free, item).then(() => { if (thenFaros) setFaros(true); });
       return;
     }
+    setFaros(false);
     xrRoot.hidden = true;
     xrRoot.classList.remove('is-rec');
     document.body.classList.remove('is-xr');
@@ -468,6 +489,8 @@ async function enterInteractive(useXR, item = null) {
     entering = false;
   }
   $('#xr-recenter').setAttribute('aria-label', session.mode === 'xr' ? 'Mover el tótem' : 'Recentrar');
+  // Foto: en los modos con cámara del navegador (en la AR anclada la cámara la pone el sistema).
+  $('#xr-photo').hidden = !session.snapshot;
   syncBackground();
   updateLive();
   wake();
@@ -610,7 +633,7 @@ function openArtist(i) {
     ),
     a.bio && h('p', { class: 'sheet__bio', text: a.bio }),
     links.length > 0 && h('div', { class: 'sheet__social' },
-      links.map(([k, url]) => h('a', { class: 'sheet__social-btn', href: url, target: '_blank', rel: 'noopener', text: SOCIAL_LABELS[k] || k }))),
+      links.map(([k, url]) => h('a', { class: 'sheet__social-btn', href: url, target: '_blank', rel: 'noopener', text: (k === 'instagram' && instagramHandle(url)) || SOCIAL_LABELS[k] || k }))),
     (mus.titulo || mus.url) && h('a', { class: 'sheet__music', href: mus.url || null, target: '_blank', rel: 'noopener' },
       h('strong', { text: mus.titulo || 'Escuchar' })),
     h('a', { class: 'sheet__link', href: maps, target: '_blank', rel: 'noopener', text: 'Cómo llegar ↗' }),
@@ -639,17 +662,168 @@ function openLineup() {
 
 // ------------------------------------------------------------------ en vivo
 
+// El tótem muestra a quien toca (se transforma) y los faros lo marcan en rojo.
+let shownLive = null;
+function syncLive(k) {
+  if (!holo) return;
+  holo.setLive(k);
+  holo.setFocus(k);
+  if (faros && shownLive !== k) faros.setLive(k);
+  shownLive = k;
+}
+
 function updateLive() {
   const k = liveNow();
   const box = $('#xr-live');
   box.hidden = k < 0;
-  if (holo) holo.setLive(k);
+  syncLive(k);
+  const online = $('#xr-online');
+  online.hidden = !vivo.online;
+  online.textContent = vivo.online ? '· ' + vivo.online + ' en línea' : '';
+  // Lanzador: quién toca ahora, antes de entrar.
+  const ll = $('#launch-live');
+  const lk = liveIndex(Date.now());
+  ll.hidden = lk < 0 || (!IS_MOBILE && !PREVIEW);
+  if (lk >= 0) {
+    ll.replaceChildren('En vivo · ', h('strong', { text: POINTS[lk].artista.nombre }), ' · ' + POINTS[lk].lugar + (vivo.online ? ' · ' + vivo.online + ' en línea' : ''));
+  }
   if (k < 0) return;
   const p = POINTS[k];
   $('#xr-live-name').textContent = p.artista.nombre;
   $('#xr-live-place').textContent = p.lugar;
   box.dataset.index = k;
   box.setAttribute('aria-label', 'En vivo: ' + p.artista.nombre + ', ' + p.lugar);
+}
+
+// ------------------------------------------------------------------ director, avisos y reacciones
+
+let avisoTimer = 0;
+let lastAviso = 0;
+try { lastAviso = Number(sessionStorage.getItem('irrumpe:aviso') || 0); } catch (e) { /* sin almacenamiento */ }
+function showAviso(text) {
+  clearTimeout(avisoTimer);
+  ['#xr-aviso', '#launch-aviso'].forEach((sel) => {
+    const el = $(sel);
+    el.textContent = text;
+    el.hidden = false;
+  });
+  // Vibrar solo si la persona ya tocó la página (si no, el navegador lo bloquea).
+  if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate([20, 60, 20]);
+  avisoTimer = setTimeout(() => { $('#xr-aviso').hidden = true; $('#launch-aviso').hidden = true; }, 7000);
+}
+
+function startVivo() {
+  if (!VIVO || !VIVO.enabled) return;
+  vivo.conn = VIVO.connect({
+    onState(state) {
+      vivo.state = state;
+      updateLive();
+      const a = state.aviso;
+      // Un aviso se muestra una vez, y solo si es reciente.
+      if (a && a.texto && a.t > lastAviso && Date.now() - a.t < 10 * 60e3) {
+        lastAviso = a.t;
+        try { sessionStorage.setItem('irrumpe:aviso', String(a.t)); } catch (e) { /* sin almacenamiento */ }
+        showAviso(String(a.texto).slice(0, 140));
+      }
+    },
+    onReaction({ r, p }) {
+      if (holo && (session || !$('#launch').hidden)) holo.react(r, p >= 0 && p < POINTS.length ? p : -1, true);
+    },
+    onPresence(n) {
+      vivo.online = n;
+      updateLive();
+    },
+  });
+}
+
+// ------------------------------------------------------------------ faros
+
+let faros = null;
+let geoWatch = null;
+async function setFaros(on) {
+  const btn = $('#xr-faros');
+  if (!on) {
+    if (geoWatch != null) navigator.geolocation.clearWatch(geoWatch);
+    geoWatch = null;
+    if (faros) faros.stop();
+    btn.setAttribute('aria-pressed', 'false');
+    return;
+  }
+  if (!faros || !navigator.geolocation) { toast('Este navegador no da la ubicación'); return; }
+  // En la AR anclada, el aviso de permiso del navegador puede quedar oculto:
+  // si falta el permiso, se pasa al modo sin anclar (los faros se ven igual).
+  let perm = 'prompt';
+  try { perm = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch (e) { /* sin API de permisos */ }
+  if (perm === 'denied') { toast('Sin permiso de ubicación'); return; }
+  if (session && session.mode === 'xr' && perm !== 'granted') {
+    pendingSwitch = { item: null, free: true, thenFaros: true };
+    session.end({ silent: true });
+    return;
+  }
+  btn.setAttribute('aria-pressed', 'true');
+  faros.start();
+  let first = true;
+  geoWatch = navigator.geolocation.watchPosition((pos) => {
+    faros.setUser(pos.coords.latitude, pos.coords.longitude);
+    if (!first) return;
+    first = false;
+    toast('Faros: gira para encontrar los puntos');
+    setTimeout(() => {
+      if (faros.active && !faros.hasHeading) toast('Este celular no informa la brújula: los faros no se pueden orientar');
+    }, 3000);
+  }, (err) => {
+    toast(err.code === 1 ? 'Sin permiso de ubicación' : 'No se pudo obtener la ubicación');
+    setFaros(false);
+  }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 });
+}
+
+// ------------------------------------------------------------------ foto
+
+let markLogo = null;
+async function takePhoto() {
+  if (!session || !session.snapshot) return;
+  const shot = session.snapshot();
+  xrRoot.classList.remove('is-flash');
+  void xrRoot.offsetWidth;
+  xrRoot.classList.add('is-flash');
+  setTimeout(() => xrRoot.classList.remove('is-flash'), 500);
+  // Marca: logo, nombre del evento y fecha, abajo a la izquierda.
+  const g = shot.getContext('2d');
+  const u = shot.width / 400;
+  const grad = g.createLinearGradient(0, shot.height - 90 * u, 0, shot.height);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+  g.fillStyle = grad;
+  g.fillRect(0, shot.height - 90 * u, shot.width, 90 * u);
+  if (!markLogo && C.compania.logo) {
+    markLogo = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = asset(C.compania.logo); });
+  }
+  if (markLogo) g.drawImage(markLogo, 16 * u, shot.height - 52 * u, 34 * u, 34 * u);
+  g.fillStyle = '#ece9e2';
+  g.font = '800 ' + 17 * u + 'px Archivo, sans-serif';
+  g.fillText((C.evento.nombre || 'IRRUMPE').toUpperCase(), 58 * u, shot.height - 32 * u);
+  g.fillStyle = 'rgba(236,233,226,0.7)';
+  g.font = '400 ' + 9 * u + 'px "JetBrains Mono", monospace';
+  g.fillText((C.compania.nombre + ' · ' + eventDate().date + ' · ' + (C.evento.ciudad || '')).toUpperCase(), 58 * u, shot.height - 18 * u);
+  g.fillStyle = '#f11b1a';
+  g.fillRect(0, shot.height - 3 * u, shot.width, 3 * u);
+  const blob = await new Promise((res) => shot.toBlob(res, 'image/jpeg', 0.9));
+  if (!blob) return;
+  const file = new File([blob], 'irrumpe.jpg', { type: 'image/jpeg' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: C.evento.nombre || 'IRRUMPE' });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // la persona cerró el menú de compartir
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'irrumpe.jpg';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('Foto guardada');
 }
 
 // ------------------------------------------------------------------ arranque
@@ -702,10 +876,14 @@ function bindUI() {
     const i = Number($('#xr-live').dataset.index);
     if (!Number.isNaN(i)) openArtist(i);
   });
+  $('#xr-faros').addEventListener('click', () => setFaros($('#xr-faros').getAttribute('aria-pressed') !== 'true'));
+  $('#xr-photo').addEventListener('click', takePhoto);
   document.querySelectorAll('[data-react]').forEach((b) => {
     b.innerHTML = icon(b.dataset.react);
     b.addEventListener('click', () => {
       holo.react(b.dataset.react, liveNow());
+      // Las reacciones llegan a todos (si es una grabación de la galería, no).
+      if (vivo.conn && !background) vivo.conn.react(b.dataset.react, liveNow());
       b.classList.remove('is-pop');
       void b.offsetWidth;
       b.classList.add('is-pop');
@@ -750,8 +928,10 @@ async function boot() {
   // La música solo aplica a los modos interactivos (no al visor del iPhone).
   $('#mic').hidden = route === 'quicklook';
   $('#open-360').hidden = !HAS_GALLERY;
+  startVivo();
   try {
     holo = await createHologram({ config: C, geo: GEO });
+    faros = createFaros({ points: POINTS, scene });
     startPreview();
   } catch (e) {
     msg('Este navegador no puede mostrar 3D');
@@ -779,7 +959,9 @@ window.IrrumpeAR = {
   get route() { return route; },
   get quality() { return quality; },
   get background() { return bgCtl; },
-  openArtist, openLineup, openGallery, closeSheet, liveIndex, enterInteractive, switchBackground,
+  get faros() { return faros; },
+  get vivo() { return vivo; },
+  openArtist, openLineup, openGallery, closeSheet, liveIndex, enterInteractive, switchBackground, setFaros, takePhoto, showAviso,
 };
 
 boot();

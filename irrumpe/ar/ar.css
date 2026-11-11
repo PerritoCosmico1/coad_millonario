@@ -439,3 +439,54 @@ a.sheet__social-btn::after { content: ' ↗'; }
 .sheet__thumb--wide { width: 44px; object-position: center; }
 .sheet__thumb--cam { display: grid; place-items: center; color: var(--ink-2); }
 .sheet__thumb--cam svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+
+/* ================================================================ en vivo */
+
+/* Aviso del director: arriba, sobre todo, unos segundos. */
+.aviso {
+  position: absolute;
+  left: 50%;
+  top: max(64px, calc(env(safe-area-inset-top) + 54px));
+  z-index: 3;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 28px));
+  margin: 0;
+  padding: 12px 14px 12px 16px;
+  border-left: 3px solid var(--red);
+  background: rgba(7, 7, 7, 0.88);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  animation: aviso-in 0.4s var(--ease);
+}
+.aviso::before { content: 'AVISO'; display: block; margin-bottom: 4px; font-size: 9px; letter-spacing: 0.26em; color: var(--red); }
+.aviso--launch { position: fixed; top: max(48px, calc(env(safe-area-inset-top) + 40px)); }
+@keyframes aviso-in { from { opacity: 0; transform: translate(-50%, -8px); } }
+
+.launch__live {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.launch__live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: blink 1.2s steps(2, jump-none) infinite; }
+.launch__live strong { color: var(--ink); font-weight: 500; }
+
+.xr__live-online { flex: none; font-size: 9px; letter-spacing: 0.14em; color: rgba(236, 233, 226, 0.55); }
+
+/* Foto: destello al sacarla. */
+.xr.is-flash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: #fff;
+  pointer-events: none;
+  animation: flash 0.45s ease-out forwards;
+}
+@keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
