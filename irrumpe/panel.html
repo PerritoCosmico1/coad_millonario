@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#070707">
+  <title>Panel — IRRUMPE</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { min-height: 100vh; overflow: auto; }
+    .pn { width: min(860px, 100%); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) var(--gutter) 140px; }
+    .pn h1 { margin: 0; font: 800 22px var(--font-display); font-stretch: 125%; letter-spacing: 0.18em; text-transform: uppercase; }
+    .pn > p { margin: 8px 0 0; color: var(--ink-2); font-size: 12px; line-height: 1.7; }
+    .sec { margin: 22px 0; padding: 16px; border: 1px solid var(--line); }
+    .sec > h2 { margin: 0 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.26em; text-transform: uppercase; color: var(--red); }
+    .sec > .hint { margin: 0 0 8px; font-size: 11px; line-height: 1.6; color: var(--ink-3); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 0 12px; }
+    @media (min-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } .grid--3 { grid-template-columns: repeat(3, 1fr); } }
+    .f label { display: block; margin: 12px 0 5px; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3); }
+    .f input[type=text], .f input[type=url], .f input[type=number], .f input[type=time], .f input[type=datetime-local], .f select, .f textarea {
+      width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid var(--line); background: #0d0d0d; color: var(--ink);
+      font: 13px var(--font-mono); border-radius: 0; color-scheme: dark;
+    }
+    .f textarea { min-height: 70px; resize: vertical; }
+    .f--check { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 12px; color: var(--ink-2); }
+    .f--check input { accent-color: var(--red); width: 18px; height: 18px; }
+    .f--wide { grid-column: 1 / -1; }
+    .f .err { border-color: var(--red); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 13px;
+      border: 1px solid var(--line); background: none; color: var(--ink); text-decoration: none; cursor: pointer;
+      font: 10px var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .btn--red { border-color: var(--red); background: rgba(241, 27, 26, 0.14); }
+    .btn--solid { border-color: var(--red); background: var(--red); color: #fff; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .pt { margin: 14px 0; padding: 14px; border: 1px solid var(--line); border-top: 2px solid var(--red); }
+    .pt__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .pt__num { font-size: 12px; color: var(--red); letter-spacing: 0.1em; }
+    .pt__photo { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: end; margin-top: 12px; }
+    .pt__img { position: relative; width: 96px; aspect-ratio: 4 / 5; border: 1px dashed var(--line); background: #111 center / cover no-repeat; display: grid; place-items: center; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); text-align: center; cursor: pointer; }
+    .pt__img.has { border-style: solid; color: transparent; }
+    .pt__img input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .sub { margin: 16px 0 0; font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-2); }
+    .gal { display: grid; grid-template-columns: 1fr; gap: 0 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+    @media (min-width: 640px) { .gal { grid-template-columns: 1.1fr 1.6fr 0.6fr auto; align-items: end; } }
+    .bar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center;
+      padding: 12px var(--gutter) max(12px, env(safe-area-inset-bottom)); background: #0b0b0b; border-top: 1px solid var(--line);
+    }
+    .status { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+    .warns { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.7; color: var(--ink-2); }
+    .warns li::marker { color: var(--red); }
+    .ok { color: #5bd17a; }
+  </style>
+</head>
+<body>
+  <main class="pn">
+    <h1>Panel</h1>
+    <p>Edita el contenido de IRRUMPE sin tocar código. Los cambios quedan como <strong>borrador en este navegador</strong> y se pueden ver con "Ver página" y "Ver AR" antes de publicar.
+       Para publicar: <strong>Exportar</strong> descarga un .zip con <code>js/config.js</code> y las fotos nuevas; se descomprime sobre la carpeta <code>irrumpe</code> (reemplazando) y se sube a Netlify.</p>
+
+    <section class="sec" id="checks"><h2>Revisión</h2><ul class="warns" id="warns"></ul></section>
+    <section class="sec"><h2>Evento</h2><div class="grid" id="evento"></div></section>
+    <section class="sec"><h2>Puntos y artistas</h2>
+      <p class="hint">Coordenadas: en Google Maps, clic derecho sobre el lugar → el primer ítem son "lat, lng"; pégalo tal cual. Las redes vacías buscan al artista por su nombre.</p>
+      <div id="points"></div>
+      <button class="btn" id="add-point" type="button">+ Agregar punto</button>
+    </section>
+    <section class="sec"><h2>Galería 360</h2>
+      <p class="hint">Videos de YouTube (probarlos antes en <a href="probar-360.html" target="_blank">probar-360.html</a>) o archivos .mp4 360 del sitio (p. ej. assets/360/azga.mp4).</p>
+      <div id="gallery"></div>
+      <button class="btn" id="add-video" type="button">+ Agregar video</button>
+    </section>
+    <section class="sec"><h2>AR</h2><div class="grid" id="ar"></div></section>
+    <section class="sec"><h2>Compañía</h2><div class="grid" id="compania"></div></section>
+    <section class="sec"><h2>En vivo</h2>
+      <p class="hint">Canal y llave pública del director (ver <a href="director.html" target="_blank">director.html</a>). Si cambias la llave, el director tiene que usar la llave privada nueva.</p>
+      <div class="grid" id="vivo"></div>
+    </section>
+  </main>
+
+  <nav class="bar">
+    <span class="status" id="status"></span>
+    <a class="btn" id="see-site" href="index.html?borrador" target="_blank">Ver página</a>
+    <a class="btn" id="see-ar" href="ar/?borrador&amp;preview" target="_blank">Ver AR</a>
+    <button class="btn btn--solid" id="export" type="button">Exportar (.zip)</button>
+    <button class="btn" id="discard" type="button">Descartar borrador</button>
+  </nav>
+
+  <script src="js/config.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const KEY = 'irrumpe:borrador';
+      const PUBLISHED = JSON.parse(JSON.stringify(window.IRRUMPE_CONFIG));
+      const $ = (s, r) => (r || document).querySelector(s);
+      const pad = (n) => String(n).padStart(2, '0');
+      const TZ = (PUBLISHED.evento && PUBLISHED.evento.zonaHoraria) || 'America/Santiago';
+      const SOCIAL = [['instagram', 'Instagram'], ['spotify', 'Spotify'], ['youtube', 'YouTube'], ['soundcloud', 'SoundCloud'], ['tiktok', 'TikTok'], ['web', 'Web']];
+
+      let cfg;
+      try {
+        const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+        cfg = d && d.config ? d.config : JSON.parse(JSON.stringify(PUBLISHED));
+      } catch (e) { cfg = JSON.parse(JSON.stringify(PUBLISHED)); }
+      cfg.ar = cfg.ar || {};
+      cfg.vivo = cfg.vivo || {};
+      cfg.galeria = cfg.galeria || [];
+      cfg.puntos = cfg.puntos || [];
+
+      // ---------------------------------------------------------------- guardar
+      let timer = 0;
+      function save() {
+        clearTimeout(timer);
+        $('#status').textContent = '…';
+        timer = setTimeout(() => {
+          try {
+            localStorage.setItem(KEY, JSON.stringify({ config: cfg, guardado: new Date().toISOString() }));
+            $('#status').textContent = 'Borrador guardado';
+          } catch (e) {
+            $('#status').textContent = 'Sin espacio';
+            alert('El navegador no tiene espacio para guardar el borrador (probablemente por las fotos). Usa fotos más livianas.');
+          }
+          review();
+        }, 300);
+      }
+
+      // ---------------------------------------------------------------- utilidades
+      const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'punto';
+      // Hora local del evento ⇄ ISO con la diferencia horaria de Chile ese día.
+      function tzSuffix(local) {
+        const guess = new Date(local + ':00Z');
+        if (isNaN(guess)) return '-03:00';
+        const parts = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(guess);
+        const g = (t) => +parts.find((p) => p.type === t).value;
+        const off = Math.round((Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute')) - guess.getTime()) / 60000);
+        const a = Math.abs(off);
+        return (off < 0 ? '-' : '+') + pad(Math.floor(a / 60)) + ':' + pad(a % 60);
+      }
+      const toLocal = (iso) => (iso ? String(iso).slice(0, 16) : '');
+      const fromLocal = (v) => (v ? v + ':00' + tzSuffix(v) : null);
+
+      function field(label, opts) {
+        const wrap = document.createElement('div');
+        wrap.className = 'f' + (opts.wide ? ' f--wide' : '');
+        const id = 'f' + Math.random().toString(36).slice(2, 9);
+        if (opts.type === 'checkbox') {
+          wrap.className = 'f f--check' + (opts.wide ? ' f--wide' : '');
+          const i = Object.assign(document.createElement('input'), { id, type: 'checkbox', checked: !!opts.get() });
+          i.addEventListener('change', () => { opts.set(i.checked); save(); });
+          wrap.append(i, Object.assign(document.createElement('label'), { htmlFor: id, textContent: label }));
+          return wrap;
+        }
+        const l = Object.assign(document.createElement('label'), { htmlFor: id, textContent: label });
+        let i;
+        if (opts.type === 'textarea') i = document.createElement('textarea');
+        else if (opts.type === 'select') {
+          i = document.createElement('select');
+          opts.options().forEach(([v, t]) => i.append(new Option(t, v)));
+        } else i = Object.assign(document.createElement('input'), { type: opts.type || 'text' });
+        i.id = id;
+        i.value = opts.get() == null ? '' : opts.get();
+        if (opts.placeholder) i.placeholder = opts.placeholder;
+        i.addEventListener(opts.type === 'select' ? 'change' : 'input', () => {
+          const bad = opts.set(i.value) === false;
+          i.classList.toggle('err', bad);
+          if (!bad) save();
+        });
+        wrap.append(l, i);
+        return wrap;
+      }
+      const bind = (obj, key) => ({ get: () => obj[key], set: (v) => { obj[key] = v; } });
+
+      // Foto: se achica a 900 px (JPEG) para que el borrador quepa en el navegador.
+      function readPhoto(file) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            const k = Math.min(1, 900 / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * k);
+            c.height = Math.round(img.height * k);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
+            resolve(c.toDataURL('image/jpeg', 0.85));
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagen')); };
+          img.src = url;
+        });
+      }
+
+      // ---------------------------------------------------------------- secciones simples
+      function renderEvento() {
+        const e = cfg.evento;
+        $('#evento').replaceChildren(
+          field('Nombre', bind(e, 'nombre')),
+          field('Bajada', bind(e, 'bajada')),
+          field('Ciudad', bind(e, 'ciudad')),
+          field('Zona horaria', { get: () => e.zonaHoraria || TZ, set: (v) => { e.zonaHoraria = v; } }),
+          field('Inicio', { type: 'datetime-local', get: () => toLocal(e.inicio), set: (v) => { e.inicio = fromLocal(v); } }),
+          field('Término', { type: 'datetime-local', get: () => toLocal(e.fin), set: (v) => { e.fin = fromLocal(v); } }),
+        );
+      }
+      function renderAR() {
+        const a = cfg.ar;
+        $('#ar').replaceChildren(
+          field('Modo prototipo: abierta siempre y simula el show (para el evento real, desmarcar)', { type: 'checkbox', wide: true, get: () => a.prototipo, set: (v) => { a.prototipo = v; } }),
+          field('Segundos por artista (prototipo)', { type: 'number', get: () => a.segundosPorSet, set: (v) => { a.segundosPorSet = Math.max(10, +v || 120); } }),
+          field('Abrir la AR desde (vacío = al inicio del evento)', { type: 'datetime-local', get: () => toLocal(a.activaDesde), set: (v) => { a.activaDesde = fromLocal(v); } }),
+          field('Hay modelo del iPhone (assets/irrumpe.usdz) actualizado', { type: 'checkbox', wide: true, get: () => a.modeloIphone !== false, set: (v) => { a.modeloIphone = v; } }),
+          field('Redes provisorias: sin link real, buscar al artista por su nombre', { type: 'checkbox', wide: true, get: () => cfg.redesProvisorias !== false, set: (v) => { cfg.redesProvisorias = v; } }),
+        );
+      }
+      function renderCompania() {
+        const c = cfg.compania;
+        $('#compania').replaceChildren(
+          field('Nombre', bind(c, 'nombre')),
+          field('Web', Object.assign({ type: 'url' }, bind(c, 'web'))),
+          field('Logo (ruta en el sitio)', bind(c, 'logo')),
+        );
+      }
+      function renderVivo() {
+        const v = cfg.vivo;
+        $('#vivo').replaceChildren(
+          field('Canal', bind(v, 'canal')),
+          field('Brokers (uno por línea)', { type: 'textarea', get: () => (v.brokers || []).join('\n'), set: (t) => { v.brokers = t.split(/\s+/).filter(Boolean); } }),
+          field('Llave pública del director (JSON)', {
+            type: 'textarea', wide: true,
+            get: () => (v.clave ? JSON.stringify(v.clave) : ''),
+            set: (t) => {
+              if (!t.trim()) { v.clave = null; return true; }
+              try {
+                const k = JSON.parse(t.trim().replace(/^clave:\s*/, '').replace(/,$/, ''));
+                if (k.kty !== 'EC' || !k.x || !k.y) return false;
+                v.clave = { kty: k.kty, crv: k.crv, x: k.x, y: k.y };
+                return true;
+              } catch (e) { return false; }
+            },
+          }),
+        );
+      }
+
+      // ---------------------------------------------------------------- puntos
+      function renderPoints() {
+        const box = $('#points');
+        box.replaceChildren();
+        cfg.puntos.forEach((p, i) => {
+          const a = p.artista = p.artista || {};
+          a.redes = a.redes || {};
+          a.musica = a.musica || {};
+          const el = document.createElement('div');
+          el.className = 'pt';
+          const head = document.createElement('div');
+          head.className = 'pt__head';
+          head.append(Object.assign(document.createElement('span'), { className: 'pt__num', textContent: pad(i + 1) + ' · ' + (a.nombre || 'sin artista') }));
+          const tools = document.createElement('div');
+          tools.className = 'row';
+          const mk = (t, fn, dis) => { const b = Object.assign(document.createElement('button'), { className: 'btn', type: 'button', textContent: t, disabled: !!dis }); b.addEventListener('click', fn); return b; };
+          tools.append(
+            mk('↑', () => { [cfg.puntos[i - 1], cfg.puntos[i]] = [cfg.puntos[i], cfg.puntos[i - 1]]; save(); renderPoints(); }, i === 0),
+            mk('↓', () => { [cfg.puntos[i + 1], cfg.puntos[i]] = [cfg.puntos[i], cfg.puntos[i + 1]]; save(); renderPoints(); }, i === cfg.puntos.length - 1),
+            mk('Quitar', () => {
+              if (!confirm('¿Quitar el punto ' + pad(i + 1) + (a.nombre ? ' (' + a.nombre + ')' : '') + '?')) return;
+              cfg.puntos.splice(i, 1);
+              cfg.galeria.forEach((g) => { if (g.punto === p.id) delete g.punto; });
+              save(); renderPoints(); renderGallery();
+            }),
+          );
+          head.append(tools);
+          el.append(head);
+
+          // Foto del artista.
+          const photo = document.createElement('div');
+          photo.className = 'pt__photo';
+          const img = document.createElement('label');
+          img.className = 'pt__img' + (a.foto ? ' has' : '');
+          img.textContent = 'Foto';
+          if (a.foto) img.style.backgroundImage = 'url("' + String(a.foto).replace(/"/g, '%22') + '")';
+          const file = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*' });
+          file.addEventListener('change', async () => {
+            if (!file.files[0]) return;
+            try { a.foto = await readPhoto(file.files[0]); save(); renderPoints(); } catch (e) { alert('No se pudo leer esa imagen.'); }
+          });
+          img.append(file);
+          const names = document.createElement('div');
+          names.append(
+            field('Artista', { get: () => a.nombre, set: (v) => { a.nombre = v; head.firstChild.textContent = pad(i + 1) + ' · ' + (v || 'sin artista'); } }),
+            field('Género (opcional)', bind(a, 'genero')),
+          );
+          photo.append(img, names);
+          el.append(photo);
+
+          const grid = document.createElement('div');
+          grid.className = 'grid';
+          grid.append(
+            field('Bio (opcional, corta)', Object.assign({ type: 'textarea', wide: true }, bind(a, 'bio'))),
+            field('Lugar', bind(p, 'lugar')),
+            field('Dirección (opcional)', bind(p, 'direccion')),
+            field('Coordenadas (lat, lng)', {
+              get: () => (p.lat != null ? p.lat + ', ' + p.lng : ''),
+              set: (v) => {
+                const m = /(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)/.exec(v);
+                if (!m) return false;
+                p.lat = +(+m[1]).toFixed(5);
+                p.lng = +(+m[2]).toFixed(5);
+                return true;
+              },
+              placeholder: '-36.8270, -73.0503',
+            }),
+            field('Hora (opcional)', { type: 'time', get: () => p.hora, set: (v) => { p.hora = v; } }),
+          );
+          el.append(grid);
+
+          el.append(Object.assign(document.createElement('p'), { className: 'sub', textContent: 'Redes (links completos o @usuario en Instagram)' }));
+          const soc = document.createElement('div');
+          soc.className = 'grid grid--3';
+          SOCIAL.forEach(([k, label]) => soc.append(field(label, {
+            get: () => a.redes[k] || '',
+            set: (v) => {
+              v = v.trim();
+              if (k === 'instagram' && v && !/^https?:\/\//i.test(v)) v = 'https://www.instagram.com/' + v.replace(/^@/, '') + '/';
+              a.redes[k] = v;
+            },
+            placeholder: k === 'instagram' ? '@usuario' : 'https://…',
+          })));
+          el.append(soc);
+
+          el.append(Object.assign(document.createElement('p'), { className: 'sub', textContent: 'Tema destacado (opcional)' }));
+          const mus = document.createElement('div');
+          mus.className = 'grid grid--3';
+          mus.append(
+            field('Título', bind(a.musica, 'titulo')),
+            field('Link', Object.assign({ type: 'url' }, bind(a.musica, 'url'))),
+            field('Reproductor (Spotify o YouTube)', Object.assign({ type: 'url' }, bind(a.musica, 'embed'))),
+          );
+          el.append(mus);
+          box.append(el);
+        });
+      }
+      $('#add-point').addEventListener('click', () => {
+        const base = cfg.puntos[cfg.puntos.length - 1] || { lat: -36.827, lng: -73.0503 };
+        let id = 'punto-' + (cfg.puntos.length + 1);
+        while (cfg.puntos.some((p) => p.id === id)) id += '-b';
+        cfg.puntos.push({ id, lugar: '', direccion: '', lat: base.lat, lng: base.lng, hora: '', artista: { nombre: '', genero: '', bio: '', foto: '', musica: {}, redes: {} } });
+        save();
+        renderPoints();
+        $('#points').lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+      // ---------------------------------------------------------------- galería
+      function renderGallery() {
+        const box = $('#gallery');
+        box.replaceChildren();
+        cfg.galeria.forEach((g, i) => {
+          const row = document.createElement('div');
+          row.className = 'gal';
+          row.append(
+            field('Punto', { type: 'select', options: () => [['', '— sin punto (usa el título) —'], ...cfg.puntos.map((p, k) => [p.id, pad(k + 1) + ' · ' + (p.artista.nombre || p.lugar)])], get: () => g.punto || '', set: (v) => { if (v) g.punto = v; else delete g.punto; setTimeout(renderGallery); } }),
+            field('Video (YouTube o .mp4)', bind(g, 'video')),
+            field('Inicio (s)', { type: 'number', get: () => g.inicio || '', set: (v) => { if (+v > 0) g.inicio = +v; else delete g.inicio; } }),
+          );
+          if (!g.punto) row.insertBefore(field('Título', bind(g, 'titulo')), row.children[1]);
+          const del = Object.assign(document.createElement('button'), { className: 'btn', type: 'button', textContent: 'Quitar' });
+          del.addEventListener('click', () => { cfg.galeria.splice(i, 1); save(); renderGallery(); });
+          row.append(del);
+          box.append(row);
+        });
+      }
+      $('#add-video').addEventListener('click', () => { cfg.galeria.push({ titulo: '', video: '' }); save(); renderGallery(); });
+
+      // ---------------------------------------------------------------- revisión
+      function review() {
+        const w = [];
+        const ids = new Set();
+        cfg.puntos.forEach((p, i) => {
+          const n = pad(i + 1);
+          if (!p.artista.nombre) w.push(n + ': falta el nombre del artista.');
+          if (!p.lugar) w.push(n + ': falta el lugar.');
+          if (!(Math.abs(p.lat) > 0) || !(Math.abs(p.lng) > 0)) w.push(n + ': faltan las coordenadas.');
+          if (!p.artista.foto) w.push(n + ': sin foto (la tarjeta mostrará las iniciales).');
+          if (ids.has(p.id)) w.push(n + ': id repetido.');
+          ids.add(p.id);
+        });
+        if (!cfg.evento.inicio) w.push('Falta la fecha de inicio del evento.');
+        if (cfg.evento.fin && cfg.evento.inicio && new Date(cfg.evento.fin) <= new Date(cfg.evento.inicio)) w.push('El término es antes del inicio.');
+        cfg.galeria.forEach((g, i) => { if (!g.video) w.push('Galería ' + (i + 1) + ': falta el video.'); });
+        if (!cfg.vivo.clave) w.push('En vivo: sin llave del director, nadie puede marcar quién toca.');
+        const changed = JSON.stringify(stripPhotos(cfg)) !== JSON.stringify(stripPhotos(PUBLISHED)) || cfg.puntos.some((p) => /^data:/.test(p.artista.foto || ''));
+        const photoChange = cfg.puntos.length !== PUBLISHED.puntos.length || cfg.puntos.some((p, i) => {
+          const o = PUBLISHED.puntos[i];
+          return !o || o.artista.nombre !== p.artista.nombre || o.artista.foto !== p.artista.foto || o.lugar !== p.lugar || o.lat !== p.lat || o.lng !== p.lng;
+        });
+        if (photoChange && cfg.ar.modeloIphone !== false) w.push('Cambiaron artistas, fotos o puntos: el modelo del iPhone quedó desactualizado. Regenéralo en tools/export-3d.html?borrador o desmarca "Hay modelo del iPhone" (sección AR).');
+        const ul = $('#warns');
+        ul.replaceChildren(...(w.length ? w : ['Todo en orden.']).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+        if (!w.length) ul.firstChild.className = 'ok';
+        $('#status').textContent = changed ? 'Borrador con cambios sin publicar' : 'Igual a lo publicado';
+      }
+      function stripPhotos(c) {
+        const copy = JSON.parse(JSON.stringify(c));
+        delete copy.borrador;
+        return copy;
+      }
+
+      // ---------------------------------------------------------------- exportar (.zip)
+      const CRC = (() => {
+        const t = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+        return (data) => { let c = 0xffffffff; for (let i = 0; i < data.length; i++) c = t[(c ^ data[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+      })();
+      // Zip sin compresión: alcanza para un config.js y unas fotos JPEG.
+      function zip(files) {
+        const enc = new TextEncoder();
+        const chunks = [], central = [];
+        let offset = 0;
+        const d = new Date();
+        const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+        const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+        for (const f of files) {
+          const name = enc.encode(f.name);
+          const data = f.data;
+          const crc = CRC(data);
+          const local = new DataView(new ArrayBuffer(30));
+          [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, name.length, 2], [28, 0, 2]]
+            .forEach(([o, v, s]) => (s === 4 ? local.setUint32(o, v, true) : local.setUint16(o, v, true)));
+          const cd = new DataView(new ArrayBuffer(46));
+          [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, time, 2], [14, date, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4], [28, name.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, offset, 4]]
+            .forEach(([o, v, s]) => (s === 4 ? cd.setUint32(o, v, true) : cd.setUint16(o, v, true)));
+          chunks.push(new Uint8Array(local.buffer), name, data);
+          central.push(new Uint8Array(cd.buffer), name);
+          offset += 30 + name.length + data.length;
+        }
+        const cdSize = central.reduce((a, c) => a + c.length, 0);
+        const end = new DataView(new ArrayBuffer(22));
+        [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, files.length, 2], [10, files.length, 2], [12, cdSize, 4], [16, offset, 4], [20, 0, 2]]
+          .forEach(([o, v, s]) => (s === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true)));
+        return new Blob([...chunks, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+      }
+      const dataUrlBytes = (u) => Uint8Array.from(atob(u.split(',')[1]), (c) => c.charCodeAt(0));
+
+      const HEADER = `/*
+ * IRRUMPE — contenido del sitio (generado por panel.html el ${new Date().toLocaleString('es-CL')}).
+ *
+ * Lo más cómodo es editarlo en panel.html. Si se edita a mano:
+ * - evento: nombre, bajada, ciudad, inicio y fin (ISO con zona horaria; en
+ *   verano Chile continental es -03:00), zonaHoraria.
+ * - compania: nombre, logo (ruta) y web.
+ * - ar: prototipo (true = abierta siempre y simula el show), segundosPorSet,
+ *   activaDesde (null = al inicio), modeloIphone (false si assets/irrumpe.usdz
+ *   no está al día).
+ * - vivo: canal, clave (llave pública del director) y brokers (ver director.html).
+ * - galeria: videos 360 ({ punto | titulo, video, inicio }).
+ * - redesProvisorias: sin link real, los botones buscan al artista.
+ * - puntos: id, lugar, direccion, lat, lng, hora y artista { nombre, genero,
+ *   bio, foto, musica { titulo, url, embed, preview }, redes { instagram, … } }.
+ * Lo que quede vacío ('') no se muestra.
+ */
+`;
+      $('#export').addEventListener('click', () => {
+        const out = JSON.parse(JSON.stringify(cfg));
+        delete out.borrador;
+        const files = [];
+        const used = new Set();
+        out.puntos.forEach((p) => {
+          const f = p.artista.foto || '';
+          if (!/^data:image\//.test(f)) return;
+          let name = 'assets/artistas/' + slug(p.artista.nombre || p.id) + '.jpg';
+          while (used.has(name)) name = name.replace(/\.jpg$/, '-2.jpg');
+          used.add(name);
+          files.push({ name, data: dataUrlBytes(f) });
+          p.artista.foto = name;
+        });
+        const js = HEADER + 'window.IRRUMPE_CONFIG = ' + JSON.stringify(out, null, 2) + ';\n';
+        files.unshift({ name: 'js/config.js', data: new TextEncoder().encode(js) });
+        files.push({ name: 'LEEME-PANEL.txt', data: new TextEncoder().encode(
+          'Contenido exportado desde panel.html.\n\n1. Descomprime este .zip dentro de la carpeta irrumpe, reemplazando los archivos.\n'
+          + '2. Si cambiaron artistas o fotos, regenera assets/irrumpe.usdz en tools/export-3d.html (o desmarca "Hay modelo del iPhone").\n'
+          + '3. Sube la carpeta irrumpe a Netlify (Deploys → arrastrar la carpeta).\n') });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(zip(files));
+        a.download = 'irrumpe-contenido.zip';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        $('#status').textContent = 'Exportado: ' + files.length + ' archivos';
+      });
+      $('#discard').addEventListener('click', () => {
+        if (!confirm('¿Descartar el borrador y volver a lo publicado? Se pierden los cambios sin exportar.')) return;
+        try { localStorage.removeItem(KEY); } catch (e) { /* nada guardado */ }
+        location.reload();
+      });
+
+      renderEvento();
+      renderAR();
+      renderCompania();
+      renderVivo();
+      renderPoints();
+      renderGallery();
+      review();
+      // Si es la primera vez, el borrador parte igual a lo publicado.
+      if (!localStorage.getItem(KEY)) save();
+    })();
+  </script>
+</body>
+</html>

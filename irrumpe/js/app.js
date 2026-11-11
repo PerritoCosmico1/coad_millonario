@@ -553,6 +553,12 @@
     youtube: (q) => 'https://www.youtube.com/results?search_query=' + q,
   };
 
+  // "@usuario" a partir del link de Instagram de un perfil (no de una búsqueda).
+  function instagramHandle(url) {
+    const m = /instagram\.com\/([A-Za-z0-9._]{1,30})\/?(?:[?#].*)?$/i.exec(url || '');
+    return m && !/^(explore|p|reel|reels|stories|accounts)$/i.test(m[1]) ? '@' + m[1] : '';
+  }
+
   // [red, link] para seguir al artista: Instagram, Spotify y YouTube siempre
   // (con el link real o la búsqueda) y después las otras redes que tengan link.
   function socialLinks(a) {
@@ -736,7 +742,7 @@
       }));
 
       const links = socialLinks(a)
-        .map(([k, url]) => h('a', { href: url, target: '_blank', rel: 'noopener', text: SOCIAL_LABELS[k] || k }));
+        .map(([k, url]) => h('a', { href: url, target: '_blank', rel: 'noopener', text: (k === 'instagram' && instagramHandle(url)) || SOCIAL_LABELS[k] || k }));
       const maps = 'https://www.google.com/maps/search/?api=1&query=' + p.lat + ',' + p.lng;
 
       this.el.replaceChildren(...[
