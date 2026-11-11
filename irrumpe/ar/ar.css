@@ -27,6 +27,17 @@
   color: var(--ink-2);
 }
 
+.launch__privacy {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: var(--gutter);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink-3);
+}
+
 .launch__bottom {
   position: absolute;
   left: 0;
@@ -466,15 +477,15 @@ a.sheet__social-btn::after { content: ' ↗'; }
 
 .launch__live {
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  max-width: 360px;
+  text-align: center;
+  line-height: 1.7;
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-2);
 }
-.launch__live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: blink 1.2s steps(2, jump-none) infinite; }
+.launch__live::before { content: ''; display: inline-block; vertical-align: middle; margin: -2px 8px 0 0; width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: blink 1.2s steps(2, jump-none) infinite; }
 .launch__live strong { color: var(--ink); font-weight: 500; }
 
 .xr__live-online { flex: none; font-size: 9px; letter-spacing: 0.14em; color: rgba(236, 233, 226, 0.55); }

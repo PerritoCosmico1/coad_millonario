@@ -1,13 +1,17 @@
-# Acceso AR — prototipo
+# Acceso AR
 
-Experiencia de realidad aumentada de IRRUMPE para celulares. Es un **prototipo**: funciona en cualquier lugar y a cualquier hora, y simula el show en vivo.
+Experiencia de realidad aumentada de IRRUMPE para celulares. Con `ar.prototipo: true` funciona en cualquier lugar y a cualquier hora y simula el show; para el evento real, `false` (ver `../GUIA.md`).
 
 ## Qué se ve
 
 Un tótem holográfico: el mapa de puntos de Concepción en un disco con los cuatro puntos rojos. Desde cada punto sube un rayo de luz hasta la tarjeta de su artista (número, foto, nombre y lugar), con el logo e IRRUMPE arriba.
 
 - **Tocar una tarjeta** abre la ficha del artista: foto a color, punto, botones para seguirlo (Instagram, Spotify, YouTube) y "Cómo llegar"; también género, bio y tema destacado si están cargados. Mientras falte el link real de una red, su botón busca el nombre del artista en esa plataforma (provisorio; `redesProvisorias` en `config.js`).
-- **En vivo** (línea inferior): quién está tocando ahora. En el tótem lleva la insignia "EN VIVO" y sus ondas son más fuertes. En el evento real sale de la `hora` de cada punto; en el prototipo rota entre los artistas cada `ar.segundosPorSet` segundos, para mostrar la idea.
+- **En vivo** (línea inferior): quién está tocando ahora y cuántos hay conectados. **El tótem se transforma**: ese artista pasa al centro, más grande, con su @, y el resto se achica detrás; entre sets (o al abrir una ficha) vuelven todos. Lo marca el director desde `../director.html` (llega a todos al instante); si no, sale de la `hora` de cada punto. En el prototipo cada artista toca `ar.segundosPorSet` segundos con una pausa corta entre sets.
+- **Avisos** del director: aparecen arriba unos segundos.
+- **Reacciones** compartidas: las de todos suben por el tótem (las ajenas, más chicas).
+- **Faros** (ícono de tres haces): un haz de luz gigante hacia cada punto de la ciudad, con su artista y la distancia, usando GPS y brújula; el en vivo es rojo y late con la música. Funcionan sin luz y desde cualquier parte de Concepción. La brújula del celular tiene unos 10–20° de error: indican hacia dónde queda cada punto. En la AR anclada, si falta el permiso de ubicación, pasa a "sin anclar" para pedirlo.
+- **Foto** (ícono de cámara, en los modos cámara y 360): el tótem sobre lo que ve la cámara, con la marca del evento, para compartir o guardar.
 - **Íconos inferiores**: line-up, reacciones (corazón, chispa, rayo, que suben desde el punto en vivo) y música.
 - **Música**: con el micrófono, las ondas, rayos y partículas siguen la música que suena en el lugar. Sin micrófono laten a un pulso de demostración.
 - **Pellizcar** con dos dedos cambia el tamaño del tótem.
@@ -108,9 +112,10 @@ Versión del tótem para AR Quick Look, con animaciones en loop (tarjetas que fl
 ```text
 index.html     lanzador (tótem + Entrar) y capa de la experiencia
 ar.css         estilos del lanzador y de la interfaz en AR
-ar.js          elección automática de modo, interfaz (en vivo, fichas, line-up, reacciones, galería)
+ar.js          elección automática de modo, interfaz (en vivo con el director, avisos, fichas, line-up, reacciones, galería, faros, foto)
 hologram.js    el tótem 3D (mapa, puntos, rayos, tarjetas, partículas, reacciones)
-sessions.js    los modos: WebXR anclado, cámara + giroscopio, sin cámara, fondo 360; pellizco para escalar
+sessions.js    los modos: WebXR anclado, cámara + giroscopio, sin cámara, fondo 360; pellizco; foto
+faros.js       faros hacia cada punto (GPS + brújula)
 video360.js    fondo 360: reproductor de YouTube guiado por el giroscopio, o un .mp4 en una esfera
 audio.js       intensidad de la música por micrófono, o pulso de demostración
 ```

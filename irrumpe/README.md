@@ -1,6 +1,8 @@
-# IRRUMPE — landing
+# IRRUMPE
 
-Landing de **IRRUMPE**, la intervención musical de La Única Compañía en cuatro puntos de Concepción.
+Sitio y experiencia de realidad aumentada de **IRRUMPE**, la intervención musical de La Única Compañía en cuatro puntos de Concepción.
+
+**Para operar** (cambiar contenido, dirigir el evento en vivo): ver [`GUIA.md`](GUIA.md).
 
 Es un sitio estático: HTML, CSS y JS planos, sin build ni dependencias que instalar. Es independiente del resto de este repositorio (la app del concurso que vive en la raíz).
 
@@ -10,12 +12,14 @@ Es un sitio estático: HTML, CSS y JS planos, sin build ni dependencias que inst
 - **Cuatro puntos rojos** (Parque Ecuador, Plaza de la Independencia, Plaza Bicentenario y UdeC) que tiemblan y emiten ondas. Al pasar el mouse (o tocar en celular) muestran: lugar, foto y nombre del artista, "Cómo llegar" y links para seguirlo (Instagram, Spotify, YouTube; mientras falte el link real, buscan su nombre); también hora, género, bio y un tema cuando estén cargados. Con un clic la tarjeta queda fija; si el artista tiene un link de Spotify o YouTube en `musica.embed`, en ese momento se carga el reproductor.
 - **Los cuatro puntos siempre están a la vista**: la tarjeta nunca tapa un punto. En escritorio se ubica al costado del grupo de puntos (y si no cabe, el mapa se desliza para hacerle lugar). En celular es una hoja inferior compacta: la cuenta regresiva se achica y el mapa se reencuadra arriba de la hoja. Nada de la página necesita scroll, ni en celular horizontal.
 - **Cuenta regresiva** grande hasta el inicio, con el nombre y logo de La Única Compañía. Durante el evento cambia a "EN VIVO" y al terminar a "YA IRRUMPIÓ".
-- **AR** (prototipo funcional): botón arriba a la derecha. En celular va directo a `ar/`; en computador muestra un QR. Un tótem holográfico de Concepción con los cuatro puntos y las tarjetas de los artistas, anclado al mundo; al tocar una tarjeta se ven su foto y sus redes. Ver [`ar/README.md`](ar/README.md).
+- **AR**: botón arriba a la derecha. En celular va directo a `ar/`; en computador muestra un QR. Un tótem holográfico de Concepción con los cuatro puntos y las tarjetas de los artistas, anclado al mundo; al tocar una tarjeta se ven su foto y sus redes. Cuando alguien toca, el tótem se transforma para mostrarlo; los **faros** apuntan con GPS y brújula hacia cada punto de la ciudad; fotos con el tótem para compartir. Ver [`ar/README.md`](ar/README.md).
+- **En vivo, en tiempo real**: el director (`director.html`) marca quién toca y manda avisos; todos los celulares cambian al instante. Reacciones compartidas y cuántos hay conectados. Ver [`GUIA.md`](GUIA.md).
+- **Sin señal**: después de la primera visita, la landing y la AR abren aunque no haya internet (`sw.js`).
 - **Galería 360**: el mismo tótem sobre la transmisión 360 de cada intervención (en vivo por YouTube o grabada), para quien no pudo ir. Se abre con el botón 360 de la AR o, en computador, desde el QR ("Galería 360"). Los videos se cargan en `galeria` de `js/config.js`, después de probarlos en el celular con `probar-360.html`.
 
 ## Editar el contenido
 
-Todo se cambia en **[`js/config.js`](js/config.js)**: fecha y hora, nombre de la compañía y logo, los puntos (lugar, coordenadas, hora, artista, foto, música, redes) y los videos de la galería 360. Lo marcado con `[PENDIENTE]` falta confirmarlo; los campos vacíos no se muestran.
+Lo más cómodo es **[`panel.html`](panel.html)** (ver [`GUIA.md`](GUIA.md)): edita todo con vista previa y exporta un .zip listo para publicar. A mano, todo está en **[`js/config.js`](js/config.js)**: fecha y hora, nombre de la compañía y logo, los puntos (lugar, coordenadas, hora, artista, foto, música, redes) y los videos de la galería 360. Lo marcado con `[PENDIENTE]` falta confirmarlo; los campos vacíos no se muestran.
 
 - **Logo**: `assets/logo-la-unica-compania.png` (blanco sobre transparente). Para cambiarlo, reemplazar el archivo o apuntar `compania.logo` a otro.
 - **Fotos de artistas**: en `assets/artistas/` (cuadradas o verticales); la ruta va en `artista.foto`. Se muestran en blanco y negro con un tinte rojo para que todas se vean parejas. La de Yuri salió de una captura de la web y es de baja resolución: conviene reemplazarla por el original.
@@ -55,10 +59,17 @@ Los datos de origen son simplificados; la página los suaviza al dibujarlos. Las
 ```text
 index.html              estructura de la página
 styles.css              estilos (tokens de color/tipografía al inicio)
-js/config.js            ← contenido editable
-js/app.js               mapa, puntos, tarjeta, cuenta regresiva, panel AR
+js/config.js            ← contenido (lo genera panel.html)
+js/app.js               mapa, puntos, tarjeta, cuenta regresiva, panel AR, en vivo
+js/vivo.js              en vivo: cliente MQTT por WebSocket, firmas del director, reacciones, conectados
+js/borrador.js          vista previa del borrador del panel (?borrador)
+panel.html              panel de contenido: edición, revisión, vista previa, exportación
+director.html           director del evento: quién toca y avisos (requiere la llave privada)
+privacidad.html         qué se usa en el teléfono y qué se comparte
+GUIA.md                 guía de operación (contenido, director, llave, antes del evento)
+sw.js                   funciona sin señal (service worker)
 js/concepcion-geo.js    costa y agua (generado)
-ar/                     experiencia AR (prototipo)
+ar/                     experiencia AR
 qr.html                 genera el QR y la placa final para el video del pitch
 probar-360.html         prueba si un video (YouTube o .mp4 propio) sirve para la galería 360 (abrir en el celular)
 PITCH.md                plan y checklist para el pitch
@@ -69,6 +80,6 @@ vendor/qrcode.js        generador de QR (MIT, Kazuhiko Arase)
 vendor/three.min.js     three.js 0.186.1 minificado (MIT), para la AR
 tools/build-geo.py      genera js/concepcion-geo.js
 tools/build-three.sh    genera vendor/three.min.js y el exportador de tools/
-tools/export-3d.html    genera assets/irrumpe.usdz (el tótem para la AR del iPhone)
+tools/export-3d.html    genera assets/irrumpe.usdz (el tótem para la AR del iPhone); acepta ?borrador
 manifest.webmanifest    permite "agregar a pantalla de inicio"
 ```

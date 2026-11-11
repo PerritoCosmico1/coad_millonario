@@ -949,6 +949,8 @@
     bindPointer();
     ar.init();
     vivo.init();
+    // Sin señal: después de la primera visita abre igual (ver sw.js).
+    if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
 
     let t = 0;
     window.addEventListener('resize', () => {

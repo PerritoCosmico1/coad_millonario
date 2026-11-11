@@ -685,7 +685,7 @@ function updateLive() {
   const lk = liveIndex(Date.now());
   ll.hidden = lk < 0 || (!IS_MOBILE && !PREVIEW);
   if (lk >= 0) {
-    ll.replaceChildren('En vivo · ', h('strong', { text: POINTS[lk].artista.nombre }), ' · ' + POINTS[lk].lugar + (vivo.online ? ' · ' + vivo.online + ' en línea' : ''));
+    ll.replaceChildren(h('strong', { text: POINTS[lk].artista.nombre }), ' · ' + POINTS[lk].lugar + (vivo.online ? ' · ' + vivo.online + ' en línea' : ''));
   }
   if (k < 0) return;
   const p = POINTS[k];
@@ -914,6 +914,8 @@ function bindUI() {
 }
 
 async function boot() {
+  // Sin señal: después de la primera visita abre igual (ver ../sw.js).
+  if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('../sw.js').catch(() => {});
   document.querySelectorAll('[data-event-name]').forEach((el) => { el.textContent = C.evento.nombre || 'IRRUMPE'; });
   bindUI();
   checkFiles();
