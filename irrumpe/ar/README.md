@@ -116,6 +116,9 @@ hologram.js    el tótem 3D (mapa, puntos, rayos, tarjetas, partículas, reaccio
 sessions.js    los modos: WebXR anclado, cámara + giroscopio, sin cámara, fondo 360; pellizco; foto
 video360.js    fondo 360: reproductor de YouTube guiado por el giroscopio, o un .mp4 en una esfera
 audio.js       intensidad de la música por micrófono, o pulso de demostración
+ritmo.js       golpes, graves/agudos e intensidad del momento (para el escenario aumentado)
+escenario.js   escenario aumentado: truss, focos, luces cinéticas, LED, láseres, ondas, chispas, fuegos
+cielo.js       al mirar arriba: cielo nocturno, aurora y aviones de papel
 ```
 
 Usa [three.js](https://threejs.org) desde `../vendor/three.min.js` (generado con `../tools/build-three.sh`). No necesita compilar nada.

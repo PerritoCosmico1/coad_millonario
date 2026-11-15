@@ -69,8 +69,8 @@ privacidad.html         qué se usa en el teléfono y qué se comparte
 GUIA.md                 guía de operación (contenido, director, llave, antes del evento)
 sw.js                   funciona sin señal (service worker)
 js/concepcion-geo.js    costa y agua (generado)
-ar/                     experiencia AR
-polea/                  AR de la tocata POLEA · Primer vuelo (15 nov, Monarca): cartel sobre el escenario (ver polea/LEEME.md)
+ar/                     experiencia AR (escenario.js, cielo.js y ritmo.js: motor del escenario aumentado)
+polea/                  AR de la tocata POLEA · Primer vuelo (15 nov, Monarca): escenario aumentado (ver polea/LEEME.md)
 404.html                página de "no existe" con links a la tocata, la AR y el inicio
 qr.html                 genera el QR y la placa final para el video del pitch
 probar-360.html         prueba si un video (YouTube o .mp4 propio) sirve para la galería 360 (abrir en el celular)

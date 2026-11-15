@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>POLEA · Primer vuelo — AR</title>
-  <meta name="description" content="POLEA · Primer vuelo. 15 de noviembre en Monarca, Concepción. Mira a cada banda en realidad aumentada.">
+  <meta name="description" content="POLEA · Primer vuelo. 15 de noviembre en Monarca, Concepción. El escenario como un festival, en realidad aumentada.">
   <meta name="theme-color" content="#d9d8d4">
   <meta property="og:title" content="POLEA · Primer vuelo">
   <meta property="og:description" content="15 NOV · Monarca · Aníbal Pinto 143, Concepción">
@@ -15,6 +15,9 @@
   <link rel="modulepreload" href="../vendor/three.min.js">
   <link rel="modulepreload" href="../ar/sessions.js">
   <link rel="modulepreload" href="../ar/audio.js">
+  <link rel="modulepreload" href="../ar/ritmo.js">
+  <link rel="modulepreload" href="../ar/escenario.js">
+  <link rel="modulepreload" href="../ar/cielo.js">
   <link rel="stylesheet" href="polea.css">
 </head>
 <body class="polea">
@@ -30,7 +33,7 @@
       <p class="launch__where">15 nov · Monarca · Aníbal Pinto 143</p>
       <div class="launch__row" id="actions">
         <button class="launch__enter" id="enter" type="button" disabled>Abrir AR</button>
-        <button class="launch__mic" id="mic" type="button" aria-pressed="false" aria-label="Que todo siga la música (micrófono)">
+        <button class="launch__mic" id="mic" type="button" aria-pressed="false" aria-label="Que las luces sigan la música (micrófono)">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
         </button>
       </div>
@@ -42,7 +45,7 @@
     <section class="sheet sheet--launch" id="launch-sheet" hidden aria-live="polite"></section>
   </main>
 
-  <!-- Experiencia: la cámara y el cartel sobre el escenario -->
+  <!-- Experiencia: la cámara y el escenario aumentado -->
   <div class="xr" id="xr" hidden>
     <video class="xr__video" id="xr-video" playsinline muted hidden></video>
     <div class="xr__ui" id="xr-ui">
@@ -51,11 +54,14 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
         <div class="xr__top-right">
+          <button class="xr__icon" id="xr-mic" type="button" aria-pressed="false" aria-label="Que las luces sigan la música (micrófono)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+          </button>
           <button class="xr__icon" id="xr-rec" type="button" aria-label="Modo grabación: esconder los botones">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" class="fill"/></svg>
           </button>
-          <button class="xr__icon" id="refix" type="button" aria-label="Mover el cartel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+          <button class="xr__icon" id="refix" type="button" aria-label="Volver a encuadrar el escenario">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
           </button>
         </div>
       </header>
@@ -66,25 +72,15 @@
       <div class="xr__dock">
         <p class="hint" id="hint" hidden></p>
         <button class="pill" id="fix" type="button" hidden>Fijar aquí</button>
-        <button class="now" id="now" type="button">
-          <span class="now__dot" aria-hidden="true"></span>
-          <span class="now__name" id="now-name"></span>
-          <span class="now__tag" id="now-tag"></span>
-        </button>
-        <div class="xr__actions">
-          <button class="xr__btn" id="xr-lineup" type="button" aria-label="Line-up">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-          </button>
-          <button class="xr__btn xr__btn--react" data-react="corazon" type="button" aria-label="Enviar corazón"></button>
-          <button class="xr__btn xr__btn--react" data-react="chispa" type="button" aria-label="Enviar chispa"></button>
-          <button class="xr__btn xr__btn--react" data-react="rayo" type="button" aria-label="Enviar rayo"></button>
-          <button class="xr__btn" id="xr-mic" type="button" aria-pressed="false" aria-label="Que todo siga la música (micrófono)">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
-          </button>
+        <div class="follow" id="follow" hidden>
+          <a class="ig" id="ig" href="#" target="_blank" rel="noopener">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><defs><radialGradient id="ig-dock" cx="0.3" cy="1.07" r="1.2"><stop offset="0" stop-color="#fdd574"/><stop offset="0.25" stop-color="#fb7d2b"/><stop offset="0.55" stop-color="#d62976"/><stop offset="0.85" stop-color="#962fbf"/><stop offset="1" stop-color="#4f5bd5"/></radialGradient></defs><rect width="24" height="24" rx="6.5" fill="url(#ig-dock)"/><rect x="5" y="5" width="14" height="14" rx="4.2" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="12" cy="12" r="3.3" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="16.3" cy="7.7" r="1.05" fill="#fff"/></svg></span>
+            <span class="ig__handle" id="ig-handle"></span>
+            <span class="ig__go" aria-hidden="true">↗</span>
+          </a>
+          <div class="follow__more" id="follow-more"></div>
         </div>
       </div>
-
-      <section class="sheet" id="sheet" hidden aria-live="polite"></section>
     </div>
   </div>
 

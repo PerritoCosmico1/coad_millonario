@@ -415,7 +415,8 @@ export async function startWindow(ctx, { video, useCamera, bg }) {
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
     const hit = raycaster.intersectObjects(holo.cards, false)[0];
-    ctx.onTap(hit ? hit.object.userData.index : -1);
+    // El rayo va también, por si se quiere saber hacia dónde se tocó.
+    ctx.onTap(hit ? hit.object.userData.index : -1, raycaster.ray);
   };
   canvas.addEventListener('pointerdown', onDown);
   canvas.addEventListener('pointermove', onMove);

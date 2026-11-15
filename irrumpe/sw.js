@@ -11,7 +11,7 @@
  * - Videos y el modelo del iPhone: siempre directo (son pesados y piden por partes).
  * Lo que necesita internet (en vivo, YouTube) se reconecta solo al volver la señal.
  */
-const CACHE = 'irrumpe-v2';
+const CACHE = 'irrumpe-v3';
 
 // Las fotos y el logo salen de config.js (que escribe en window.IRRUMPE_CONFIG).
 self.window = self;
@@ -24,7 +24,7 @@ const CORE = [
   'vendor/qrcode.js', 'vendor/three.min.js',
   'assets/favicon.svg', 'assets/icon-192.png',
   'ar/', 'ar/index.html', 'ar/ar.css', 'ar/ar.js', 'ar/hologram.js', 'ar/sessions.js',
-  'ar/audio.js', 'ar/video360.js',
+  'ar/audio.js', 'ar/video360.js', 'ar/ritmo.js', 'ar/escenario.js', 'ar/cielo.js',
   // POLEA · Primer vuelo (la tocata).
   'polea/', 'polea/index.html', 'polea/polea.css', 'polea/polea.js', 'polea/config.js',
   'polea/img/polea.webp', 'polea/img/primer-vuelo.webp',
