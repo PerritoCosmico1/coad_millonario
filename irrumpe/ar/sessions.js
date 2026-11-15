@@ -354,7 +354,7 @@ export async function startWindow(ctx, { video, useCamera, bg }) {
   window.addEventListener('pagehide', suspend);
   window.addEventListener('pageshow', resume);
 
-  // Lejano hasta 400 m: los faros (ar/faros.js) están a 70 m.
+  // Lejano hasta 400 m: los carteles sobre un escenario lejano también entran.
   const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 400);
   const resize = () => {
     const w = window.innerWidth, h = window.innerHeight;

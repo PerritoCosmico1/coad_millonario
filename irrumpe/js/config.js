@@ -58,9 +58,6 @@ window.IRRUMPE_CONFIG = {
    * Los puntos que todavía no tienen video aparecen como "Próximamente".
    */
   galeria: [
-    // Video de prueba para el pitch: copiar el archivo a assets/360/prototipo.mp4
-    // (ver assets/360/LEEME.md). Mientras no esté, sale como "Próximamente".
-    { titulo: 'Prueba 360', video: 'assets/360/prototipo.mp4' },
     // { punto: 'parque-ecuador', video: 'https://youtu.be/XXXXXXXXXXX' },
     // { punto: 'udec', video: 'assets/360/antipatriarka.mp4', inicio: 30 },
   ],
@@ -82,10 +79,10 @@ window.IRRUMPE_CONFIG = {
     brokers: ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'],
   },
 
-  // Botones para seguir a los artistas (Instagram, Spotify, YouTube). Mientras
-  // falte el link real de una red en `artista.redes`, el botón busca el nombre
-  // del artista en esa plataforma (provisorio). false = solo los links reales.
-  redesProvisorias: true,
+  // Botones para seguir a los artistas: solo los links reales de `artista.redes`.
+  // true = mientras falte un link, el botón busca el nombre del artista en esa
+  // plataforma (provisorio; esas búsquedas pueden dar páginas de error).
+  redesProvisorias: false,
 
   /*
    * Los puntos del mapa, en orden (01, 02, ...). Puede haber más o menos de cuatro.

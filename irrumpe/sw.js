@@ -11,7 +11,7 @@
  * - Videos y el modelo del iPhone: siempre directo (son pesados y piden por partes).
  * Lo que necesita internet (en vivo, YouTube) se reconecta solo al volver la señal.
  */
-const CACHE = 'irrumpe-v1';
+const CACHE = 'irrumpe-v2';
 
 // Las fotos y el logo salen de config.js (que escribe en window.IRRUMPE_CONFIG).
 self.window = self;
@@ -24,7 +24,12 @@ const CORE = [
   'vendor/qrcode.js', 'vendor/three.min.js',
   'assets/favicon.svg', 'assets/icon-192.png',
   'ar/', 'ar/index.html', 'ar/ar.css', 'ar/ar.js', 'ar/hologram.js', 'ar/sessions.js',
-  'ar/audio.js', 'ar/video360.js', 'ar/faros.js',
+  'ar/audio.js', 'ar/video360.js',
+  // POLEA · Primer vuelo (la tocata).
+  'polea/', 'polea/index.html', 'polea/polea.css', 'polea/polea.js', 'polea/config.js',
+  'polea/img/polea.webp', 'polea/img/primer-vuelo.webp',
+  ...['proyectada', 'misigno', 'engrama', 'oto', 'belle-troquet', 'navarino'].map((b) => 'polea/img/' + b + '.webp'),
+  '404.html',
   (C.compania || {}).logo,
   ...(C.puntos || []).map((p) => p.artista && p.artista.foto),
 ].filter((u) => u && !/^(data:|https?:)/.test(u));
@@ -66,7 +71,12 @@ async function networkFirst(req, e) {
   } catch (err) {
     // Sin señal o muy lenta: la copia (sin importar ?preview, ?borrador…).
     const hit = (await cache.match(req)) || (await cache.match(req, { ignoreSearch: true }));
-    return hit || net;
+    if (hit) return hit;
+    // Una página que no estaba guardada: en vez del error del navegador, la de inicio.
+    if (req.mode === 'navigate') {
+      try { return await net; } catch (e) { return (await cache.match('./')) || Response.error(); }
+    }
+    return net;
   }
 }
 

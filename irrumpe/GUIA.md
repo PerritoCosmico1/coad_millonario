@@ -36,7 +36,7 @@ La conexión usa servidores públicos de mensajes (HiveMQ y EMQX, en ese orden; 
 
 - [ ] Panel → AR: desmarcar **Modo prototipo** (si no, la AR simula el show).
 - [ ] Fechas, horas por punto y coordenadas exactas revisadas.
-- [ ] Fotos y redes reales de cada artista (sin redes, los botones buscan su nombre).
+- [ ] Fotos y redes reales de cada artista (las redes vacías no muestran botón).
 - [ ] `assets/irrumpe.usdz` regenerado, o *Hay modelo del iPhone* desmarcado.
 - [ ] Probar `director.html` con la llave y dos celulares mirando la AR.
 - [ ] Videos de la galería probados en el celular con `probar-360.html`.
@@ -44,4 +44,4 @@ La conexión usa servidores públicos de mensajes (HiveMQ y EMQX, en ese orden; 
 
 ## 4. Qué funciona sin internet
 
-Después de la primera visita: la landing, la AR (tótem, fichas, cámara, giroscopio, faros con GPS) y las fotos. Necesitan internet: en vivo (director, avisos, reacciones, conectados), la galería 360 y los links a redes.
+Después de la primera visita: la landing, la AR (tótem, fichas, cámara, giroscopio) y las fotos. Necesitan internet: en vivo (director, avisos, reacciones, conectados), la galería 360 y los links a redes.

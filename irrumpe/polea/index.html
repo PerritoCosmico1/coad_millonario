@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>POLEA · Primer vuelo — AR</title>
+  <meta name="description" content="POLEA · Primer vuelo. 15 de noviembre en Monarca, Concepción. Mira a cada banda en realidad aumentada.">
+  <meta name="theme-color" content="#d9d8d4">
+  <meta property="og:title" content="POLEA · Primer vuelo">
+  <meta property="og:description" content="15 NOV · Monarca · Aníbal Pinto 143, Concepción">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="modulepreload" href="../vendor/three.min.js">
+  <link rel="modulepreload" href="../ar/sessions.js">
+  <link rel="modulepreload" href="../ar/audio.js">
+  <link rel="stylesheet" href="polea.css">
+</head>
+<body class="polea">
+  <!-- Lanzador: como el afiche -->
+  <main class="launch" id="launch">
+    <header class="launch__head">
+      <p class="launch__copro">coproducción: Vieja Sorda</p>
+      <h1 class="launch__title"><img src="img/polea.webp" alt="POLEA" width="978" height="124"></h1>
+      <p class="launch__sub"><img src="img/primer-vuelo.webp" alt="Primer vuelo" width="376" height="31"></p>
+    </header>
+    <section class="launch__lineup" id="lineup-launch" aria-label="Line-up"></section>
+    <footer class="launch__foot">
+      <p class="launch__where">15 nov · Monarca · Aníbal Pinto 143</p>
+      <div class="launch__row" id="actions">
+        <button class="launch__enter" id="enter" type="button" disabled>Abrir AR</button>
+        <button class="launch__mic" id="mic" type="button" aria-pressed="false" aria-label="Que todo siga la música (micrófono)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+        </button>
+      </div>
+      <div class="launch__desktop" id="desktop" hidden>
+        <div class="launch__qr" id="qr" aria-hidden="true"></div>
+        <p>Ábrelo en tu celular</p>
+      </div>
+    </footer>
+    <section class="sheet sheet--launch" id="launch-sheet" hidden aria-live="polite"></section>
+  </main>
+
+  <!-- Experiencia: la cámara y el cartel sobre el escenario -->
+  <div class="xr" id="xr" hidden>
+    <video class="xr__video" id="xr-video" playsinline muted hidden></video>
+    <div class="xr__ui" id="xr-ui">
+      <header class="xr__top">
+        <button class="xr__icon" id="xr-exit" type="button" aria-label="Salir">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <div class="xr__top-right">
+          <button class="xr__icon" id="xr-rec" type="button" aria-label="Modo grabación: esconder los botones">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" class="fill"/></svg>
+          </button>
+          <button class="xr__icon" id="refix" type="button" aria-label="Mover el cartel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <p class="toast" id="toast" role="status" hidden></p>
+      <div class="aim" id="aim" aria-hidden="true" hidden></div>
+
+      <div class="xr__dock">
+        <p class="hint" id="hint" hidden></p>
+        <button class="pill" id="fix" type="button" hidden>Fijar aquí</button>
+        <button class="now" id="now" type="button">
+          <span class="now__dot" aria-hidden="true"></span>
+          <span class="now__name" id="now-name"></span>
+          <span class="now__tag" id="now-tag"></span>
+        </button>
+        <div class="xr__actions">
+          <button class="xr__btn" id="xr-lineup" type="button" aria-label="Line-up">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          </button>
+          <button class="xr__btn xr__btn--react" data-react="corazon" type="button" aria-label="Enviar corazón"></button>
+          <button class="xr__btn xr__btn--react" data-react="chispa" type="button" aria-label="Enviar chispa"></button>
+          <button class="xr__btn xr__btn--react" data-react="rayo" type="button" aria-label="Enviar rayo"></button>
+          <button class="xr__btn" id="xr-mic" type="button" aria-pressed="false" aria-label="Que todo siga la música (micrófono)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <section class="sheet" id="sheet" hidden aria-live="polite"></section>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="../vendor/qrcode.js"></script>
+  <script type="module" src="polea.js"></script>
+</body>
+</html>

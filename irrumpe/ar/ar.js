@@ -17,8 +17,7 @@
  * En vivo (js/vivo.js): quién toca lo marca el director desde director.html y
  * cambia en todos los celulares a la vez; el tótem se transforma para mostrar
  * a ese artista. Los avisos del director aparecen arriba, las reacciones de
- * todos suben por el tótem y se ve cuántos hay conectados. Los faros (botón de
- * tres haces) apuntan con GPS y brújula hacia cada punto de la ciudad.
+ * todos suben por el tótem y se ve cuántos hay conectados.
  *
  * Todo el contenido sale de js/config.js. `?preview` deja entrar a la AR desde
  * computador (para probar o proyectar), `?galeria` abre directo la galería y
@@ -26,7 +25,6 @@
  */
 import * as THREE from '../vendor/three.min.js';
 import { createHologram, REACTIONS, instagramHandle } from './hologram.js';
-import { createFaros } from './faros.js';
 import { xrSupported, startXR, startWindow, requestMotionPermission } from './sessions.js';
 import { pulse } from './audio.js';
 import { createBackground, thumbnail, youtubeId, youtubeError, watchUrl } from './video360.js';
@@ -379,7 +377,6 @@ const ctx = {
   onFrame(t, camera) {
     const level = pulse.sample(t);
     holo.update(t, camera, level);
-    if (faros) faros.update(t, camera, level);
   },
   onTap(i) {
     if (i >= 0) openArtist(i);
@@ -417,12 +414,11 @@ const ctx = {
     xrRoot.classList.remove('xr--webxr', 'is-idle');
     // Cambio de fondo (o paso a "Sin anclar"): se entra de inmediato, sin pasar por el lanzador.
     if (pendingSwitch) {
-      const { item, free, thenFaros } = pendingSwitch;
+      const { item, free } = pendingSwitch;
       pendingSwitch = null;
-      enterInteractive(route === 'xr' && !item && !free, item).then(() => { if (thenFaros) setFaros(true); });
+      enterInteractive(route === 'xr' && !item && !free, item);
       return;
     }
-    setFaros(false);
     xrRoot.hidden = true;
     xrRoot.classList.remove('is-rec');
     document.body.classList.remove('is-xr');
@@ -662,14 +658,11 @@ function openLineup() {
 
 // ------------------------------------------------------------------ en vivo
 
-// El tótem muestra a quien toca (se transforma) y los faros lo marcan en rojo.
-let shownLive = null;
+// El tótem muestra a quien toca (se transforma).
 function syncLive(k) {
   if (!holo) return;
   holo.setLive(k);
   holo.setFocus(k);
-  if (faros && shownLive !== k) faros.setLive(k);
-  shownLive = k;
 }
 
 function updateLive() {
@@ -734,47 +727,6 @@ function startVivo() {
       updateLive();
     },
   });
-}
-
-// ------------------------------------------------------------------ faros
-
-let faros = null;
-let geoWatch = null;
-async function setFaros(on) {
-  const btn = $('#xr-faros');
-  if (!on) {
-    if (geoWatch != null) navigator.geolocation.clearWatch(geoWatch);
-    geoWatch = null;
-    if (faros) faros.stop();
-    btn.setAttribute('aria-pressed', 'false');
-    return;
-  }
-  if (!faros || !navigator.geolocation) { toast('Este navegador no da la ubicación'); return; }
-  // En la AR anclada, el aviso de permiso del navegador puede quedar oculto:
-  // si falta el permiso, se pasa al modo sin anclar (los faros se ven igual).
-  let perm = 'prompt';
-  try { perm = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch (e) { /* sin API de permisos */ }
-  if (perm === 'denied') { toast('Sin permiso de ubicación'); return; }
-  if (session && session.mode === 'xr' && perm !== 'granted') {
-    pendingSwitch = { item: null, free: true, thenFaros: true };
-    session.end({ silent: true });
-    return;
-  }
-  btn.setAttribute('aria-pressed', 'true');
-  faros.start();
-  let first = true;
-  geoWatch = navigator.geolocation.watchPosition((pos) => {
-    faros.setUser(pos.coords.latitude, pos.coords.longitude);
-    if (!first) return;
-    first = false;
-    toast('Faros: gira para encontrar los puntos');
-    setTimeout(() => {
-      if (faros.active && !faros.hasHeading) toast('Este celular no informa la brújula: los faros no se pueden orientar');
-    }, 3000);
-  }, (err) => {
-    toast(err.code === 1 ? 'Sin permiso de ubicación' : 'No se pudo obtener la ubicación');
-    setFaros(false);
-  }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 });
 }
 
 // ------------------------------------------------------------------ foto
@@ -876,7 +828,6 @@ function bindUI() {
     const i = Number($('#xr-live').dataset.index);
     if (!Number.isNaN(i)) openArtist(i);
   });
-  $('#xr-faros').addEventListener('click', () => setFaros($('#xr-faros').getAttribute('aria-pressed') !== 'true'));
   $('#xr-photo').addEventListener('click', takePhoto);
   document.querySelectorAll('[data-react]').forEach((b) => {
     b.innerHTML = icon(b.dataset.react);
@@ -933,7 +884,6 @@ async function boot() {
   startVivo();
   try {
     holo = await createHologram({ config: C, geo: GEO });
-    faros = createFaros({ points: POINTS, scene });
     startPreview();
   } catch (e) {
     msg('Este navegador no puede mostrar 3D');
@@ -961,9 +911,8 @@ window.IrrumpeAR = {
   get route() { return route; },
   get quality() { return quality; },
   get background() { return bgCtl; },
-  get faros() { return faros; },
   get vivo() { return vivo; },
-  openArtist, openLineup, openGallery, closeSheet, liveIndex, enterInteractive, switchBackground, setFaros, takePhoto, showAviso,
+  openArtist, openLineup, openGallery, closeSheet, liveIndex, enterInteractive, switchBackground, takePhoto, showAviso,
 };
 
 boot();

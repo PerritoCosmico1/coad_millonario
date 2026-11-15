@@ -12,7 +12,7 @@ Es un sitio estático: HTML, CSS y JS planos, sin build ni dependencias que inst
 - **Cuatro puntos rojos** (Parque Ecuador, Plaza de la Independencia, Plaza Bicentenario y UdeC) que tiemblan y emiten ondas. Al pasar el mouse (o tocar en celular) muestran: lugar, foto y nombre del artista, "Cómo llegar" y links para seguirlo (Instagram, Spotify, YouTube; mientras falte el link real, buscan su nombre); también hora, género, bio y un tema cuando estén cargados. Con un clic la tarjeta queda fija; si el artista tiene un link de Spotify o YouTube en `musica.embed`, en ese momento se carga el reproductor.
 - **Los cuatro puntos siempre están a la vista**: la tarjeta nunca tapa un punto. En escritorio se ubica al costado del grupo de puntos (y si no cabe, el mapa se desliza para hacerle lugar). En celular es una hoja inferior compacta: la cuenta regresiva se achica y el mapa se reencuadra arriba de la hoja. Nada de la página necesita scroll, ni en celular horizontal.
 - **Cuenta regresiva** grande hasta el inicio, con el nombre y logo de La Única Compañía. Durante el evento cambia a "EN VIVO" y al terminar a "YA IRRUMPIÓ".
-- **AR**: botón arriba a la derecha. En celular va directo a `ar/`; en computador muestra un QR. Un tótem holográfico de Concepción con los cuatro puntos y las tarjetas de los artistas, anclado al mundo; al tocar una tarjeta se ven su foto y sus redes. Cuando alguien toca, el tótem se transforma para mostrarlo; los **faros** apuntan con GPS y brújula hacia cada punto de la ciudad; fotos con el tótem para compartir. Ver [`ar/README.md`](ar/README.md).
+- **AR**: botón arriba a la derecha. En celular va directo a `ar/`; en computador muestra un QR. Un tótem holográfico de Concepción con los cuatro puntos y las tarjetas de los artistas, anclado al mundo; al tocar una tarjeta se ven su foto y sus redes. Cuando alguien toca, el tótem se transforma para mostrarlo; fotos con el tótem para compartir. Ver [`ar/README.md`](ar/README.md).
 - **En vivo, en tiempo real**: el director (`director.html`) marca quién toca y manda avisos; todos los celulares cambian al instante. Reacciones compartidas y cuántos hay conectados. Ver [`GUIA.md`](GUIA.md).
 - **Sin señal**: después de la primera visita, la landing y la AR abren aunque no haya internet (`sw.js`).
 - **Galería 360**: el mismo tótem sobre la transmisión 360 de cada intervención (en vivo por YouTube o grabada), para quien no pudo ir. Se abre con el botón 360 de la AR o, en computador, desde el QR ("Galería 360"). Los videos se cargan en `galeria` de `js/config.js`, después de probarlos en el celular con `probar-360.html`.
@@ -70,6 +70,8 @@ GUIA.md                 guía de operación (contenido, director, llave, antes d
 sw.js                   funciona sin señal (service worker)
 js/concepcion-geo.js    costa y agua (generado)
 ar/                     experiencia AR
+polea/                  AR de la tocata POLEA · Primer vuelo (15 nov, Monarca): cartel sobre el escenario (ver polea/LEEME.md)
+404.html                página de "no existe" con links a la tocata, la AR y el inicio
 qr.html                 genera el QR y la placa final para el video del pitch
 probar-360.html         prueba si un video (YouTube o .mp4 propio) sirve para la galería 360 (abrir en el celular)
 PITCH.md                plan y checklist para el pitch
